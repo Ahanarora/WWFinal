@@ -11,10 +11,10 @@ export default function HomeScreen({ navigation }) {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <NewsCard
-            title={item.title}
-            overview={item.overview}
-            onPress={() => navigation.navigate('Story', { id: item.id })}
-          />
+  title={item.title}
+  overview={item.overview}
+  onPress={() => navigation.navigate('Story', { story: item })}
+/>
         )}
         ListHeaderComponent={<View style={styles.header} />}
       />
@@ -24,10 +24,10 @@ export default function HomeScreen({ navigation }) {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <NewsCard
-            title={item.title}
-            overview={item.overview}
-            onPress={() => navigation.navigate('Theme', { id: item.id })}
-          />
+  title={item.title}
+  overview={item.overview}
+  onPress={() => navigation.navigate('Theme', { theme: item })}
+/>
         )}
         ListHeaderComponent={<View style={styles.header} />}
       />

@@ -21,13 +21,6 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 3,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  overview: {
-    fontSize: 14,
-    marginTop: 4,
-    color: '#555',
-  },
+  title: { fontSize: 18, fontWeight: 'bold' },
+  overview: { fontSize: 14, marginTop: 4, color: '#555' },
 });

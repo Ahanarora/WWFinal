@@ -1,13 +1,23 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, LayoutAnimation, Platform, UIManager } from 'react-native';
 
-// --- Reusable Item (nested dropdown) ---
+// Enable smooth animation on Android
+if (Platform.OS === 'android') {
+  UIManager.setLayoutAnimationEnabledExperimental?.(true);
+}
+
+// --- Nested Item ---
 function Item({ label, detail }) {
   const [expanded, setExpanded] = useState(false);
 
+  const toggle = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpanded(!expanded);
+  };
+
   return (
     <View style={styles.item}>
-      <TouchableOpacity onPress={() => setExpanded(!expanded)}>
+      <TouchableOpacity onPress={toggle}>
         <Text style={styles.itemLabel}>
           {label} {expanded ? '▲' : '▼'}
         </Text>
@@ -23,9 +33,14 @@ function Item({ label, detail }) {
 function Section({ title, content }) {
   const [expanded, setExpanded] = useState(false);
 
+  const toggle = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpanded(!expanded);
+  };
+
   return (
     <View style={styles.section}>
-      <TouchableOpacity onPress={() => setExpanded(!expanded)}>
+      <TouchableOpacity onPress={toggle}>
         <Text style={styles.sectionTitle}>
           {title} {expanded ? '▲' : '▼'}
         </Text>
@@ -35,11 +50,13 @@ function Section({ title, content }) {
         <View style={styles.sectionContent}>
           {content.map((item, i) =>
             typeof item === 'string' ? (
-              // If it's a simple string (no detail), just show as bullet
               <Text key={i} style={styles.simpleText}>• {item}</Text>
             ) : (
-              // If it's an object with label + detail
-              <Item key={i} label={item.question || item.name} detail={item.answer || item.detail} />
+              <Item
+                key={i}
+                label={item.question || item.name}
+                detail={item.answer || item.detail}
+              />
             )
           )}
         </View>

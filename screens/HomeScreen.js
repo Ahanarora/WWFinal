@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,9 +7,10 @@ import {
   StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
-} from 'react-native';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../firebaseConfig';
+} from "react-native";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../firebaseConfig";
+import { colors, fonts, spacing } from "../styles/theme";
 
 export default function HomeScreen({ navigation }) {
   const [themes, setThemes] = useState([]);
@@ -17,62 +18,47 @@ export default function HomeScreen({ navigation }) {
 
   useEffect(() => {
     (async () => {
-      try {
-        const snapshot = await getDocs(collection(db, 'themes'));
-        const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-        setThemes(data);
-      } catch (error) {
-        console.error('Error fetching themes:', error);
-      } finally {
-        setLoading(false);
-      }
+      const snapshot = await getDocs(collection(db, "themes"));
+      const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+      setThemes(data);
+      setLoading(false);
     })();
   }, []);
 
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Loading themes...</Text>
-      </View>
-    );
-  }
-
-  if (themes.length === 0) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.emptyText}>No themes published yet</Text>
+        <ActivityIndicator size="large" color={colors.accent} />
+        <Text style={styles.loadingText}>Loading articles...</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Published Themes</Text>
       <FlatList
         data={themes}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={styles.card}
-            onPress={() => navigation.navigate('Theme', { theme: item })}
+            style={styles.articleCard}
+            onPress={() => navigation.navigate("Theme", { theme: item })}
           >
-            {item.imageUrl ? (
-              <Image source={{ uri: item.imageUrl }} style={styles.image} />
-            ) : (
-              <View style={styles.placeholderImage}>
-                <Text style={styles.placeholderText}>No Image</Text>
-              </View>
+            {item.imageUrl && (
+              <Image source={{ uri: item.imageUrl }} style={styles.thumbnail} />
             )}
-            <View style={styles.cardContent}>
+            <View style={styles.textContainer}>
+              <Text style={styles.category}>
+                {item.category?.toUpperCase() || "GENERAL"}
+              </Text>
               <Text style={styles.title}>{item.title}</Text>
-              <Text style={styles.category}>{item.category || 'Uncategorized'}</Text>
-              <Text style={styles.overview} numberOfLines={2}>
+              <Text style={styles.overview} numberOfLines={3}>
                 {item.overview}
               </Text>
             </View>
           </TouchableOpacity>
         )}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
     </View>
   );
@@ -81,66 +67,47 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 12,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.lg,
   },
-  header: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: 10,
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  loadingText: { color: colors.textSecondary, marginTop: 8 },
+  articleCard: {
+    flexDirection: "column",
+    paddingBottom: spacing.md,
   },
-  card: {
-    backgroundColor: '#f9f9f9',
-    borderRadius: 10,
-    marginVertical: 8,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-  },
-  image: {
-    width: '100%',
+  thumbnail: {
+    width: "100%",
     height: 180,
+    borderRadius: 4,
+    borderWidth: 0.5,
+    borderColor: colors.border,
+    marginBottom: spacing.sm,
   },
-  placeholderImage: {
-    width: '100%',
-    height: 180,
-    backgroundColor: '#eee',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  placeholderText: {
-    color: '#888',
+  textContainer: {},
+  category: {
     fontSize: 12,
-  },
-  cardContent: {
-    padding: 12,
+    color: colors.textSecondary,
+    letterSpacing: 1,
+    fontFamily: fonts.body,
+    marginBottom: 4,
   },
   title: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  category: {
-    fontSize: 13,
-    color: '#007AFF',
-    marginBottom: 4,
+    fontSize: 20,
+    fontFamily: fonts.heading,
+    color: colors.textPrimary,
+    marginBottom: 6,
   },
   overview: {
-    fontSize: 14,
-    color: '#555',
+    fontSize: 15,
+    color: colors.textSecondary,
+    fontFamily: fonts.body,
+    lineHeight: 22,
   },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 8,
-    color: '#555',
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#666',
+  separator: {
+    borderBottomWidth: 1,
+    borderColor: colors.border,
+    marginVertical: spacing.md,
   },
 });

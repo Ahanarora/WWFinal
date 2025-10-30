@@ -1,117 +1,66 @@
 import React from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  ScrollView,
-  StyleSheet,
-  Image,
-  Linking,
-} from "react-native";
-import { List } from "react-native-paper";
+import { View, Text, StyleSheet, ScrollView, Image } from "react-native";
 
 export default function ThemeScreen({ route }) {
-  const { theme } = route.params;
+  const { theme } = route.params || {};
 
   if (!theme) {
     return (
-      <View style={styles.container}>
-        <Text>No theme data available.</Text>
+      <View style={styles.center}>
+        <Text style={styles.errorText}>⚠️ No theme data found.</Text>
       </View>
     );
   }
 
+  const timeline = theme.timeline || [];
+  const analysis = theme.analysis || {};
+
   return (
     <ScrollView style={styles.container}>
-      {/* Title & Overview */}
-      <Text style={styles.title}>{theme.title}</Text>
-      <Text style={styles.overview}>{theme.overview}</Text>
-
-      {/* Timeline */}
-      {theme.timeline && theme.timeline.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.heading}>Timeline</Text>
-          <FlatList
-            data={theme.timeline}
-            keyExtractor={(_, index) => index.toString()}
-            renderItem={({ item }) => (
-              <View style={styles.card}>
-                <Text style={styles.date}>{item.date}</Text>
-                <Text style={styles.event}>{item.event}</Text>
-                <Text>{item.description}</Text>
-
-                {/* Show image if available */}
-                {item.imageUrl && (
-                  <Image
-                    source={{ uri: item.imageUrl }}
-                    style={styles.image}
-                    resizeMode="cover"
-                  />
-                )}
-
-                {/* Show link if available */}
-                {item.sourceLink && (
-                  <Text
-                    style={styles.link}
-                    onPress={() => Linking.openURL(item.sourceLink)}
-                  >
-                    Read more →
-                  </Text>
-                )}
-              </View>
-            )}
-          />
+      {/* Cover Image */}
+      {theme.imageUrl ? (
+        <Image source={{ uri: theme.imageUrl }} style={styles.coverImage} />
+      ) : (
+        <View style={styles.placeholderImage}>
+          <Text style={styles.placeholderText}>No Cover Image</Text>
         </View>
       )}
 
+      {/* Title / Overview */}
+      <Text style={styles.title}>{theme.title}</Text>
+      <Text style={styles.category}>{theme.category}</Text>
+      <Text style={styles.overview}>{theme.overview}</Text>
+
+      {/* Timeline */}
+      <Text style={styles.sectionTitle}>🕒 Timeline</Text>
+      {timeline.length === 0 ? (
+        <Text style={styles.emptyText}>No timeline events yet.</Text>
+      ) : (
+        timeline.map((e, i) => (
+          <View key={i} style={styles.eventRow}>
+            {e.imageUrl ? (
+              <Image source={{ uri: e.imageUrl }} style={styles.eventThumbnail} />
+            ) : (
+              <View style={styles.thumbnailPlaceholder}>
+                <Text style={styles.thumbnailText}>📰</Text>
+              </View>
+            )}
+            <View style={styles.eventTextContainer}>
+              <Text style={styles.eventDate}>{e.date}</Text>
+              <Text style={styles.eventTitle}>{e.event}</Text>
+              <Text style={styles.eventDesc}>{e.description}</Text>
+            </View>
+          </View>
+        ))
+      )}
+
       {/* Analysis */}
-      {theme.analysis && (
-        <View style={styles.section}>
-          <Text style={styles.heading}>Analysis</Text>
-          <List.Section>
-            {/* Stakeholders */}
-            <List.Accordion
-              title="Stakeholders"
-              left={(props) => <List.Icon {...props} icon="account-group" />}
-            >
-              {theme.analysis?.stakeholders?.map((s, i) => (
-                <List.Item key={i} title={s.name} description={s.detail} />
-              ))}
-            </List.Accordion>
-
-            {/* FAQs */}
-            <List.Accordion
-              title="FAQs"
-              left={(props) => <List.Icon {...props} icon="help-circle" />}
-            >
-              <List.AccordionGroup>
-                {theme.analysis?.faqs?.map((f, i) => (
-                  <List.Accordion
-                    key={i}
-                    id={`faq-${i}`}
-                    title={`Q: ${f.question}`}
-                    left={(props) => <List.Icon {...props} icon="comment-question" />}
-                  >
-                    <List.Item title={`A: ${f.answer}`} />
-                  </List.Accordion>
-                ))}
-              </List.AccordionGroup>
-            </List.Accordion>
-
-            {/* Future Outlook */}
-            <List.Accordion
-              title="Future Outlook"
-              left={(props) => <List.Icon {...props} icon="trending-up" />}
-            >
-              {theme.analysis?.future?.map((f, i) => (
-                <List.Item
-                  key={i}
-                  title={`Q: ${f.question}`}
-                  description={`A: ${f.answer}`}
-                />
-              ))}
-            </List.Accordion>
-          </List.Section>
+      <Text style={styles.sectionTitle}>📊 Analysis</Text>
+      {Object.keys(analysis).length === 0 ? (
+        <Text style={styles.emptyText}>No analysis yet.</Text>
+      ) : (
+        <View style={styles.analysisBox}>
+          <Text style={styles.analysisText}>{JSON.stringify(analysis, null, 2)}</Text>
         </View>
       )}
     </ScrollView>
@@ -119,28 +68,62 @@ export default function ThemeScreen({ route }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#fff" },
-  title: { fontSize: 24, fontWeight: "bold", marginBottom: 10 },
-  overview: { fontSize: 16, marginBottom: 20, color: "#333" },
-  section: { marginBottom: 20 },
-  heading: { fontSize: 18, fontWeight: "600", marginBottom: 8, color: "#007AFF" },
-  card: {
-    padding: 12,
-    marginBottom: 10,
-    backgroundColor: "#f2f2f2",
-    borderRadius: 8,
-  },
-  date: { fontWeight: "bold", marginBottom: 4 },
-  event: { fontSize: 16, fontWeight: "500", marginBottom: 2 },
-  image: {
+  container: { flex: 1, backgroundColor: "#fff", padding: 16 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  errorText: { color: "red" },
+  coverImage: { width: "100%", height: 220, borderRadius: 10, marginBottom: 12 },
+  placeholderImage: {
     width: "100%",
-    height: 180,
+    height: 220,
+    borderRadius: 10,
+    backgroundColor: "#eee",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  placeholderText: { color: "#888", fontSize: 12 },
+  title: { fontSize: 22, fontWeight: "700", marginBottom: 4 },
+  category: { fontSize: 14, color: "#007AFF", marginBottom: 6 },
+  overview: { fontSize: 15, color: "#444", marginBottom: 20 },
+  sectionTitle: { fontSize: 18, fontWeight: "600", marginVertical: 10 },
+  emptyText: { fontSize: 14, color: "#666" },
+
+  // 🧩 Timeline Styles
+  eventRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "#f9f9f9",
     borderRadius: 8,
-    marginTop: 8,
+    padding: 8,
+    marginVertical: 5,
+    gap: 10,
   },
-  link: {
-    marginTop: 6,
-    color: "#007AFF",
-    fontWeight: "600",
+  eventThumbnail: {
+    width: 50,
+    height: 50,
+    borderRadius: 6,
+    backgroundColor: "#ddd",
   },
+  thumbnailPlaceholder: {
+    width: 50,
+    height: 50,
+    borderRadius: 6,
+    backgroundColor: "#eee",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  thumbnailText: { fontSize: 18 },
+  eventTextContainer: { flex: 1 },
+  eventDate: { color: "#777", fontSize: 12, marginBottom: 2 },
+  eventTitle: { fontWeight: "600", fontSize: 14, marginBottom: 2 },
+  eventDesc: { fontSize: 13, color: "#333" },
+
+  // Analysis
+  analysisBox: {
+    backgroundColor: "#f1f1f1",
+    padding: 10,
+    borderRadius: 8,
+    marginTop: 10,
+  },
+  analysisText: { fontFamily: "monospace", fontSize: 13, color: "#222" },
 });

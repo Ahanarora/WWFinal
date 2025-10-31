@@ -1,6 +1,10 @@
+// ----------------------------------------
+// screens/StoryScreen.js
+// ----------------------------------------
 import React from "react";
 import { View, Text, StyleSheet, ScrollView, Image } from "react-native";
 import { colors, fonts, spacing } from "../styles/theme";
+import AnalysisSection from "../components/AnalysisSection";
 
 export default function StoryScreen({ route }) {
   const { story } = route.params || {};
@@ -15,13 +19,17 @@ export default function StoryScreen({ route }) {
 
   return (
     <ScrollView style={styles.container}>
+      {/* Cover */}
       {story.imageUrl && (
         <Image source={{ uri: story.imageUrl }} style={styles.coverImage} />
       )}
+
+      {/* Metadata */}
       <Text style={styles.title}>{story.title}</Text>
       <Text style={styles.category}>{story.category}</Text>
       <Text style={styles.overview}>{story.overview}</Text>
 
+      {/* TIMELINE */}
       {timeline.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Timeline</Text>
@@ -41,6 +49,14 @@ export default function StoryScreen({ route }) {
               </View>
             </View>
           ))}
+        </View>
+      )}
+
+      {/* 🧠 ANALYSIS */}
+      {story.analysis && Object.keys(story.analysis).length > 0 && (
+        <View style={{ marginTop: 16 }}>
+          <Text style={styles.sectionTitle}>Analysis</Text>
+          <AnalysisSection analysis={story.analysis} />
         </View>
       )}
     </ScrollView>

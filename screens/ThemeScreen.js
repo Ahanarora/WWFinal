@@ -1,6 +1,10 @@
+// ----------------------------------------
+// screens/ThemeScreen.js
+// ----------------------------------------
 import React from "react";
 import { View, Text, StyleSheet, ScrollView, Image } from "react-native";
 import { colors, fonts, spacing } from "../styles/theme";
+import AnalysisSection from "../components/AnalysisSection";
 
 export default function ThemeScreen({ route }) {
   const { theme } = route.params || {};
@@ -12,14 +16,15 @@ export default function ThemeScreen({ route }) {
     );
 
   const timeline = theme.timeline || [];
-  const analysis = theme.analysis || {};
 
   return (
     <ScrollView style={styles.container}>
+      {/* Cover */}
       {theme.imageUrl && (
         <Image source={{ uri: theme.imageUrl }} style={styles.coverImage} />
       )}
 
+      {/* Metadata */}
       <Text style={styles.title}>{theme.title}</Text>
       <Text style={styles.category}>{theme.category}</Text>
       <Text style={styles.overview}>{theme.overview}</Text>
@@ -49,19 +54,13 @@ export default function ThemeScreen({ route }) {
         )}
       </View>
 
-      {/* ANALYSIS */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Analysis</Text>
-        {Object.keys(analysis).length === 0 ? (
-          <Text style={styles.empty}>No analysis yet.</Text>
-        ) : (
-          <View style={styles.analysisBox}>
-            <Text style={styles.analysisText}>
-              {JSON.stringify(analysis, null, 2)}
-            </Text>
-          </View>
-        )}
-      </View>
+      {/* 🧠 ANALYSIS */}
+      {theme.analysis && Object.keys(theme.analysis).length > 0 && (
+        <View style={{ marginTop: 16 }}>
+          <Text style={styles.sectionTitle}>Analysis</Text>
+          <AnalysisSection analysis={theme.analysis} />
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -144,15 +143,5 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 13,
     color: colors.textSecondary,
-  },
-  analysisBox: {
-    backgroundColor: "#f3f3f3",
-    padding: spacing.sm,
-    borderRadius: 4,
-  },
-  analysisText: {
-    fontFamily: "monospace",
-    fontSize: 13,
-    color: colors.textPrimary,
   },
 });

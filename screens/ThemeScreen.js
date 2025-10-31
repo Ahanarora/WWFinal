@@ -1,10 +1,12 @@
 // ----------------------------------------
 // screens/ThemeScreen.js
 // ----------------------------------------
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, StyleSheet, ScrollView, Image } from "react-native";
+import Slider from "@react-native-community/slider";
 import { colors, fonts, spacing } from "../styles/theme";
 import AnalysisSection from "../components/AnalysisSection";
+import SourceLinks from "../components/SourceLinks";
 
 export default function ThemeScreen({ route }) {
   const { theme } = route.params || {};
@@ -15,7 +17,14 @@ export default function ThemeScreen({ route }) {
       </View>
     );
 
-  const timeline = theme.timeline || [];
+  const timeline = Array.isArray(theme.timeline) ? theme.timeline : [];
+  const [depth, setDepth] = useState(3);
+
+  const filteredTimeline = timeline.filter((e) => {
+    if (depth === 1) return e.significance === 3;
+    if (depth === 2) return e.significance >= 2;
+    return true;
+  });
 
   return (
     <ScrollView style={styles.container}>
@@ -25,37 +34,66 @@ export default function ThemeScreen({ route }) {
       )}
 
       {/* Metadata */}
-      <Text style={styles.title}>{theme.title}</Text>
-      <Text style={styles.category}>{theme.category}</Text>
-      <Text style={styles.overview}>{theme.overview}</Text>
+      <Text style={styles.title}>{theme.title || "Untitled Theme"}</Text>
+      <Text style={styles.category}>{theme.category || "Uncategorized"}</Text>
+      <Text style={styles.overview}>{theme.overview || ""}</Text>
+
+      {/* 🧭 Depth Toggle */}
+      {timeline.length > 0 && (
+        <View style={styles.sliderBox}>
+          <Text style={styles.sliderLabel}>Essential</Text>
+          <Slider
+            style={{ flex: 1, height: 40 }}
+            minimumValue={1}
+            maximumValue={3}
+            step={1}
+            value={depth}
+            onValueChange={(v) => setDepth(v)}
+            minimumTrackTintColor="#2563EB"
+            maximumTrackTintColor="#D1D5DB"
+            thumbTintColor="#2563EB"
+          />
+          <Text style={styles.sliderLabel}>Complete</Text>
+        </View>
+      )}
 
       {/* TIMELINE */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Chronology of Events</Text>
-        {timeline.length === 0 ? (
-          <Text style={styles.empty}>No timeline events yet.</Text>
+        {filteredTimeline.length === 0 ? (
+          <Text style={styles.empty}>No events for this depth.</Text>
         ) : (
-          timeline.map((e, i) => (
-            <View key={i} style={styles.eventRow}>
-              {e.imageUrl ? (
-                <Image source={{ uri: e.imageUrl }} style={styles.thumb} />
-              ) : (
-                <View style={styles.thumbPlaceholder}>
-                  <Text style={{ fontSize: 16 }}>📰</Text>
+          filteredTimeline.map((e, i) => (
+            <View key={i} style={styles.eventBlock}>
+              {/* Event Row */}
+              <View style={styles.eventRow}>
+                {e.imageUrl ? (
+                  <Image source={{ uri: e.imageUrl }} style={styles.thumb} />
+                ) : (
+                  <View style={styles.thumbPlaceholder}>
+                    <Text style={{ fontSize: 16 }}>📰</Text>
+                  </View>
+                )}
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.eventDate}>{e.date}</Text>
+                  <Text style={styles.eventTitle}>{e.event}</Text>
+                  <Text style={styles.eventDesc}>{e.description}</Text>
+                </View>
+              </View>
+
+              {/* Event-specific coverage links */}
+              {Array.isArray(e.sources) && e.sources.length > 0 && (
+                <View style={styles.eventSources}>
+                  <SourceLinks sources={e.sources} />
                 </View>
               )}
-              <View style={{ flex: 1 }}>
-                <Text style={styles.eventDate}>{e.date}</Text>
-                <Text style={styles.eventTitle}>{e.event}</Text>
-                <Text style={styles.eventDesc}>{e.description}</Text>
-              </View>
             </View>
           ))
         )}
       </View>
 
-      {/* 🧠 ANALYSIS */}
-      {theme.analysis && Object.keys(theme.analysis).length > 0 && (
+      {/* 🧠 Analysis */}
+      {theme.analysis && Object.keys(theme.analysis || {}).length > 0 && (
         <View style={{ marginTop: 16 }}>
           <Text style={styles.sectionTitle}>Analysis</Text>
           <AnalysisSection analysis={theme.analysis} />
@@ -98,6 +136,19 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: spacing.lg,
   },
+  sliderBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: spacing.md,
+  },
+  sliderLabel: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.textSecondary,
+    width: 60,
+    textAlign: "center",
+  },
   section: { marginBottom: spacing.lg },
   sectionTitle: {
     fontFamily: fonts.heading,
@@ -108,12 +159,16 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   empty: { fontFamily: fonts.body, color: "#777" },
+  eventBlock: {
+    marginBottom: spacing.md,
+    borderBottomWidth: 1,
+    borderColor: colors.border,
+    paddingBottom: spacing.sm,
+  },
   eventRow: {
     flexDirection: "row",
     gap: 10,
     paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderColor: colors.border,
   },
   thumb: {
     width: 50,
@@ -143,5 +198,9 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 13,
     color: colors.textSecondary,
+  },
+  eventSources: {
+    marginTop: spacing.sm,
+    paddingLeft: 4,
   },
 });

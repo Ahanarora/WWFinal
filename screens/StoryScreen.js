@@ -190,17 +190,21 @@ const styles = StyleSheet.create({
     color: "#777",
   },
   eventTitle: {
-    fontFamily: fonts.heading,
-    fontSize: 14,
-    color: colors.textPrimary,
-  },
-  eventDesc: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
+fontFamily: fonts.heading,
+fontSize: 18,
+color: colors.textPrimary,
+paddingBottom: 4,
+fontWeight: "600",
+},
+eventDesc: {
+fontFamily: fonts.body,
+fontSize: 16,
+paddingBottom: 4,
+color: colors.textSecondary,
+},
   eventSources: {
-    marginTop: spacing.sm,
-    paddingLeft: 4,
-  },
+marginTop: 4,
+marginBottom: spacing.sm,
+paddingLeft: 2,
+}
 });

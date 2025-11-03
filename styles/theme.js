@@ -7,8 +7,14 @@ export const colors = {
 };
 
 export const fonts = {
-  heading: "Merriweather-Bold",
-  body: "Inter-Regular",
+  regular: "System",
+  medium: "System",
+  light: "System",
+  thin: "System",
+};
+
+export const text = {
+  fontFamily: "System",
 };
 
 export const spacing = {

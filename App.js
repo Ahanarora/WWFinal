@@ -1,24 +1,29 @@
 // ----------------------------------------
-// App.js
+// App.js — Wait...What? News App
 // ----------------------------------------
 import React from "react";
+import { Text } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
+import { useFonts } from "expo-font";
+import AppLoading from "expo-app-loading";
 
-// Tabs (list screens)
+// Screens
 import HomeScreen from "./screens/HomeScreen";
 import StoriesScreen from "./screens/StoriesScreen";
 import ThemesScreen from "./screens/ThemesScreen";
-
-// Detail screens
 import StoryScreen from "./screens/StoryScreen";
 import ThemeScreen from "./screens/ThemeScreen";
 
+// Tabs and Stack
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
+// ----------------------------------------
+// 🧭 Tab Navigation
+// ----------------------------------------
 function Tabs() {
   return (
     <Tab.Navigator
@@ -67,7 +72,17 @@ function Tabs() {
   );
 }
 
+// ----------------------------------------
+// 🧭 Root Stack Navigation
+// ----------------------------------------
 export default function App() {
+  // Load gothic-style font
+  const [fontsLoaded] = useFonts({
+    Gothic: require("./assets/fonts/CinzelDecorative-Bold.ttf"),
+  });
+
+  if (!fontsLoaded) return <AppLoading />;
+
   return (
     <NavigationContainer>
       <Stack.Navigator>
@@ -75,10 +90,24 @@ export default function App() {
         <Stack.Screen
           name="RootTabs"
           component={Tabs}
-          options={{ headerShown: false }}
+          options={{
+            headerTitleAlign: "center",
+            headerTitle: () => (
+              <Text
+                style={{
+                  fontSize: 24,
+                  fontFamily: "Gothic",
+                  fontWeight: "bold",
+                }}
+              >
+                <Text style={{ color: "black" }}>Wait</Text>
+                <Text style={{ color: "red" }}>...What?</Text>
+              </Text>
+            ),
+          }}
         />
 
-        {/* Detail pages */}
+        {/* Detail Pages */}
         <Stack.Screen
           name="Story"
           component={StoryScreen}
@@ -87,6 +116,7 @@ export default function App() {
             headerBackTitle: "Back",
           }}
         />
+
         <Stack.Screen
           name="Theme"
           component={ThemeScreen}

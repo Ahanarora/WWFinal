@@ -191,13 +191,13 @@ const styles = StyleSheet.create({
   },
  eventTitle: {
 fontFamily: fonts.heading,
-fontSize: 15,
+fontSize: 16,
 color: colors.textPrimary,
-fontWeight: "600",
+fontWeight: "400",
 },
 eventDesc: {
 fontFamily: fonts.body,
-fontSize: 14,
+fontSize: 15,
 color: colors.textSecondary,
 },
   

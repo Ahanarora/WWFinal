@@ -1,6 +1,4 @@
-// ----------------------------------------
 // components/RenderWithContext.js
-// ----------------------------------------
 import React, { useState } from "react";
 import {
   Text,
@@ -9,47 +7,116 @@ import {
   TouchableOpacity,
   Pressable,
   StyleSheet,
+  Linking,
 } from "react-native";
+import { parseLinkedText } from "../utils/renderLinkedText";
+import { db } from "../firebaseConfig";
+import { doc, getDoc } from "firebase/firestore";
 
-export default function RenderWithContext({ text = "", contexts = [] }) {
+export default function RenderWithContext({ text = "", contexts = [], navigation }) {
   const [popup, setPopup] = useState(null);
-
   if (!text) return null;
 
-  // ✅ Build text tokens with highlighted terms
-  let rendered = [text];
-  contexts.forEach(({ term }) => {
-    if (!term) return;
-    const parts = [];
-    rendered.forEach((chunk) => {
-      if (typeof chunk !== "string") return parts.push(chunk);
-      const regex = new RegExp(`(${term})`, "gi");
-      const split = chunk.split(regex);
-      split.forEach((seg) => {
-        if (seg.toLowerCase() === term.toLowerCase()) {
-          const info = contexts.find(
-            (c) => c.term.toLowerCase() === term.toLowerCase()
-          );
-          parts.push(
-            <TouchableOpacity
-              key={`${term}-${Math.random()}`}
-              onPress={() => setPopup(info)}
-            >
-              <Text style={styles.highlight}>{seg}</Text>
-            </TouchableOpacity>
-          );
-        } else {
-          parts.push(seg);
-        }
+  // Parse the text into tokens (plain, internal link, external link)
+  const tokens = parseLinkedText(text, navigation);
+
+  const renderPart = (n, i) => {
+    // ---------- 1️⃣ Plain text ----------
+    if (n.type === "text") {
+      const termMatches = contexts.filter((c) =>
+        n.value.toLowerCase().includes(c.term.toLowerCase())
+      );
+      if (termMatches.length === 0) return <Text key={i}>{n.value}</Text>;
+
+      let chunks = [n.value];
+      termMatches.forEach(({ term }) => {
+        const newChunks = [];
+        chunks.forEach((chunk) => {
+          if (typeof chunk !== "string") return newChunks.push(chunk);
+          const parts = chunk.split(new RegExp(`(${term})`, "gi"));
+          parts.forEach((seg) => {
+            if (seg.toLowerCase() === term.toLowerCase()) {
+              const info = contexts.find(
+                (c) => c.term.toLowerCase() === term.toLowerCase()
+              );
+              newChunks.push(
+                <TouchableOpacity
+                  key={`${term}-${Math.random()}`}
+                  onPress={() => setPopup(info)}
+                >
+                  <Text style={styles.highlight}>{seg}</Text>
+                </TouchableOpacity>
+              );
+            } else newChunks.push(seg);
+          });
+        });
+        chunks = newChunks;
       });
-    });
-    rendered = parts;
-  });
+      return <Text key={i}>{chunks}</Text>;
+    }
+
+    // ---------- 2️⃣ Internal links ----------
+    if (n.type === "internalLink") {
+      return (
+        <TouchableOpacity
+          key={i}
+          onPress={async () => {
+            try {
+              // Use the ID exactly as it appears in Firestore
+              const collectionName =
+                n.linkType === "story" ? "stories" : "themes";
+
+              console.log("🧩 Raw ID:", JSON.stringify(n.id));
+              console.log(`🔎 Fetching path: ${collectionName}/${n.id}`);
+
+              const ref = doc(db, collectionName, n.id);
+              const snap = await getDoc(ref);
+
+              if (!snap.exists()) {
+                alert(`⚠️ ${n.linkType} not found: ${n.id}`);
+                console.log(`❌ Not found at Firestore path: ${collectionName}/${n.id}`);
+                return;
+              }
+
+              const data = { id: snap.id, ...snap.data() };
+              console.log("✅ Document found:", data.title || data.id);
+
+              navigation.navigate(
+                n.linkType === "story" ? "Story" : "Theme",
+                { [n.linkType]: data }
+              );
+            } catch (err) {
+              console.error("🔗 Link navigation error:", err);
+              alert("⚠️ Failed to open link");
+            }
+          }}
+        >
+          <Text style={styles.link}>{n.label}</Text>
+        </TouchableOpacity>
+      );
+    }
+
+    // ---------- 3️⃣ External links ----------
+    if (n.type === "externalLink") {
+      return (
+        <Text
+          key={i}
+          style={styles.link}
+          onPress={() => Linking.openURL(n.href)}
+        >
+          {n.label}
+        </Text>
+      );
+    }
+  };
 
   return (
     <>
-      <Text style={styles.text}>{rendered}</Text>
+      <Text style={styles.text}>
+        {tokens.map((n, i) => renderPart(n, i))}
+      </Text>
 
+      {/* Popup modal for context explainers */}
       <Modal
         visible={!!popup}
         transparent
@@ -76,9 +143,15 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: "#222",
   },
-  highlight: {
+  link: {
     color: "#2563EB",
     textDecorationLine: "underline",
+  },
+  highlight: {
+    textDecorationLine: "underline",
+    textDecorationStyle: "dotted",
+    textDecorationColor: "black",
+    color: "#000",
   },
   overlay: {
     flex: 1,

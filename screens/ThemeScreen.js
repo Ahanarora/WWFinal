@@ -85,7 +85,12 @@ export default function StoryScreen({ route, navigation }) {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.eventDate}>{e.date}</Text>
                   <Text style={styles.eventTitle}>{e.event}</Text>
-                  <RenderWithContext text={e.description} contexts={e.contexts || []} />
+                  <RenderWithContext
+  text={e.description}
+  contexts={e.contexts || []}
+  navigation={navigation}
+/>
+
                 </View>
               </View>
 

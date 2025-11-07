@@ -79,7 +79,7 @@ export default function App() {
   // Load fonts
   const [fontsLoaded] = useFonts({
    Jacquard24: require("./assets/fonts/Jacquard24-Regular.ttf"),
-   Bangers: require("./assets/fonts/Bangers-Regular.ttf"),
+   Kranky: require("./assets/fonts/Kranky-Regular.ttf"),
   });
 
   if (!fontsLoaded) return <AppLoading />;
@@ -102,17 +102,17 @@ export default function App() {
                     color: "black",
                   }}
                 >
-                  Wait
+                  W
                 </Text>
                 <Text
                   style={{
-                    fontFamily: "Bangers",
+                    fontFamily: "Kranky",
                     fontSize: 55,
                     fontWeight: "500",
                     color: "black",
                   }}
                 >
-                  ...What?
+                  ait...what?
                 </Text>
               </Text>
             ),

@@ -47,8 +47,8 @@ export default function StoryScreen({ route, navigation }) {
 
 
       {/* 🧭 Depth Toggle */}
-      {timeline.length > 0 && (
-        <View style={styles.sliderBox}>
+      {!theme.disableDepthToggle && timeline.length > 0 && (
+  <View style={styles.sliderBox}>
           <Text style={styles.sliderLabel}>Essential</Text>
           <Slider
             style={{ flex: 1, height: 40 }}

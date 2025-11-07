@@ -76,9 +76,10 @@ function Tabs() {
 // 🧭 Root Stack Navigation
 // ----------------------------------------
 export default function App() {
-  // Load gothic-style font
+  // Load fonts
   const [fontsLoaded] = useFonts({
-    Gothic: require("./assets/fonts/CinzelDecorative-Bold.ttf"),
+   Jacquard24: require("./assets/fonts/Jacquard24-Regular.ttf"),
+   Bangers: require("./assets/fonts/Bangers-Regular.ttf"),
   });
 
   if (!fontsLoaded) return <AppLoading />;
@@ -93,15 +94,26 @@ export default function App() {
           options={{
             headerTitleAlign: "center",
             headerTitle: () => (
-              <Text
-                style={{
-                  fontSize: 24,
-                  fontFamily: "Gothic",
-                  fontWeight: "bold",
-                }}
-              >
-                <Text style={{ color: "black" }}>Wait</Text>
-                <Text style={{ color: "red" }}>...What?</Text>
+              <Text style={{ flexDirection: "row" }}>
+                <Text
+                  style={{
+                    fontFamily: "Jacquard24",
+                    fontSize: 72,
+                    color: "black",
+                  }}
+                >
+                  Wait
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: "Bangers",
+                    fontSize: 55,
+                    fontWeight: "500",
+                    color: "black",
+                  }}
+                >
+                  ...What?
+                </Text>
               </Text>
             ),
           }}

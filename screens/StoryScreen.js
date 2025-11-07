@@ -7,8 +7,12 @@ import Slider from "@react-native-community/slider";
 import { colors, fonts, spacing } from "../styles/theme";
 import AnalysisSection from "../components/AnalysisSection";
 import SourceLinks from "../components/SourceLinks";
+import RenderWithContext from "../components/RenderWithContext";
+import { renderLinkedText } from "../utils/renderLinkedText";
 
-export default function StoryScreen({ route }) {
+
+
+export default function StoryScreen({ route, navigation }) {
   const { story } = route.params || {};
   if (!story)
     return (
@@ -27,16 +31,21 @@ export default function StoryScreen({ route }) {
   });
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Cover */}
-      {story.imageUrl && (
-        <Image source={{ uri: story.imageUrl }} style={styles.coverImage} />
-      )}
+  <ScrollView style={styles.container}>
+    {/* Cover */}
+    {story.imageUrl && (
+      <Image source={{ uri: story.imageUrl }} style={styles.coverImage} />
+    )}
 
-      {/* Metadata */}
-      <Text style={styles.title}>{story.title || "Untitled Story"}</Text>
-      <Text style={styles.category}>{story.category || "Uncategorized"}</Text>
-      <Text style={styles.overview}>{story.overview || ""}</Text>
+    {/* Metadata */}
+    <Text style={styles.title}>{story.title || "Untitled Story"}</Text>
+    <Text style={styles.category}>{story.category || "Uncategorized"}</Text>
+
+    {/* Overview */}
+    <View style={{ marginVertical: 10 }}>
+      {renderLinkedText(story.overview, navigation)}
+    </View>
+
 
       {/* 🧭 Depth Toggle */}
       {timeline.length > 0 && (
@@ -77,7 +86,8 @@ export default function StoryScreen({ route }) {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.eventDate}>{e.date}</Text>
                   <Text style={styles.eventTitle}>{e.event}</Text>
-                  <Text style={styles.eventDesc}>{e.description}</Text>
+                  <RenderWithContext text={e.description} contexts={e.contexts || []} />
+
                 </View>
               </View>
 

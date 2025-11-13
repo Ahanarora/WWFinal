@@ -11,8 +11,17 @@ import RenderWithContext from "../components/RenderWithContext";
 import { renderLinkedText } from "../utils/renderLinkedText";
 
 
-export default function StoryScreen({ route, navigation }) {
-  const { theme } = route.params || {};
+export default function ThemeScreen({ route, navigation }) {
+  const { theme, index, allThemes } = route.params || {};
+
+  // Endless scroll state
+  const [feed, setFeed] = useState([theme]);
+  const [currentIndex, setCurrentIndex] = useState(index);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  // Depth toggle state (KEEP ONLY ONCE)
+  const [depth, setDepth] = useState(3);
+
   if (!theme)
     return (
       <View style={styles.center}>
@@ -20,98 +29,138 @@ export default function StoryScreen({ route, navigation }) {
       </View>
     );
 
-  const timeline = Array.isArray(theme.timeline) ? theme.timeline : [];
-  const [depth, setDepth] = useState(3);
+  // ----- ENDLESS SCROLL LOADER -----
+  const loadNextTheme = () => {
+    if (isLoadingMore) return;
+    if (currentIndex >= allThemes.length - 1) return;
 
-  const filteredTimeline = timeline.filter((e) => {
-    if (depth === 1) return e.significance === 3;
-    if (depth === 2) return e.significance >= 2;
-    return true;
-  });
+    setIsLoadingMore(true);
 
-  return (
-  <ScrollView style={styles.container}>
-    {/* Cover */}
-    {theme.imageUrl && (
-      <Image source={{ uri: theme.imageUrl }} style={styles.coverImage} />
-    )}
+    const nextIndex = currentIndex + 1;
+    const nextTheme = allThemes[nextIndex];
 
-    {/* Metadata */}
-    <Text style={styles.title}>{theme.title || "Untitled Theme"}</Text>
-    <Text style={styles.category}>{theme.category || "Uncategorized"}</Text>
+    if (feed.some((t) => t.id === nextTheme.id)) {
+      setIsLoadingMore(false);
+      return;
+    }
 
-    {/* Overview */}
-    <View style={{ marginVertical: 10 }}>
-      {renderLinkedText(theme.overview, navigation)}
-    </View>
+    setFeed((prev) => [...prev, nextTheme]);
+    setCurrentIndex(nextIndex);
+    setIsLoadingMore(false);
+  };
 
+  // ----- RENDER A SINGLE THEME BLOCK -----
+  const renderThemeBlock = (item, isFirst) => {
+    const timeline = Array.isArray(item.timeline) ? item.timeline : [];
 
-      {/* 🧭 Depth Toggle */}
-      {!theme.disableDepthToggle && timeline.length > 0 && (
-  <View style={styles.sliderBox}>
-          <Text style={styles.sliderLabel}>Essential</Text>
-          <Slider
-            style={{ flex: 1, height: 40 }}
-            minimumValue={1}
-            maximumValue={3}
-            step={1}
-            value={depth}
-            onValueChange={(v) => setDepth(v)}
-            minimumTrackTintColor="#2563EB"
-            maximumTrackTintColor="#D1D5DB"
-            thumbTintColor="#2563EB"
-          />
-          <Text style={styles.sliderLabel}>Complete</Text>
+    const filteredTimeline = timeline.filter((e) => {
+      if (depth === 1) return e.significance === 3;
+      if (depth === 2) return e.significance >= 2;
+      return true;
+    });
+
+    return (
+      <View key={item.id} style={{ marginBottom: 50 }}>
+        {/* Cover */}
+        {item.imageUrl && (
+          <Image source={{ uri: item.imageUrl }} style={styles.coverImage} />
+        )}
+
+        {/* Metadata */}
+        <Text style={styles.title}>{item.title || "Untitled Theme"}</Text>
+        <Text style={styles.category}>{item.category || "Uncategorized"}</Text>
+
+        {/* Overview */}
+        <View style={{ marginVertical: 10 }}>
+          {renderLinkedText(item.overview, navigation)}
         </View>
-      )}
 
-      {/* TIMELINE */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Chronology of Events</Text>
-        {filteredTimeline.length === 0 ? (
-          <Text style={styles.empty}>No events for this depth.</Text>
-        ) : (
-          filteredTimeline.map((e, i) => (
-            <View key={i} style={styles.eventBlock}>
-              {/* Event Row */}
-              <View style={styles.eventRow}>
-                {e.imageUrl ? (
-                  <Image source={{ uri: e.imageUrl }} style={styles.thumb} />
-                ) : (
-                  <View style={styles.thumbPlaceholder}>
-                    <Text style={{ fontSize: 16 }}>📰</Text>
+        {/* Depth Toggle → ONLY FOR FIRST THEME */}
+        {!item.disableDepthToggle && isFirst && timeline.length > 0 && (
+          <View style={styles.sliderBox}>
+            <Text style={styles.sliderLabel}>Essential</Text>
+            <Slider
+              style={{ flex: 1, height: 40 }}
+              minimumValue={1}
+              maximumValue={3}
+              step={1}
+              value={depth}
+              onValueChange={(v) => setDepth(v)}
+              minimumTrackTintColor="#2563EB"
+              maximumTrackTintColor="#D1D5DB"
+              thumbTintColor="#2563EB"
+            />
+            <Text style={styles.sliderLabel}>Complete</Text>
+          </View>
+        )}
+
+        {/* TIMELINE */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Chronology of Events</Text>
+
+          {filteredTimeline.length === 0 ? (
+            <Text style={styles.empty}>No events for this depth.</Text>
+          ) : (
+            filteredTimeline.map((e, i) => (
+              <View key={i} style={styles.eventBlock}>
+                {/* Event Row */}
+                <View style={styles.eventRow}>
+                  {e.imageUrl ? (
+                    <Image source={{ uri: e.imageUrl }} style={styles.thumb} />
+                  ) : (
+                    <View style={styles.thumbPlaceholder}>
+                      <Text style={{ fontSize: 16 }}>📰</Text>
+                    </View>
+                  )}
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.eventDate}>{e.date}</Text>
+                    <Text style={styles.eventTitle}>{e.event}</Text>
+                    <RenderWithContext
+                      text={e.description}
+                      contexts={e.contexts || []}
+                      navigation={navigation}
+                    />
+                  </View>
+                </View>
+
+                {/* Event-specific coverage links */}
+                {Array.isArray(e.sources) && e.sources.length > 0 && (
+                  <View style={styles.eventSources}>
+                    <SourceLinks sources={e.sources} />
                   </View>
                 )}
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.eventDate}>{e.date}</Text>
-                  <Text style={styles.eventTitle}>{e.event}</Text>
-                  <RenderWithContext
-  text={e.description}
-  contexts={e.contexts || []}
-  navigation={navigation}
-/>
-
-                </View>
               </View>
+            ))
+          )}
+        </View>
 
-              {/* Event-specific coverage links */}
-              {Array.isArray(e.sources) && e.sources.length > 0 && (
-                <View style={styles.eventSources}>
-                  <SourceLinks sources={e.sources} />
-                </View>
-              )}
-            </View>
-          ))
+        {/* Analysis */}
+        {item.analysis && Object.keys(item.analysis || {}).length > 0 && (
+          <View style={{ marginTop: 16 }}>
+            <Text style={styles.sectionTitle}>Analysis</Text>
+            <AnalysisSection analysis={item.analysis} />
+          </View>
         )}
       </View>
+    );
+  };
 
-      {/* 🧠 Analysis */}
-      {theme.analysis && Object.keys(theme.analysis || {}).length > 0 && (
-        <View style={{ marginTop: 16 }}>
-          <Text style={styles.sectionTitle}>Analysis</Text>
-          <AnalysisSection analysis={theme.analysis} />
-        </View>
-      )}
+  // ----- MAIN RETURN -----
+  return (
+    <ScrollView
+      style={styles.container}
+      onScroll={({ nativeEvent }) => {
+        const paddingToBottom = 300;
+        if (
+          nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y >=
+          nativeEvent.contentSize.height - paddingToBottom
+        ) {
+          loadNextTheme();
+        }
+      }}
+      scrollEventThrottle={250}
+    >
+      {feed.map((t, i) => renderThemeBlock(t, i === 0))}
     </ScrollView>
   );
 }
@@ -202,21 +251,27 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#777",
   },
- eventTitle: {
-fontFamily: fonts.heading,
-fontSize: 16,
-color: colors.textPrimary,
-fontWeight: "400",
+  eventTitle: {
+    fontFamily: fonts.heading,
+    fontSize: 16,
+    color: colors.textPrimary,
+    fontWeight: "400",
+  },
+  eventDesc: {
+    fontFamily: fonts.body,
+    fontSize: 15,
+    color: colors.textSecondary,
+  },
+  eventSources: {
+    marginTop: 4,
+    marginBottom: spacing.sm,
+    paddingLeft: 2,
+  },
+  updated: {
+  fontFamily: fonts.body,
+  fontSize: 13,
+  color: "#6B7280",
+  marginBottom: spacing.md,
 },
-eventDesc: {
-fontFamily: fonts.body,
-fontSize: 15,
-color: colors.textSecondary,
-},
-  
-eventSources: {
-marginTop: 4,
-marginBottom: spacing.sm,
-paddingLeft: 2,
-}
+
 });

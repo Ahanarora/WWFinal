@@ -1,6 +1,8 @@
 // ----------------------------------------
 // screens/StoryScreen.js
+// (RESTORED ORIGINAL WORKING VERSION)
 // ----------------------------------------
+
 import React, { useState } from "react";
 import { View, Text, StyleSheet, ScrollView, Image } from "react-native";
 import Slider from "@react-native-community/slider";
@@ -10,10 +12,36 @@ import SourceLinks from "../components/SourceLinks";
 import RenderWithContext from "../components/RenderWithContext";
 import { renderLinkedText } from "../utils/renderLinkedText";
 
-
-
 export default function StoryScreen({ route, navigation }) {
-  const { story } = route.params || {};
+  const { story, index, allStories } = route.params || {};
+
+  // Endless scroll state
+  const [feed, setFeed] = useState([story]);
+  const [currentIndex, setCurrentIndex] = useState(index);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  const loadNextStory = () => {
+  if (isLoadingMore) return;
+  if (currentIndex >= allStories.length - 1) return;
+
+  setIsLoadingMore(true);
+
+  const nextIndex = currentIndex + 1;
+  const nextStory = allStories[nextIndex];
+
+  // Avoid duplicates
+  if (feed.some((s) => s.id === nextStory.id)) {
+    setIsLoadingMore(false);
+    return;
+  }
+
+  // Append next story to feed
+  setFeed((prev) => [...prev, nextStory]);
+  setCurrentIndex(nextIndex);
+  setIsLoadingMore(false);
+};
+
+
   if (!story)
     return (
       <View style={styles.center}>
@@ -30,91 +58,95 @@ export default function StoryScreen({ route, navigation }) {
     return true;
   });
 
-  return (
-  <ScrollView style={styles.container}>
-    {/* Cover */}
-    {story.imageUrl && (
-      <Image source={{ uri: story.imageUrl }} style={styles.coverImage} />
+const renderStoryBlock = (item) => (
+  <View key={item.id} style={{ marginBottom: 50 }}>
+    {/* COVER */}
+    {item.imageUrl && (
+      <Image source={{ uri: item.imageUrl }} style={styles.coverImage} />
     )}
 
-    {/* Metadata */}
-    <Text style={styles.title}>{story.title || "Untitled Story"}</Text>
-    <Text style={styles.category}>{story.category || "Uncategorized"}</Text>
+    {/* TITLE */}
+    <Text style={styles.title}>{item.title || "Untitled Story"}</Text>
+    <Text style={styles.category}>{item.category || "Uncategorized"}</Text>
 
-    {/* Overview */}
+    {/* OVERVIEW */}
     <View style={{ marginVertical: 10 }}>
-      {renderLinkedText(story.overview, navigation)}
+      {renderLinkedText(item.overview, navigation)}
     </View>
 
-
-      {/* 🧭 Depth Toggle */}
-      {!story.disableDepthToggle && timeline.length > 0 && (
-  <View style={styles.sliderBox}>
-          <Text style={styles.sliderLabel}>Essential</Text>
-          <Slider
-            style={{ flex: 1, height: 40 }}
-            minimumValue={1}
-            maximumValue={3}
-            step={1}
-            value={depth}
-            onValueChange={(v) => setDepth(v)}
-            minimumTrackTintColor="#2563EB"
-            maximumTrackTintColor="#D1D5DB"
-            thumbTintColor="#2563EB"
-          />
-          <Text style={styles.sliderLabel}>Complete</Text>
-        </View>
-      )}
-
-      {/* TIMELINE */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Timeline</Text>
-        {filteredTimeline.length === 0 ? (
-          <Text style={styles.empty}>No events for this depth.</Text>
-        ) : (
-          filteredTimeline.map((e, i) => (
-            <View key={i} style={styles.eventBlock}>
-              {/* Event Row */}
-              <View style={styles.eventRow}>
-                {e.imageUrl ? (
-                  <Image source={{ uri: e.imageUrl }} style={styles.thumb} />
-                ) : (
-                  <View style={styles.thumbPlaceholder}>
-                    <Text style={{ fontSize: 16 }}>📰</Text>
-                  </View>
-                )}
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.eventDate}>{e.date}</Text>
-                  <Text style={styles.eventTitle}>{e.event}</Text>
-                 <RenderWithContext
-  text={e.description}
-  contexts={e.contexts || []}
-  navigation={navigation}
-/>
-
-                </View>
-              </View>
-
-              {/* Event-specific coverage links */}
-              {Array.isArray(e.sources) && e.sources.length > 0 && (
-                <View style={styles.eventSources}>
-                  <SourceLinks sources={e.sources} />
-                </View>
-              )}
-            </View>
-          ))
-        )}
+    {/* DEPTH SLIDER ONLY FOR FIRST STORY */}
+    {feed[0].id === item.id && item.timeline?.length > 0 && (
+      <View style={styles.sliderBox}>
+        <Text style={styles.sliderLabel}>Essential</Text>
+        <Slider
+          style={{ flex: 1, height: 40 }}
+          minimumValue={1}
+          maximumValue={3}
+          step={1}
+          value={depth}
+          onValueChange={(v) => setDepth(v)}
+          minimumTrackTintColor="#2563EB"
+          maximumTrackTintColor="#D1D5DB"
+          thumbTintColor="#2563EB"
+        />
+        <Text style={styles.sliderLabel}>Complete</Text>
       </View>
+    )}
 
-      {/* 🧠 Analysis */}
-      {story.analysis && Object.keys(story.analysis || {}).length > 0 && (
-        <View style={{ marginTop: 16 }}>
-          <Text style={styles.sectionTitle}>Analysis</Text>
-          <AnalysisSection analysis={story.analysis} />
+    {/* TIMELINE */}
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Timeline</Text>
+
+      {item.timeline?.map((e, i) => (
+        <View key={i} style={styles.eventBlock}>
+          <View style={styles.eventRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.eventDate}>{e.date}</Text>
+              <Text style={styles.eventTitle}>{e.event}</Text>
+              <RenderWithContext
+                text={e.description}
+                contexts={e.contexts || []}
+              />
+            </View>
+          </View>
+
+          {e.sources?.length > 0 && (
+            <View style={styles.eventSources}>
+              <SourceLinks sources={e.sources} />
+            </View>
+          )}
         </View>
-      )}
-    </ScrollView>
-  );
+      ))}
+    </View>
+
+    {/* ANALYSIS */}
+    {item.analysis && Object.keys(item.analysis).length > 0 && (
+      <View style={{ marginTop: 16 }}>
+        <Text style={styles.sectionTitle}>Analysis</Text>
+        <AnalysisSection analysis={item.analysis} />
+      </View>
+    )}
+  </View>
+);
+
+  return (
+  <ScrollView
+    style={styles.container}
+    onScroll={({ nativeEvent }) => {
+      const paddingToBottom = 300; 
+      if (
+        nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y >=
+        nativeEvent.contentSize.height - paddingToBottom
+      ) {
+        loadNextStory();
+      }
+    }}
+    scrollEventThrottle={250}
+  >
+    {feed.map((s) => renderStoryBlock(s))}
+  </ScrollView>
+);
+
 }
 
 const styles = StyleSheet.create({
@@ -125,12 +157,14 @@ const styles = StyleSheet.create({
   },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   error: { color: "red" },
+
   coverImage: {
     width: "100%",
     height: 240,
     borderRadius: 4,
     marginBottom: spacing.lg,
   },
+
   title: {
     fontFamily: fonts.heading,
     fontSize: 26,
@@ -143,13 +177,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     letterSpacing: 1,
   },
-  overview: {
-    fontFamily: fonts.body,
-    fontSize: 16,
-    lineHeight: 24,
-    color: colors.textSecondary,
-    marginBottom: spacing.lg,
-  },
+
   sliderBox: {
     flexDirection: "row",
     alignItems: "center",
@@ -163,6 +191,7 @@ const styles = StyleSheet.create({
     width: 60,
     textAlign: "center",
   },
+
   section: { marginBottom: spacing.lg },
   sectionTitle: {
     fontFamily: fonts.heading,
@@ -172,7 +201,9 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     paddingBottom: 4,
   },
+
   empty: { fontFamily: fonts.body, color: "#777" },
+
   eventBlock: {
     marginBottom: spacing.md,
     borderBottomWidth: 1,
@@ -184,41 +215,23 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: spacing.sm,
   },
-  thumb: {
-    width: 50,
-    height: 50,
-    borderRadius: 4,
-    backgroundColor: "#ddd",
-  },
-  thumbPlaceholder: {
-    width: 50,
-    height: 50,
-    borderRadius: 4,
-    backgroundColor: "#eee",
-    alignItems: "center",
-    justifyContent: "center",
-  },
+
   eventDate: {
     fontFamily: fonts.body,
     fontSize: 12,
     color: "#777",
   },
   eventTitle: {
-fontFamily: fonts.heading,
-fontSize: 16,
-color: colors.textPrimary,
-paddingBottom: 4,
-fontWeight: "400",
-},
-eventDesc: {
-fontFamily: fonts.body,
-fontSize: 14,
-paddingBottom: 4,
-color: colors.textSecondary,
-},
+    fontFamily: fonts.heading,
+    fontSize: 16,
+    color: colors.textPrimary,
+    paddingBottom: 4,
+    fontWeight: "400",
+  },
+
   eventSources: {
-marginTop: 4,
-marginBottom: spacing.sm,
-paddingLeft: 2,
-}
+    marginTop: 4,
+    marginBottom: spacing.sm,
+    paddingLeft: 2,
+  },
 });

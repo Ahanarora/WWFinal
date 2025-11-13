@@ -1,6 +1,8 @@
 // ----------------------------------------
 // screens/ThemesScreen.js
+// Ranked Themes (no Featured blocks)
 // ----------------------------------------
+
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -9,9 +11,11 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  StyleSheet,
 } from "react-native";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
+import { scoreContent } from "../utils/ranking";
 
 export default function ThemesScreen({ navigation }) {
   const [themes, setThemes] = useState([]);
@@ -22,66 +26,95 @@ export default function ThemesScreen({ navigation }) {
       try {
         const snapshot = await getDocs(collection(db, "themes"));
         const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-        setThemes(data);
+
+        // Rank by StoryScore (highest first)
+        const ranked = [...data].sort((a, b) => scoreContent(b) - scoreContent(a));
+        setThemes(ranked);
       } catch (err) {
         console.error("Error fetching themes:", err);
       } finally {
         setLoading(false);
       }
     };
+
     fetchThemes();
   }, []);
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center">
+      <View style={styles.center}>
         <ActivityIndicator size="large" color="#2563EB" />
-        <Text className="text-gray-600 mt-2">Loading themes...</Text>
+        <Text style={styles.loadingText}>Loading themes...</Text>
       </View>
     );
   }
 
   if (themes.length === 0) {
     return (
-      <View className="flex-1 items-center justify-center p-6">
-        <Text className="text-gray-500">No themes available yet.</Text>
+      <View style={styles.center}>
+        <Text style={styles.emptyText}>No themes available yet.</Text>
       </View>
     );
   }
 
-  return (
-    <ScrollView className="p-4 bg-gray-50">
-      {themes.map((theme) => (
-        <TouchableOpacity
-          key={theme.id}
-          onPress={() => navigation.navigate("Theme", { theme })}
-          className="bg-white rounded-2xl shadow-sm mb-5 overflow-hidden"
-          style={{ elevation: 2 }}
-        >
-          {theme.imageUrl && (
-            <Image
-              source={{ uri: theme.imageUrl }}
-              style={{
-                width: "100%",
-                height: 180,
-                resizeMode: "cover",
-              }}
-            />
-          )}
+  const renderThemeCard = (theme, index) => (
+    <TouchableOpacity
+      key={theme.id}
+      onPress={() =>
+        navigation.navigate("Theme", {
+          theme,
+          index,
+          allThemes: themes, // ranked list for infinite theme scroll
+        })
+      }
+      style={styles.card}
+    >
+      {theme.imageUrl && (
+        <Image source={{ uri: theme.imageUrl }} style={styles.image} />
+      )}
 
-          <View className="p-4 space-y-2">
-            <Text className="text-xs uppercase text-gray-500 font-semibold">
-              {theme.category || "General"}
-            </Text>
-            <Text className="text-lg font-semibold">{theme.title}</Text>
-            <Text className="text-gray-700 text-sm leading-5">
-              {theme.overview?.length > 150
-                ? theme.overview.slice(0, 150) + "..."
-                : theme.overview}
-            </Text>
-          </View>
-        </TouchableOpacity>
-      ))}
+      <View style={styles.content}>
+        <Text style={styles.category}>{theme.category || "General"}</Text>
+        <Text style={styles.title}>{theme.title}</Text>
+        <Text style={styles.overview} numberOfLines={3}>
+          {theme.overview}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+
+  return (
+    <ScrollView style={styles.container}>
+      {/* Ranked Themes */}
+      {themes.map((theme, index) => renderThemeCard(theme, index))}
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { padding: 16, backgroundColor: "#f9fafb" },
+
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  loadingText: { marginTop: 8, color: "#555" },
+  emptyText: { fontSize: 16, color: "#666" },
+
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    marginBottom: 20,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  image: {
+    width: "100%",
+    height: 180,
+    resizeMode: "cover",
+  },
+  content: { padding: 16, gap: 8 },
+  category: { fontSize: 12, color: "#6B7280", textTransform: "uppercase" },
+  title: { fontSize: 18, fontWeight: "600", color: "#111" },
+  overview: { fontSize: 14, color: "#444", lineHeight: 20 },
+});

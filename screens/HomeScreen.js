@@ -18,6 +18,8 @@ import {
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import { scoreContent } from "../utils/ranking";
+import { formatUpdatedAt } from "../utils/formatTime";
+
 
 // Categories for top filter
 const CATEGORIES = [
@@ -85,65 +87,50 @@ export default function HomeScreen({ navigation }) {
   }, [themes, activeCategory]);
 
   // -------------------------------
-  // SMART FEATURED LOGIC (TOP 3)
+  // ⭐ NEW SMART FEATURED LOGIC (WITH PIN OVERRIDE)
+  // Option C — Pinned items override selection, NOT ordering
   // -------------------------------
   const TOP_N = 3;
 
-  // STORIES
-  const storyBlockedIds = filteredStories
-    .filter((s) => s.isFeatured === false)
-    .map((s) => s.id);
+  function getFeaturedItems(items, category) {
+    // 1️⃣ Pinned (forced include)
+    const pinned = items.filter(
+      (i) =>
+        i.isPinnedFeatured === true &&
+        (i.pinnedCategory === "All" || i.pinnedCategory === category)
+    );
 
-  const storyAutoCandidates = filteredStories.filter(
-    (s) => !storyBlockedIds.includes(s.id)
-  );
+    // 2️⃣ Auto-ranked (exclude pinned)
+    const auto = items
+      .filter((i) => !i.isPinnedFeatured)
+      .sort((a, b) => scoreContent(b) - scoreContent(a));
 
-  const storyAutoTop = storyAutoCandidates
-    .slice(0, TOP_N)
-    .map((s) => s.id);
+    // 3️⃣ Merge pinned + auto and limit to 3
+    const combined = [...pinned, ...auto].slice(0, TOP_N);
 
-  const featuredStories = filteredStories.filter((s) => {
-    const id = s.id;
-    if (s.isFeatured === false) return false;
-    if (s.isFeatured === true && storyAutoTop.includes(id)) return true;
-    if (storyAutoTop.includes(id)) return true;
-    return false;
-  });
+    // 4️⃣ Final order always by StoryScore (Option C)
+    return combined.sort((a, b) => scoreContent(b) - scoreContent(a));
+  }
 
-  const regularStories = filteredStories.filter(
-    (s) => !featuredStories.some((f) => f.id === s.id)
-  );
-
-  // THEMES
-  const themeBlockedIds = filteredThemes
-    .filter((t) => t.isFeatured === false)
-    .map((t) => t.id);
-
-  const themeAutoCandidates = filteredThemes.filter(
-    (t) => !themeBlockedIds.includes(t.id)
-  );
-
-  const themeAutoTop = themeAutoCandidates
-    .slice(0, TOP_N)
-    .map((t) => t.id);
-
-  const featuredThemes = filteredThemes.filter((t) => {
-    const id = t.id;
-    if (t.isFeatured === false) return false;
-    if (t.isFeatured === true && themeAutoTop.includes(id)) return true;
-    if (themeAutoTop.includes(id)) return true;
-    return false;
-  });
-
-  const regularThemes = filteredThemes.filter(
-    (t) => !featuredThemes.some((f) => f.id === t.id)
-  );
+  // Featured Stories/Themes using new logic
+  const featuredStories = getFeaturedItems(filteredStories, activeCategory);
+  const featuredThemes = getFeaturedItems(filteredThemes, activeCategory);
 
   // -------------------------------
   // REGULAR COMBINED FEED
   // stories + themes (non-featured), ranked together
   // -------------------------------
   const regularCombined = useMemo(() => {
+    const featuredStoryIds = featuredStories.map((s) => s.id);
+    const featuredThemeIds = featuredThemes.map((t) => t.id);
+
+    const regularStories = filteredStories.filter(
+      (s) => !featuredStoryIds.includes(s.id)
+    );
+    const regularThemes = filteredThemes.filter(
+      (t) => !featuredThemeIds.includes(t.id)
+    );
+
     const taggedStories = regularStories.map((s) => ({
       ...s,
       _kind: "story",
@@ -157,7 +144,7 @@ export default function HomeScreen({ navigation }) {
 
     // Sort combined feed by StoryScore
     return combined.sort((a, b) => scoreContent(b) - scoreContent(a));
-  }, [regularStories, regularThemes]);
+  }, [filteredStories, filteredThemes, featuredStories, featuredThemes]);
 
   // -------------------------------
   // LOADING STATE
@@ -253,6 +240,8 @@ export default function HomeScreen({ navigation }) {
             </Text>
             <Text style={styles.title}>{item.title}</Text>
             <Text style={styles.overview} numberOfLines={3}>
+              <Text style={styles.updatedText}>{formatUpdatedAt(item.updatedAt)}</Text>
+
               {item.overview}
             </Text>
           </View>
@@ -532,4 +521,10 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     marginTop: 8,
   },
+  updatedText: {
+  fontSize: 12,
+  color: "#6B7280",
+  marginTop: 2,
+}
+
 });

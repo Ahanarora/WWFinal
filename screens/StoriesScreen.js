@@ -16,6 +16,8 @@ import {
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import { scoreContent } from "../utils/ranking";
+import { formatUpdatedAt } from "../utils/formatTime";
+
 
 export default function StoriesScreen({ navigation }) {
   const [stories, setStories] = useState([]);
@@ -77,6 +79,8 @@ export default function StoriesScreen({ navigation }) {
       <View style={styles.cardContent}>
         <Text style={styles.title}>{item.title}</Text>
         <Text style={styles.category}>{item.category || "Uncategorized"}</Text>
+        <Text style={styles.updated}>{formatUpdatedAt(item.updatedAt)}</Text>
+
         <Text style={styles.overview} numberOfLines={2}>
           {item.overview}
         </Text>
@@ -128,4 +132,10 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   loadingText: { marginTop: 8, color: "#555" },
   emptyText: { fontSize: 16, color: "#666" },
+  updated: {
+  fontSize: 12,
+  color: "#6B7280",
+  marginBottom: 4,
+},
+
 });

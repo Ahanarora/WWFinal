@@ -11,6 +11,8 @@ import AnalysisSection from "../components/AnalysisSection";
 import SourceLinks from "../components/SourceLinks";
 import RenderWithContext from "../components/RenderWithContext";
 import { renderLinkedText } from "../utils/renderLinkedText";
+import { formatUpdatedAt } from "../utils/formatTime";
+
 
 export default function StoryScreen({ route, navigation }) {
   const { story, index, allStories } = route.params || {};
@@ -67,6 +69,10 @@ const renderStoryBlock = (item) => (
 
     {/* TITLE */}
     <Text style={styles.title}>{item.title || "Untitled Story"}</Text>
+    <Text style={styles.updated}>
+  {formatUpdatedAt(item.updatedAt)}
+</Text>
+
     <Text style={styles.category}>{item.category || "Uncategorized"}</Text>
 
     {/* OVERVIEW */}
@@ -234,4 +240,11 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     paddingLeft: 2,
   },
+  updated: {
+  fontFamily: fonts.body,
+  fontSize: 13,
+  color: "#6B7280",
+  marginBottom: spacing.md,
+},
+
 });

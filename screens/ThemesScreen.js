@@ -16,6 +16,8 @@ import {
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import { scoreContent } from "../utils/ranking";
+import { formatUpdatedAt } from "../utils/formatTime";
+
 
 export default function ThemesScreen({ navigation }) {
   const [themes, setThemes] = useState([]);
@@ -76,6 +78,8 @@ export default function ThemesScreen({ navigation }) {
       <View style={styles.content}>
         <Text style={styles.category}>{theme.category || "General"}</Text>
         <Text style={styles.title}>{theme.title}</Text>
+        <Text style={styles.updated}>{formatUpdatedAt(item.updatedAt)}</Text>
+
         <Text style={styles.overview} numberOfLines={3}>
           {theme.overview}
         </Text>

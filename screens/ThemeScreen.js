@@ -9,6 +9,8 @@ import AnalysisSection from "../components/AnalysisSection";
 import SourceLinks from "../components/SourceLinks";
 import RenderWithContext from "../components/RenderWithContext";
 import { renderLinkedText } from "../utils/renderLinkedText";
+import { formatUpdatedAt } from "../utils/formatTime";
+
 
 
 export default function ThemeScreen({ route, navigation }) {
@@ -68,6 +70,10 @@ export default function ThemeScreen({ route, navigation }) {
 
         {/* Metadata */}
         <Text style={styles.title}>{item.title || "Untitled Theme"}</Text>
+        <Text style={styles.updated}>
+  {formatUpdatedAt(item.updatedAt)}
+</Text>
+
         <Text style={styles.category}>{item.category || "Uncategorized"}</Text>
 
         {/* Overview */}
@@ -272,6 +278,17 @@ const styles = StyleSheet.create({
   fontSize: 13,
   color: "#6B7280",
   marginBottom: spacing.md,
+},
+updated: {
+  fontFamily: fonts.body,
+  fontSize: 13,
+  color: "#6B7280",
+  marginBottom: spacing.md,
+},
+updated: {
+  fontSize: 12,
+  color: "#6B7280",
+  marginBottom: 4,
 },
 
 });

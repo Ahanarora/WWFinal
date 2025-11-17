@@ -1,48 +1,35 @@
 // ----------------------------------------
 // screens/StoryScreen.js
-// (RESTORED ORIGINAL WORKING VERSION)
+// (RESTORED ORIGINAL + Analysis buttons -> modal)
 // ----------------------------------------
 
 import React, { useState } from "react";
-import { View, Text, StyleSheet, ScrollView, Image } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Image,
+  TouchableOpacity,
+} from "react-native";
 import Slider from "@react-native-community/slider";
 import { colors, fonts, spacing } from "../styles/theme";
-import AnalysisSection from "../components/AnalysisSection";
 import SourceLinks from "../components/SourceLinks";
 import RenderWithContext from "../components/RenderWithContext";
 import { renderLinkedText } from "../utils/renderLinkedText";
 import { formatUpdatedAt } from "../utils/formatTime";
-
+import { normalizeAnalysis } from "../utils/normalizeAnalysis";
 
 export default function StoryScreen({ route, navigation }) {
   const { story, index, allStories } = route.params || {};
 
   // Endless scroll state
-  const [feed, setFeed] = useState([story]);
-  const [currentIndex, setCurrentIndex] = useState(index);
+  const [feed, setFeed] = useState(story ? [story] : []);
+  const [currentIndex, setCurrentIndex] = useState(index ?? 0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  const loadNextStory = () => {
-  if (isLoadingMore) return;
-  if (currentIndex >= allStories.length - 1) return;
-
-  setIsLoadingMore(true);
-
-  const nextIndex = currentIndex + 1;
-  const nextStory = allStories[nextIndex];
-
-  // Avoid duplicates
-  if (feed.some((s) => s.id === nextStory.id)) {
-    setIsLoadingMore(false);
-    return;
-  }
-
-  // Append next story to feed
-  setFeed((prev) => [...prev, nextStory]);
-  setCurrentIndex(nextIndex);
-  setIsLoadingMore(false);
-};
-
+  // Depth slider (1–3)
+  const [depth, setDepth] = useState(3); // 1=Essential, 2=Balanced, 3=Complete
 
   if (!story)
     return (
@@ -51,108 +38,180 @@ export default function StoryScreen({ route, navigation }) {
       </View>
     );
 
-  const timeline = Array.isArray(story.timeline) ? story.timeline : [];
-  const [depth, setDepth] = useState(3); // 1=Essential, 2=Balanced, 3=Complete
+  const primaryAnalysis = normalizeAnalysis(story.analysis);
 
-  const filteredTimeline = timeline.filter((e) => {
-    if (depth === 1) return e.significance === 3;
-    if (depth === 2) return e.significance >= 2;
-    return true;
-  });
+  const loadNextStory = () => {
+    if (isLoadingMore) return;
+    if (!Array.isArray(allStories) || currentIndex >= allStories.length - 1) return;
 
-const renderStoryBlock = (item) => (
-  <View key={item.id} style={{ marginBottom: 50 }}>
-    {/* COVER */}
-    {item.imageUrl && (
-      <Image source={{ uri: item.imageUrl }} style={styles.coverImage} />
-    )}
+    setIsLoadingMore(true);
 
-    {/* TITLE */}
-    <Text style={styles.title}>{item.title || "Untitled Story"}</Text>
-    <Text style={styles.updated}>
-  {formatUpdatedAt(item.updatedAt)}
-</Text>
+    const nextIndex = currentIndex + 1;
+    const nextStory = allStories[nextIndex];
 
-    <Text style={styles.category}>{item.category || "Uncategorized"}</Text>
+    if (!nextStory) {
+      setIsLoadingMore(false);
+      return;
+    }
 
-    {/* OVERVIEW */}
-    <View style={{ marginVertical: 10 }}>
-      {renderLinkedText(item.overview, navigation)}
-    </View>
+    // Avoid duplicates
+    if (feed.some((s) => s.id === nextStory.id)) {
+      setIsLoadingMore(false);
+      return;
+    }
 
-    {/* DEPTH SLIDER ONLY FOR FIRST STORY */}
-    {feed[0].id === item.id && item.timeline?.length > 0 && (
-      <View style={styles.sliderBox}>
-        <Text style={styles.sliderLabel}>Essential</Text>
-        <Slider
-          style={{ flex: 1, height: 40 }}
-          minimumValue={1}
-          maximumValue={3}
-          step={1}
-          value={depth}
-          onValueChange={(v) => setDepth(v)}
-          minimumTrackTintColor="#2563EB"
-          maximumTrackTintColor="#D1D5DB"
-          thumbTintColor="#2563EB"
-        />
-        <Text style={styles.sliderLabel}>Complete</Text>
-      </View>
-    )}
+    setFeed((prev) => [...prev, nextStory]);
+    setCurrentIndex(nextIndex);
+    setIsLoadingMore(false);
+  };
 
-    {/* TIMELINE */}
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Timeline</Text>
+  const hasAnyAnalysis =
+    primaryAnalysis &&
+    ((primaryAnalysis.stakeholders?.length || 0) +
+      (primaryAnalysis.faqs?.length || 0) +
+      (primaryAnalysis.future?.length || 0) >
+      0);
 
-      {item.timeline?.map((e, i) => (
-        <View key={i} style={styles.eventBlock}>
-          <View style={styles.eventRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.eventDate}>{e.date}</Text>
-              <Text style={styles.eventTitle}>{e.event}</Text>
-              <RenderWithContext
-                text={e.description}
-                contexts={e.contexts || []}
-              />
-            </View>
-          </View>
+  const renderStoryBlock = (item) => {
+    const timeline = Array.isArray(item.timeline) ? item.timeline : [];
 
-          {e.sources?.length > 0 && (
-            <View style={styles.eventSources}>
-              <SourceLinks sources={e.sources} />
-            </View>
-          )}
+    // This was your original logic — leaving as-is
+    const filteredTimeline = timeline.filter((e) => {
+      if (depth === 1) return e.significance === 3;
+      if (depth === 2) return e.significance >= 2;
+      return true;
+    });
+
+    return (
+      <View key={item.id} style={{ marginBottom: 50 }}>
+        {/* COVER */}
+        {item.imageUrl && (
+          <Image source={{ uri: item.imageUrl }} style={styles.coverImage} />
+        )}
+
+        {/* TITLE */}
+        <Text style={styles.title}>{item.title || "Untitled Story"}</Text>
+        <Text style={styles.updated}>{formatUpdatedAt(item.updatedAt)}</Text>
+        <Text style={styles.category}>{item.category || "Uncategorized"}</Text>
+
+        {/* OVERVIEW */}
+        <View style={{ marginVertical: 10 }}>
+          {renderLinkedText(item.overview, navigation)}
         </View>
-      ))}
-    </View>
 
-    {/* ANALYSIS */}
-    {item.analysis && Object.keys(item.analysis).length > 0 && (
-      <View style={{ marginTop: 16 }}>
-        <Text style={styles.sectionTitle}>Analysis</Text>
-        <AnalysisSection analysis={item.analysis} />
+        {/* 🔵 NEW: ANALYSIS BUTTONS (only for the first / primary story) */}
+        {item.id === story.id && hasAnyAnalysis && (
+          <View style={styles.analysisButtonsRow}>
+            {primaryAnalysis.stakeholders?.length > 0 && (
+              <TouchableOpacity
+                style={styles.analysisButton}
+                onPress={() =>
+                  navigation.push("AnalysisModal", {
+                    type: "stakeholders",
+                    analysis: primaryAnalysis,
+                  })
+                }
+              >
+                <Text style={styles.analysisButtonText}>Stakeholders</Text>
+              </TouchableOpacity>
+            )}
+
+            {primaryAnalysis.faqs?.length > 0 && (
+              <TouchableOpacity
+                style={styles.analysisButton}
+                onPress={() =>
+                  navigation.push("AnalysisModal", {
+                    type: "faqs",
+                    analysis: primaryAnalysis,
+                  })
+                }
+              >
+                <Text style={styles.analysisButtonText}>FAQs</Text>
+              </TouchableOpacity>
+            )}
+
+            {primaryAnalysis.future?.length > 0 && (
+              <TouchableOpacity
+                style={styles.analysisButton}
+                onPress={() =>
+                  navigation.push("AnalysisModal", {
+                    type: "future",
+                    analysis: primaryAnalysis,
+                  })
+                }
+              >
+                <Text style={styles.analysisButtonText}>Future Qs</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {/* DEPTH SLIDER ONLY FOR FIRST STORY */}
+        {feed[0].id === item.id && item.timeline?.length > 0 && (
+          <View style={styles.sliderBox}>
+            <Text style={styles.sliderLabel}>Essential</Text>
+            <Slider
+              style={{ flex: 1, height: 40 }}
+              minimumValue={1}
+              maximumValue={3}
+              step={1}
+              value={depth}
+              onValueChange={(v) => setDepth(v)}
+              minimumTrackTintColor="#2563EB"
+              maximumTrackTintColor="#D1D5DB"
+              thumbTintColor="#2563EB"
+            />
+            <Text style={styles.sliderLabel}>Complete</Text>
+          </View>
+        )}
+
+        {/* TIMELINE (leaving existing behaviour, still mapping item.timeline) */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Timeline</Text>
+
+          {item.timeline?.map((e, i) => (
+            <View key={i} style={styles.eventBlock}>
+              <View style={styles.eventRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.eventDate}>{e.date}</Text>
+                  <Text style={styles.eventTitle}>{e.event}</Text>
+                  <RenderWithContext
+                    text={e.description}
+                    contexts={e.contexts || []}
+                    navigation={navigation}
+                  />
+                </View>
+              </View>
+
+              {e.sources?.length > 0 && (
+                <View style={styles.eventSources}>
+                  <SourceLinks sources={e.sources} />
+                </View>
+              )}
+            </View>
+          ))}
+        </View>
       </View>
-    )}
-  </View>
-);
+    );
+  };
 
   return (
-  <ScrollView
-    style={styles.container}
-    onScroll={({ nativeEvent }) => {
-      const paddingToBottom = 300; 
-      if (
-        nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y >=
-        nativeEvent.contentSize.height - paddingToBottom
-      ) {
-        loadNextStory();
-      }
-    }}
-    scrollEventThrottle={250}
-  >
-    {feed.map((s) => renderStoryBlock(s))}
-  </ScrollView>
-);
-
+    <ScrollView
+      style={styles.container}
+      onScroll={({ nativeEvent }) => {
+        const paddingToBottom = 300;
+        if (
+          nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y >=
+          nativeEvent.contentSize.height - paddingToBottom
+        ) {
+          loadNextStory();
+        }
+      }}
+      scrollEventThrottle={250}
+    >
+      {feed.map((s) => renderStoryBlock(s))}
+    </ScrollView>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -183,6 +242,41 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     letterSpacing: 1,
   },
+
+  updated: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: "#6B7280",
+    marginBottom: spacing.md,
+  },
+
+  // 🔵 Analysis buttons row (three equal pills)
+analysisButtonsRow: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  gap: 6,
+  marginBottom: spacing.md,
+  marginTop: spacing.sm,
+},
+
+analysisButton: {
+  flex: 1,
+  paddingVertical: 4,     // smaller vertical space
+  paddingHorizontal: 6,   // smaller horizontal space
+  borderRadius: 14,       // smaller radius
+  backgroundColor: "rgba(0,0,0,0.03)", // very subtle translucent
+  borderWidth: 1,
+  borderColor: "#2563EB",
+  alignItems: "center",
+  justifyContent: "center",
+},
+
+analysisButtonText: {
+  color: "#2563EB",
+  fontFamily: fonts.body,
+  fontSize: 12,      // smaller font
+  fontWeight: "600",
+},
 
   sliderBox: {
     flexDirection: "row",
@@ -240,11 +334,4 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     paddingLeft: 2,
   },
-  updated: {
-  fontFamily: fonts.body,
-  fontSize: 13,
-  color: "#6B7280",
-  marginBottom: spacing.md,
-},
-
 });

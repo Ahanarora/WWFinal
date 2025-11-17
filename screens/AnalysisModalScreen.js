@@ -1,60 +1,110 @@
 // ----------------------------------------
 // screens/AnalysisModalScreen.js
+// Full-screen analysis list for one section
 // ----------------------------------------
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import AnalysisSection from "../components/AnalysisSection";
+import { normalizeAnalysis } from "../utils/normalizeAnalysis";
+
+if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+function AccordionItem({ label, detail }) {
+  const [open, setOpen] = useState(false);
+
+  const toggle = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setOpen((prev) => !prev);
+  };
+
+  return (
+    <View style={styles.itemBlock}>
+      <TouchableOpacity onPress={toggle}>
+        <Text style={styles.itemTitle}>
+          {label} {open ? "▲" : "▼"}
+        </Text>
+      </TouchableOpacity>
+      {open && !!detail && <Text style={styles.itemDetail}>{detail}</Text>}
+    </View>
+  );
+}
 
 export default function AnalysisModalScreen({ route, navigation }) {
-  const { type, story } = route.params || {};
+  const { type, analysis: rawAnalysis } = route.params || {};
+  const analysis = normalizeAnalysis(rawAnalysis || {}) || {
+    stakeholders: [],
+    faqs: [],
+    future: [],
+  };
 
-  const analysis = story?.analysis || {};
-
-  // Correct display titles
   const titleMap = {
-    faqs: "FAQs",
     stakeholders: "Stakeholders",
+    faqs: "FAQs",
     future: "Future Questions",
   };
 
-  // Try both `futureQuestions` and `future` for safety
-  const sectionMap = {
-    faqs: analysis.faqs ?? [],
-    stakeholders: analysis.stakeholders ?? [],
-    future: analysis.futureQuestions ?? analysis.future ?? [],
-  };
+  const key = type === "stakeholders" || type === "faqs" || type === "future"
+    ? type
+    : "faqs";
 
-  const data = sectionMap[type] ?? [];
+  const sectionTitle = titleMap[key] || "Analysis";
+  const items = analysis[key] || [];
 
-  const hasContent =
-    (Array.isArray(data) && data.length > 0) ||
-    (typeof data === "string" && data.trim().length > 0);
+  const hasContent = Array.isArray(items) && items.length > 0;
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {/* Header: title centered, X on right */}
       <View style={styles.header}>
-        <Text style={styles.title}>{titleMap[type] || "Analysis"}</Text>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="close" size={28} />
+        <View style={styles.headerSide} /> 
+        <Text style={styles.headerTitle}>{sectionTitle}</Text>
+        <TouchableOpacity
+          style={styles.headerSide}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="close" size={26} />
         </TouchableOpacity>
       </View>
 
       {/* Content */}
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.content}
+      >
         {hasContent ? (
-          <AnalysisSection data={data} />
+          items.map((item, idx) => {
+            const label =
+              key === "stakeholders"
+                ? item.name || "Stakeholder"
+                : item.question || "Question";
+
+            const detail =
+              key === "stakeholders"
+                ? item.detail || ""
+                : item.answer || "";
+
+            return (
+              <AccordionItem
+                key={idx}
+                label={label}
+                detail={detail}
+              />
+            );
+          })
         ) : (
           <Text style={styles.emptyText}>
-            No {titleMap[type]?.toLowerCase() || "analysis"} added for this
-            story yet.
+            No {sectionTitle.toLowerCase()} added yet.
           </Text>
         )}
       </ScrollView>
@@ -70,13 +120,17 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 20,
     marginBottom: 10,
-    alignItems: "center",
+    justifyContent: "space-between",
   },
-  title: {
-    fontSize: 22,
+  headerSide: {
+    width: 30,
+    alignItems: "flex-end",
+  },
+  headerTitle: {
+    fontSize: 20,
     fontWeight: "700",
   },
   content: {
@@ -87,5 +141,23 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#6B7280",
     lineHeight: 22,
+  },
+  itemBlock: {
+    backgroundColor: "#f9fafb",
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  itemTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#111827",
+  },
+  itemDetail: {
+    marginTop: 6,
+    color: "#374151",
+    fontSize: 13,
   },
 });

@@ -2,22 +2,31 @@
 // screens/ThemeScreen.js
 // ----------------------------------------
 import React, { useState } from "react";
-import { View, Text, StyleSheet, ScrollView, Image } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Image,
+  TouchableOpacity,
+} from "react-native";
 import Slider from "@react-native-community/slider";
 import { colors, fonts, spacing } from "../styles/theme";
-import AnalysisSection from "../components/AnalysisSection";
 import SourceLinks from "../components/SourceLinks";
 import RenderWithContext from "../components/RenderWithContext";
 import { renderLinkedText } from "../utils/renderLinkedText";
 import { formatUpdatedAt } from "../utils/formatTime";
+import { normalizeAnalysis } from "../utils/normalizeAnalysis";
 
 export default function ThemeScreen({ route, navigation }) {
   const { theme, index, allThemes } = route.params || {};
 
-  const [feed, setFeed] = useState([theme]);
-  const [currentIndex, setCurrentIndex] = useState(index);
+  // Endless scroll state
+  const [feed, setFeed] = useState(theme ? [theme] : []);
+  const [currentIndex, setCurrentIndex] = useState(index ?? 0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
+  // Depth toggle state (KEEP ONLY ONCE)
   const [depth, setDepth] = useState(3);
 
   if (!theme)
@@ -27,14 +36,28 @@ export default function ThemeScreen({ route, navigation }) {
       </View>
     );
 
+  const primaryAnalysis = normalizeAnalysis(theme.analysis);
+  const hasAnyAnalysis =
+    primaryAnalysis &&
+    ((primaryAnalysis.stakeholders?.length || 0) +
+      (primaryAnalysis.faqs?.length || 0) +
+      (primaryAnalysis.future?.length || 0) >
+      0);
+
+  // ----- ENDLESS SCROLL LOADER -----
   const loadNextTheme = () => {
     if (isLoadingMore) return;
-    if (currentIndex >= allThemes.length - 1) return;
+    if (!Array.isArray(allThemes) || currentIndex >= allThemes.length - 1) return;
 
     setIsLoadingMore(true);
 
     const nextIndex = currentIndex + 1;
     const nextTheme = allThemes[nextIndex];
+
+    if (!nextTheme) {
+      setIsLoadingMore(false);
+      return;
+    }
 
     if (feed.some((t) => t.id === nextTheme.id)) {
       setIsLoadingMore(false);
@@ -46,6 +69,7 @@ export default function ThemeScreen({ route, navigation }) {
     setIsLoadingMore(false);
   };
 
+  // ----- RENDER A SINGLE THEME BLOCK -----
   const renderThemeBlock = (item, isFirst) => {
     const timeline = Array.isArray(item.timeline) ? item.timeline : [];
 
@@ -57,19 +81,69 @@ export default function ThemeScreen({ route, navigation }) {
 
     return (
       <View key={item.id} style={{ marginBottom: 50 }}>
+        {/* Cover */}
         {item.imageUrl && (
           <Image source={{ uri: item.imageUrl }} style={styles.coverImage} />
         )}
 
+        {/* Metadata */}
         <Text style={styles.title}>{item.title || "Untitled Theme"}</Text>
         <Text style={styles.updated}>{formatUpdatedAt(item.updatedAt)}</Text>
-
         <Text style={styles.category}>{item.category || "Uncategorized"}</Text>
 
+        {/* Overview */}
         <View style={{ marginVertical: 10 }}>
           {renderLinkedText(item.overview, navigation)}
         </View>
 
+        {/* 🔵 NEW: ANALYSIS BUTTONS (only for first/primary theme) */}
+        {isFirst && hasAnyAnalysis && (
+          <View style={styles.analysisButtonsRow}>
+            {primaryAnalysis.stakeholders?.length > 0 && (
+              <TouchableOpacity
+                style={styles.analysisButton}
+                onPress={() =>
+                  navigation.navigate("AnalysisModal", {
+                    type: "stakeholders",
+                    analysis: primaryAnalysis,
+                  })
+                }
+              >
+                <Text style={styles.analysisButtonText}>Stakeholders</Text>
+              </TouchableOpacity>
+            )}
+
+            {primaryAnalysis.faqs?.length > 0 && (
+              <TouchableOpacity
+                style={styles.analysisButton}
+                onPress={() =>
+                  navigation.navigate("AnalysisModal", {
+                    type: "faqs",
+                    analysis: primaryAnalysis,
+                  })
+                }
+              >
+                <Text style={styles.analysisButtonText}>FAQs</Text>
+              </TouchableOpacity>
+            )}
+
+            {primaryAnalysis.future?.length > 0 && (
+              <TouchableOpacity
+                style={styles.analysisButton}
+                onPress={() =>
+                  navigation.navigate("AnalysisModal", {
+                    type: "future",
+                    analysis: primaryAnalysis,
+                  })
+                }
+              >
+                <Text style={styles.analysisButtonText}>Future Qs</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {/* Depth Toggle → ONLY FOR FIRST THEME */}
         {!item.disableDepthToggle && isFirst && timeline.length > 0 && (
           <View style={styles.sliderBox}>
             <Text style={styles.sliderLabel}>Essential</Text>
@@ -88,6 +162,7 @@ export default function ThemeScreen({ route, navigation }) {
           </View>
         )}
 
+        {/* TIMELINE */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Chronology of Events</Text>
 
@@ -96,6 +171,7 @@ export default function ThemeScreen({ route, navigation }) {
           ) : (
             filteredTimeline.map((e, i) => (
               <View key={i} style={styles.eventBlock}>
+                {/* Event Row */}
                 <View style={styles.eventRow}>
                   {e.imageUrl ? (
                     <Image source={{ uri: e.imageUrl }} style={styles.thumb} />
@@ -115,6 +191,7 @@ export default function ThemeScreen({ route, navigation }) {
                   </View>
                 </View>
 
+                {/* Event-specific coverage links */}
                 {Array.isArray(e.sources) && e.sources.length > 0 && (
                   <View style={styles.eventSources}>
                     <SourceLinks sources={e.sources} />
@@ -124,17 +201,11 @@ export default function ThemeScreen({ route, navigation }) {
             ))
           )}
         </View>
-
-        {item.analysis && Object.keys(item.analysis || {}).length > 0 && (
-          <View style={{ marginTop: 16 }}>
-            <Text style={styles.sectionTitle}>Analysis</Text>
-            <AnalysisSection analysis={item.analysis} />
-          </View>
-        )}
       </View>
     );
   };
 
+  // ----- MAIN RETURN -----
   return (
     <ScrollView
       style={styles.container}
@@ -179,6 +250,41 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: spacing.md,
     letterSpacing: 1,
+  },
+  updated: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: "#6B7280",
+    marginBottom: spacing.md,
+  },
+  overview: {
+    fontFamily: fonts.body,
+    fontSize: 16,
+    lineHeight: 24,
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
+  },
+
+  // 🔵 Analysis buttons
+  analysisButtonsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 8,
+    marginBottom: spacing.md,
+  },
+  analysisButton: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: "#111827",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  analysisButtonText: {
+    color: "#F9FAFB",
+    fontFamily: fonts.body,
+    fontSize: 13,
+    fontWeight: "500",
   },
   sliderBox: {
     flexDirection: "row",
@@ -239,15 +345,14 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontWeight: "400",
   },
+  eventDesc: {
+    fontFamily: fonts.body,
+    fontSize: 15,
+    color: colors.textSecondary,
+  },
   eventSources: {
     marginTop: 4,
     marginBottom: spacing.sm,
     paddingLeft: 2,
-  },
-  updated: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: "#6B7280",
-    marginBottom: spacing.md,
   },
 });

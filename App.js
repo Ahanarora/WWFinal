@@ -16,6 +16,7 @@ import StoriesScreen from "./screens/StoriesScreen";
 import ThemesScreen from "./screens/ThemesScreen";
 import StoryScreen from "./screens/StoryScreen";
 import ThemeScreen from "./screens/ThemeScreen";
+import AnalysisModalScreen from "./screens/AnalysisModalScreen"; // ✅ NEW
 
 // Tabs and Stack
 const Tab = createBottomTabNavigator();
@@ -90,57 +91,60 @@ export default function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator>
-        {/* Tabs as main shell */}
-        <Stack.Screen
-          name="RootTabs"
-          component={Tabs}
-          options={{
-            headerTitleAlign: "center",
-            headerTitle: () => (
-              <Text style={{ flexDirection: "row" }}>
-                <Text
-                  style={{
-                    fontFamily: "Jacquard24",
-                    fontSize: 72,
-                    color: "black",
-                  }}
-                >
-                  W
-                </Text>
-                <Text
-                  style={{
-                    fontFamily: "Kranky",
-                    fontSize: 55,
-                    fontWeight: "500",
-                    color: "black",
-                  }}
-                >
-                  ait...what?
-                </Text>
-              </Text>
-            ),
-          }}
-        />
+  <Stack.Screen
+    name="RootTabs"
+    component={Tabs}
+    options={{
+      headerTitleAlign: "center",
+      headerTitle: () => (
+        <Text style={{ flexDirection: "row" }}>
+          <Text style={{ fontFamily: "Jacquard24", fontSize: 72, color: "black" }}>
+            W
+          </Text>
+          <Text
+            style={{
+              fontFamily: "Kranky",
+              fontSize: 55,
+              fontWeight: "500",
+              color: "black",
+            }}
+          >
+            ait...what?
+          </Text>
+        </Text>
+      ),
+    }}
+  />
 
-        {/* Detail Pages */}
-        <Stack.Screen
-          name="Story"
-          component={StoryScreen}
-          options={{
-            title: "Story",
-            headerBackTitle: "Back",
-          }}
-        />
+  <Stack.Screen
+    name="Story"
+    component={StoryScreen}
+    options={{
+      title: "Story",
+      headerBackTitle: "Back",
+    }}
+  />
 
-        <Stack.Screen
-          name="Theme"
-          component={ThemeScreen}
-          options={{
-            title: "Theme",
-            headerBackTitle: "Back",
-          }}
-        />
-      </Stack.Navigator>
+  <Stack.Screen
+    name="Theme"
+    component={ThemeScreen}
+    options={{
+      title: "Theme",
+      headerBackTitle: "Back",
+    }}
+  />
+
+  {/* ✅ ADD THIS */}
+  <Stack.Screen
+    name="AnalysisModal"
+    component={AnalysisModalScreen}
+    options={{
+      presentation: "modal",
+      headerShown: false,
+    }}
+  />
+</Stack.Navigator>
+
     </NavigationContainer>
   );
 }

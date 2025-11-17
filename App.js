@@ -143,6 +143,16 @@ export default function App() {
       headerShown: false,
     }}
   />
+
+  <Stack.Screen
+  name="EventReader"
+  component={require("./screens/EventReaderModal").default}
+  options={{
+    presentation: "modal",
+    headerShown: false,
+  }}
+/>
+
 </Stack.Navigator>
 
     </NavigationContainer>

@@ -170,35 +170,44 @@ export default function ThemeScreen({ route, navigation }) {
             <Text style={styles.empty}>No events for this depth.</Text>
           ) : (
             filteredTimeline.map((e, i) => (
-              <View key={i} style={styles.eventBlock}>
-                {/* Event Row */}
-                <View style={styles.eventRow}>
-                  {e.imageUrl ? (
-                    <Image source={{ uri: e.imageUrl }} style={styles.thumb} />
-                  ) : (
-                    <View style={styles.thumbPlaceholder}>
-                      <Text style={{ fontSize: 16 }}>📰</Text>
-                    </View>
-                  )}
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.eventDate}>{e.date}</Text>
-                    <Text style={styles.eventTitle}>{e.event}</Text>
-                    <RenderWithContext
-                      text={e.description}
-                      contexts={e.contexts || []}
-                      navigation={navigation}
-                    />
-                  </View>
-                </View>
+  <View key={i} style={styles.eventBlock}>
+    <TouchableOpacity
+      activeOpacity={0.8}
+      onPress={() =>
+        navigation.navigate("EventReader", {
+          events: filteredTimeline,
+          startIndex: i,
+        })
+      }
+    >
+      <View style={styles.eventRow}>
+        {e.imageUrl ? (
+          <Image source={{ uri: e.imageUrl }} style={styles.thumb} />
+        ) : (
+          <View style={styles.thumbPlaceholder}>
+            <Text style={{ fontSize: 16 }}>📰</Text>
+          </View>
+        )}
+        <View style={{ flex: 1 }}>
+          <Text style={styles.eventDate}>{e.date}</Text>
+          <Text style={styles.eventTitle}>{e.event}</Text>
+          <RenderWithContext
+            text={e.description}
+            contexts={e.contexts || []}
+            navigation={navigation}
+          />
+        </View>
+      </View>
+    </TouchableOpacity>
 
-                {/* Event-specific coverage links */}
-                {Array.isArray(e.sources) && e.sources.length > 0 && (
-                  <View style={styles.eventSources}>
-                    <SourceLinks sources={e.sources} />
-                  </View>
-                )}
-              </View>
-            ))
+    {Array.isArray(e.sources) && e.sources.length > 0 && (
+      <View style={styles.eventSources}>
+        <SourceLinks sources={e.sources} />
+      </View>
+    )}
+  </View>
+))
+
           )}
         </View>
       </View>

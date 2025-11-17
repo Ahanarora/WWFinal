@@ -20,6 +20,8 @@ import { renderLinkedText } from "../utils/renderLinkedText";
 import { formatUpdatedAt } from "../utils/formatTime";
 import { normalizeAnalysis } from "../utils/normalizeAnalysis";
 
+const PHASE_PALETTE = ["#2563EB", "#DC2626", "#059669", "#D97706", "#6D28D9"];
+
 export default function StoryScreen({ route, navigation }) {
   const { story, index, allStories } = route.params || {};
 
@@ -93,12 +95,25 @@ export default function StoryScreen({ route, navigation }) {
     });
 
     // Phases from CMS
-    const phases = Array.isArray(item.phases) ? item.phases : [];
+    const rawPhases = Array.isArray(item.phases) ? item.phases : [];
+    const phasesWithAccent = rawPhases.map((phase, idx) => ({
+      ...phase,
+      accentColor:
+        phase?.accentColor ||
+        phase?.color ||
+        PHASE_PALETTE[idx % PHASE_PALETTE.length],
+    }));
+    const phaseLookup = phasesWithAccent.reduce((acc, phase) => {
+      if (typeof phase?.startIndex === "number") {
+        acc[phase.startIndex] = phase;
+      }
+      return acc;
+    }, {});
 
     // Helper: check if this event triggers a phase header
     const getPhaseForEvent = (event) => {
-      if (!phases.length) return null;
-      return phases.find((p) => p.startIndex === event._originalIndex) || null;
+      if (!phasesWithAccent.length) return null;
+      return phaseLookup[event._originalIndex] || null;
     };
 
     // For EventReaderModal: build enhanced timeline with phase titles
@@ -204,7 +219,12 @@ export default function StoryScreen({ route, navigation }) {
               <View key={e._originalIndex ?? i} style={styles.eventBlock}>
                 {/* PHASE HEADER */}
                 {phase && (
-                  <View style={styles.phaseHeader}>
+                  <View
+                    style={[
+                      styles.phaseHeader,
+                      { borderLeftColor: phase.accentColor },
+                    ]}
+                  >
                     <Text style={styles.phaseTitle}>{phase.title}</Text>
                     {phase.description ? (
                       <Text style={styles.phaseSubtitle}>
@@ -367,19 +387,32 @@ const styles = StyleSheet.create({
 
   // PHASE HEADER
   phaseHeader: {
-    marginBottom: 6,
-    paddingVertical: 4,
+    marginBottom: 12,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
   },
   phaseTitle: {
     fontFamily: fonts.heading,
     fontSize: 15,
     color: "#111827",
+    textAlign: "center",
   },
   phaseSubtitle: {
     fontFamily: fonts.body,
     fontSize: 13,
     color: "#6B7280",
-    marginTop: 2,
+    textAlign: "center",
   },
 
   eventBlock: {

@@ -97,29 +97,62 @@ export default function StoryScreen({ route, navigation }) {
 
     // Phases from CMS
     const rawPhases = Array.isArray(item.phases) ? item.phases : [];
-    const phasesWithAccent = rawPhases.map((phase, idx) => ({
-      ...phase,
-      accentColor:
+    const timelineLength = indexedTimeline.length;
+    const phasesWithAccent = rawPhases.map((phase, idx) => {
+      // CMS can now optionally provide phase.endIndex to mark the final event of a phase.
+      const accentColor =
         phase?.accentColor ||
         phase?.color ||
-        PHASE_PALETTE[idx % PHASE_PALETTE.length],
-    }));
-    const phaseLookup = phasesWithAccent.reduce((acc, phase) => {
+        PHASE_PALETTE[idx % PHASE_PALETTE.length];
+
+      const nextStart = rawPhases[idx + 1]?.startIndex;
+      const fallbackEnd =
+        typeof nextStart === "number" ? nextStart - 1 : timelineLength - 1;
+      const providedEnd =
+        typeof phase?.endIndex === "number" ? phase.endIndex : undefined;
+
+      const safeStart = Math.max(0, phase?.startIndex ?? 0);
+      const safeEnd = Math.max(
+        safeStart,
+        Math.min(timelineLength - 1, providedEnd ?? fallbackEnd ?? safeStart)
+      );
+
+      return {
+        ...phase,
+        accentColor,
+        startIndex: safeStart,
+        endIndex: safeEnd,
+      };
+    });
+
+    const phaseStartLookup = phasesWithAccent.reduce((acc, phase) => {
       if (typeof phase?.startIndex === "number") {
         acc[phase.startIndex] = phase;
       }
       return acc;
     }, {});
 
+    const phaseRangeLookup = phasesWithAccent.reduce((acc, phase) => {
+      if (
+        typeof phase?.startIndex === "number" &&
+        typeof phase?.endIndex === "number"
+      ) {
+        for (let idx = phase.startIndex; idx <= phase.endIndex; idx += 1) {
+          acc[idx] = phase;
+        }
+      }
+      return acc;
+    }, {});
+
     // Helper: check if this event triggers a phase header
-    const getPhaseForEvent = (event) => {
+    const getPhaseForEventStart = (event) => {
       if (!phasesWithAccent.length) return null;
-      return phaseLookup[event._originalIndex] || null;
+      return phaseStartLookup[event._originalIndex] || null;
     };
 
     // For EventReaderModal: build enhanced timeline with phase titles
     const timelineForModal = filteredTimeline.map((evt) => {
-      const phase = getPhaseForEvent(evt);
+      const phase = getPhaseForEventStart(evt);
       return {
         ...evt,
         phaseTitle: phase?.title ?? null,
@@ -216,22 +249,25 @@ export default function StoryScreen({ route, navigation }) {
           <Text style={styles.sectionTitle}>Timeline</Text>
 
           {filteredTimeline.map((e, i) => {
-            const phase = getPhaseForEvent(e);
+            const startingPhase = getPhaseForEventStart(e);
+            const activePhase = phaseRangeLookup[e._originalIndex];
+            const isPhaseEnd =
+              activePhase && activePhase.endIndex === e._originalIndex;
 
             return (
               <View key={e._originalIndex ?? i} style={styles.eventBlock}>
                 {/* PHASE HEADER */}
-                {phase && (
+                {startingPhase && (
                   <View
                     style={[
                       styles.phaseHeader,
-                      { borderLeftColor: phase.accentColor },
+                      { borderLeftColor: startingPhase.accentColor },
                     ]}
                   >
-                    <Text style={styles.phaseTitle}>{phase.title}</Text>
-                    {phase.description ? (
+                    <Text style={styles.phaseTitle}>{startingPhase.title}</Text>
+                    {startingPhase.description ? (
                       <Text style={styles.phaseSubtitle}>
-                        {phase.description}
+                        {startingPhase.description}
                       </Text>
                     ) : null}
                   </View>
@@ -248,7 +284,16 @@ export default function StoryScreen({ route, navigation }) {
                     })
                   }
                 >
-                  <View style={styles.eventCard}>
+                  <View
+                    style={[
+                      styles.eventCard,
+                      activePhase && {
+                        borderLeftWidth: 3,
+                        borderLeftColor: activePhase.accentColor,
+                        paddingLeft: spacing.md - 3,
+                      },
+                    ]}
+                  >
                     {e.imageUrl || e.image || e.thumbnail ? (
                       <Image
                         source={{
@@ -279,6 +324,17 @@ export default function StoryScreen({ route, navigation }) {
                     </View>
                   </View>
                 </TouchableOpacity>
+
+                {isPhaseEnd && (
+                  <View style={styles.phaseEndIndicator}>
+                    <View
+                      style={[
+                        styles.phaseEndDot,
+                        { backgroundColor: activePhase.accentColor },
+                      ]}
+                    />
+                  </View>
+                )}
               </View>
             );
           })}
@@ -487,5 +543,18 @@ const styles = StyleSheet.create({
 
   eventSources: {
     marginTop: spacing.sm,
+  },
+
+  phaseEndIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: spacing.xs,
+    marginBottom: spacing.md,
+    paddingLeft: spacing.sm,
+  },
+  phaseEndDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
 });

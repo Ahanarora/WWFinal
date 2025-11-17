@@ -8,7 +8,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { useFonts } from "expo-font";
-import AppLoading from "expo-app-loading";
+
 
 // Screens
 import HomeScreen from "./screens/HomeScreen";
@@ -82,7 +82,10 @@ export default function App() {
    Kranky: require("./assets/fonts/Kranky-Regular.ttf"),
   });
 
-  if (!fontsLoaded) return <AppLoading />;
+ if (!fontsLoaded) {
+  return null; // OR return a splash component
+}
+
 
   return (
     <NavigationContainer>

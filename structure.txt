@@ -1,0 +1,125 @@
+.
+├── App.js
+├── android
+│   ├── app
+│   │   ├── build.gradle
+│   │   ├── debug.keystore
+│   │   ├── proguard-rules.pro
+│   │   └── src
+│   │       ├── debug
+│   │       │   └── AndroidManifest.xml
+│   │       ├── debugOptimized
+│   │       │   └── AndroidManifest.xml
+│   │       └── main
+│   │           ├── AndroidManifest.xml
+│   │           ├── java
+│   │           │   └── com
+│   │           │       └── anonymous
+│   │           │           └── WWFinal
+│   │           │               ├── MainActivity.kt
+│   │           │               └── MainApplication.kt
+│   │           └── res
+│   │               ├── drawable
+│   │               │   ├── ic_launcher_background.xml
+│   │               │   ├── rn_edit_text_material.xml
+│   │               │   └── splashscreen.xml
+│   │               ├── drawable-hdpi
+│   │               │   ├── splashscreen_image.png
+│   │               │   └── splashscreen_logo.png
+│   │               ├── drawable-mdpi
+│   │               │   ├── splashscreen_image.png
+│   │               │   └── splashscreen_logo.png
+│   │               ├── drawable-xhdpi
+│   │               │   ├── splashscreen_image.png
+│   │               │   └── splashscreen_logo.png
+│   │               ├── drawable-xxhdpi
+│   │               │   ├── splashscreen_image.png
+│   │               │   └── splashscreen_logo.png
+│   │               ├── drawable-xxxhdpi
+│   │               │   ├── splashscreen_image.png
+│   │               │   └── splashscreen_logo.png
+│   │               ├── mipmap-anydpi-v26
+│   │               │   ├── ic_launcher.xml
+│   │               │   └── ic_launcher_round.xml
+│   │               ├── mipmap-hdpi
+│   │               │   ├── ic_launcher.webp
+│   │               │   ├── ic_launcher_foreground.webp
+│   │               │   └── ic_launcher_round.webp
+│   │               ├── mipmap-mdpi
+│   │               │   ├── ic_launcher.webp
+│   │               │   ├── ic_launcher_foreground.webp
+│   │               │   └── ic_launcher_round.webp
+│   │               ├── mipmap-xhdpi
+│   │               │   ├── ic_launcher.webp
+│   │               │   ├── ic_launcher_foreground.webp
+│   │               │   └── ic_launcher_round.webp
+│   │               ├── mipmap-xxhdpi
+│   │               │   ├── ic_launcher.webp
+│   │               │   ├── ic_launcher_foreground.webp
+│   │               │   └── ic_launcher_round.webp
+│   │               ├── mipmap-xxxhdpi
+│   │               │   ├── ic_launcher.webp
+│   │               │   ├── ic_launcher_foreground.webp
+│   │               │   └── ic_launcher_round.webp
+│   │               ├── values
+│   │               │   ├── colors.xml
+│   │               │   ├── strings.xml
+│   │               │   └── styles.xml
+│   │               └── values-night
+│   │                   └── colors.xml
+│   ├── build.gradle
+│   ├── gradle
+│   │   └── wrapper
+│   │       ├── gradle-wrapper.jar
+│   │       └── gradle-wrapper.properties
+│   ├── gradle.properties
+│   ├── gradlew
+│   ├── gradlew.bat
+│   └── settings.gradle
+├── app.json
+├── assets
+│   ├── Bangers-Regular.ttf
+│   ├── adaptive-icon.png
+│   ├── favicon.png
+│   ├── fonts
+│   │   ├── CinzelDecorative-Bold.ttf
+│   │   ├── Jacquard24-Regular.ttf
+│   │   ├── Kranky-Regular.ttf
+│   │   ├── Montserrat-VariableFont_wght.ttf
+│   │   └── OldeEnglish.ttf
+│   ├── icon.png
+│   ├── logo.png
+│   └── splash-icon.png
+├── babel.config.js
+├── components
+│   ├── AnalysisPanel.js
+│   ├── AnalysisSection.js
+│   ├── AppHeader.js
+│   ├── NewsCard.js
+│   ├── RenderWithContext.js
+│   ├── SourceLinks.js
+│   └── TimelineCard.js
+├── data
+│   └── dummyData.js
+├── firebaseConfig.js
+├── index.js
+├── package-lock.json
+├── package.json
+├── screens
+│   ├── AnalysisModalScreen.js
+│   ├── HomeScreen.js
+│   ├── StoriesScreen.js
+│   ├── StoryScreen.js
+│   ├── ThemeScreen.js
+│   └── ThemesScreen.js
+├── structure.txt
+├── styles
+│   └── theme.js
+└── utils
+    ├── firebase.js
+    ├── formatTime.js
+    ├── formatTimeAgo.js
+    ├── ranking.js
+    └── renderLinkedText.js
+
+35 directories, 88 files

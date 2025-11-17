@@ -85,6 +85,11 @@ export default function StoriesScreen({ navigation }) {
           <Text style={styles.title}>{item.title}</Text>
           <Text style={styles.updated}>{formatUpdatedAt(item.updatedAt)}</Text>
 
+          {item.overview ? (
+            <Text style={styles.overviewPreview} numberOfLines={2}>
+              {item.overview}
+            </Text>
+          ) : null}
           {headlines.length > 0 ? (
             <View style={styles.headlineList}>
               <Text style={styles.latestLabel}>Latest updates</Text>
@@ -97,11 +102,6 @@ export default function StoriesScreen({ navigation }) {
                 </View>
               ))}
             </View>
-          ) : null}
-          {item.overview ? (
-            <Text style={styles.overviewPreview} numberOfLines={2}>
-              {item.overview}
-            </Text>
           ) : null}
         </View>
       </TouchableOpacity>
@@ -174,10 +174,11 @@ const styles = StyleSheet.create({
   },
   headlineList: {
     gap: 6,
+    marginTop: 12,
   },
   latestLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
+    fontSize: 11,
+    color: colors.muted,
     textTransform: "uppercase",
     letterSpacing: 1,
   },
@@ -187,21 +188,22 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   headlineBullet: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginTop: 7,
-    backgroundColor: colors.accent,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    marginTop: 9,
+    backgroundColor: "#38BDF8",
   },
   headlineText: {
-    fontSize: 15,
-    color: colors.textPrimary,
-    fontWeight: "600",
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontWeight: "500",
+    lineHeight: 18,
   },
   overviewPreview: {
     fontSize: 14,
     color: colors.textSecondary,
-    marginTop: 4,
+    marginTop: 2,
     lineHeight: 20,
   },
 });

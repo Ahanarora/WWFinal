@@ -40,12 +40,13 @@ export default function RenderWithContext({ text = "", contexts = [], navigation
                 (c) => c.term.toLowerCase() === term.toLowerCase()
               );
               newChunks.push(
-                <TouchableOpacity
+                <Text
                   key={`${term}-${Math.random()}`}
+                  style={styles.highlight}
                   onPress={() => setPopup(info)}
                 >
-                  <Text style={styles.highlight}>{seg}</Text>
-                </TouchableOpacity>
+                  {seg}
+                </Text>
               );
             } else newChunks.push(seg);
           });
@@ -58,11 +59,11 @@ export default function RenderWithContext({ text = "", contexts = [], navigation
     // ---------- 2️⃣ Internal links ----------
     if (n.type === "internalLink") {
       return (
-        <TouchableOpacity
+        <Text
           key={i}
+          style={styles.link}
           onPress={async () => {
             try {
-              // Use the ID exactly as it appears in Firestore
               const collectionName =
                 n.linkType === "story" ? "stories" : "themes";
 
@@ -91,8 +92,8 @@ export default function RenderWithContext({ text = "", contexts = [], navigation
             }
           }}
         >
-          <Text style={styles.link}>{n.label}</Text>
-        </TouchableOpacity>
+          {n.label}
+        </Text>
       );
     }
 

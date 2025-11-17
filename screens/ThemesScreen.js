@@ -82,6 +82,11 @@ export default function ThemesScreen({ navigation }) {
           <Text style={styles.title}>{theme.title}</Text>
           <Text style={styles.updated}>{formatUpdatedAt(theme.updatedAt)}</Text>
 
+          {theme.overview ? (
+            <Text style={styles.overviewPreview} numberOfLines={2}>
+              {theme.overview}
+            </Text>
+          ) : null}
           {headlines.length > 0 ? (
             <View style={styles.headlineList}>
               <Text style={styles.latestLabel}>Latest updates</Text>
@@ -94,11 +99,6 @@ export default function ThemesScreen({ navigation }) {
                 </View>
               ))}
             </View>
-          ) : null}
-          {theme.overview ? (
-            <Text style={styles.overviewPreview} numberOfLines={2}>
-              {theme.overview}
-            </Text>
           ) : null}
         </View>
       </TouchableOpacity>
@@ -151,11 +151,11 @@ const styles = StyleSheet.create({
   },
   headlineList: {
     gap: 6,
-    marginTop: 6,
+    marginTop: 12,
   },
   latestLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
+    fontSize: 11,
+    color: colors.muted,
     textTransform: "uppercase",
     letterSpacing: 1,
   },
@@ -165,21 +165,22 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   headlineBullet: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginTop: 7,
-    backgroundColor: colors.accent,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    marginTop: 9,
+    backgroundColor: "#38BDF8",
   },
   headlineText: {
-    fontSize: 15,
-    color: colors.textPrimary,
-    fontWeight: "600",
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontWeight: "500",
+    lineHeight: 18,
   },
   overviewPreview: {
     fontSize: 14,
     color: colors.textSecondary,
-    marginTop: 6,
+    marginTop: 2,
     lineHeight: 20,
   },
 });

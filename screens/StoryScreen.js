@@ -21,6 +21,7 @@ import { formatUpdatedAt, formatDateDDMMYYYY } from "../utils/formatTime";
 import { normalizeAnalysis } from "../utils/normalizeAnalysis";
 
 const PHASE_PALETTE = ["#2563EB", "#DC2626", "#059669", "#D97706", "#6D28D9"];
+const SKY_BLUE = "#38BDF8";
 
 export default function StoryScreen({ route, navigation }) {
   const { story, index, allStories } = route.params || {};
@@ -336,7 +337,7 @@ const styles = StyleSheet.create({
   category: {
     fontFamily: fonts.body,
     color: colors.textSecondary,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
     letterSpacing: 1,
   },
 
@@ -471,7 +472,7 @@ const styles = StyleSheet.create({
   eventDate: {
     fontFamily: fonts.body,
     fontSize: 13,
-    color: colors.accent,
+    color: SKY_BLUE,
     fontWeight: "700",
     marginBottom: 4,
   },

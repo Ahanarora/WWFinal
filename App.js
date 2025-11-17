@@ -1,13 +1,14 @@
 // ----------------------------------------
 // App.js — Wait...What? News App
 // ----------------------------------------
-import React from "react";
+import React, { useMemo } from "react";
 import { Text } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { useFonts } from "expo-font";
+import { colors } from "./styles/theme";
 
 
 // Screens
@@ -80,8 +81,50 @@ function Tabs() {
 export default function App() {
   // Load fonts
   const [fontsLoaded] = useFonts({
-   Barrio: require("./assets/fonts/Barrio-Regular.ttf"),
+    Barrio: require("./assets/fonts/Barrio-Regular.ttf"),
+    Bangers: require("./assets/Bangers-Regular.ttf"),
+    Jacquard24: require("./assets/fonts/Jacquard24-Regular.ttf"),
+    OldeEnglish: require("./assets/fonts/OldeEnglish.ttf"),
+    Montserrat: require("./assets/fonts/Montserrat-VariableFont_wght.ttf"),
+    CinzelDecorative: require("./assets/fonts/CinzelDecorative-Bold.ttf"),
+    Kranky: require("./assets/fonts/Kranky-Regular.ttf"),
+    LondrinaShadow: require("./assets/fonts/LondrinaShadow-Regular.ttf"),
+    TurretRoadBold: require("./assets/fonts/TurretRoad-Bold.ttf"),
+    TurretRoadExtraBold: require("./assets/fonts/TurretRoad-ExtraBold.ttf"),
   });
+
+  const waitHeader = useMemo(() => {
+    const text = "Wait...What?".split("");
+    const fontCycle = [
+      "Barrio",
+      "Bangers",
+      "CinzelDecorative",
+      "Jacquard24",
+      "OldeEnglish",
+      "Kranky",
+      "LondrinaShadow",
+      "TurretRoadBold",
+      "TurretRoadExtraBold",
+      "Montserrat",
+    ];
+
+    return (
+      <Text style={{ flexDirection: "row", fontSize: 0 }}>
+        {text.map((char, index) => (
+          <Text
+            key={`${char}-${index}`}
+            style={{
+              fontFamily: fontCycle[index % fontCycle.length],
+              fontSize: 32,
+              color: index % 2 === 0 ? colors.textPrimary : colors.accent,
+            }}
+          >
+            {char}
+          </Text>
+        ))}
+      </Text>
+    );
+  }, []);
 
  if (!fontsLoaded) {
   return null; // OR return a splash component
@@ -96,14 +139,7 @@ export default function App() {
     component={Tabs}
     options={{
       headerTitleAlign: "center",
-      headerTitle: () => (
-        <Text style={{ flexDirection: "row" }}>
-          <Text style={{ fontFamily: "Barrio", fontSize: 60, color: "black" }}>
-            Wait...What?
-          </Text>
-         
-        </Text>
-      ),
+      headerTitle: () => waitHeader,
     }}
   />
 

@@ -1,6 +1,6 @@
 // utils/renderLinkedText.js
 import React from "react";
-import { Text, TouchableOpacity } from "react-native";
+import { Text } from "react-native";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 
@@ -65,8 +65,12 @@ export function renderLinkedText(text, navigation) {
 
         if (n.type === "internalLink")
           return (
-            <TouchableOpacity
+            <Text
               key={i}
+              style={{
+                color: "#2563EB",
+                textDecorationLine: "underline",
+              }}
               onPress={async () => {
                 const ref = doc(db, `${n.linkType}s`, n.id);
                 const snap = await getDoc(ref);
@@ -81,15 +85,8 @@ export function renderLinkedText(text, navigation) {
                 );
               }}
             >
-              <Text
-                style={{
-                  color: "#2563EB",
-                  textDecorationLine: "underline",
-                }}
-              >
-                {n.label}
-              </Text>
-            </TouchableOpacity>
+              {n.label}
+            </Text>
           );
 
         if (n.type === "externalLink")

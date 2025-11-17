@@ -204,12 +204,12 @@ export default function HomeScreen({ navigation }) {
         <Text style={styles.featuredTitle} numberOfLines={2}>
           {item.title}
         </Text>
-        {renderHeadlineBullets(item.timeline)}
         {item.overview ? (
           <Text style={styles.overviewPreview} numberOfLines={2}>
             {item.overview}
           </Text>
         ) : null}
+        {renderHeadlineBullets(item.timeline)}
       </View>
     </TouchableOpacity>
   );
@@ -237,12 +237,12 @@ export default function HomeScreen({ navigation }) {
         <Text style={styles.featuredTitle} numberOfLines={2}>
           {item.title}
         </Text>
-        {renderHeadlineBullets(item.timeline)}
         {item.overview ? (
           <Text style={styles.overviewPreview} numberOfLines={2}>
             {item.overview}
           </Text>
         ) : null}
+        {renderHeadlineBullets(item.timeline)}
       </View>
     </TouchableOpacity>
   );
@@ -279,6 +279,11 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.updatedText}>
               {formatUpdatedAt(item.updatedAt)}
             </Text>
+            {item.overview ? (
+              <Text style={styles.overviewPreview} numberOfLines={2}>
+                {item.overview}
+              </Text>
+            ) : null}
             {headlines.length > 0 ? (
               <View style={styles.headlineList}>
                 <Text style={styles.latestLabel}>Latest updates</Text>
@@ -291,11 +296,6 @@ export default function HomeScreen({ navigation }) {
                   </View>
                 ))}
               </View>
-            ) : null}
-            {item.overview ? (
-              <Text style={styles.overviewPreview} numberOfLines={2}>
-                {item.overview}
-              </Text>
             ) : null}
           </View>
         </TouchableOpacity>
@@ -333,6 +333,11 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.updatedText}>
             {formatUpdatedAt(item.updatedAt)}
           </Text>
+          {item.overview ? (
+            <Text style={styles.overviewPreview} numberOfLines={2}>
+              {item.overview}
+            </Text>
+          ) : null}
           {headlines.length > 0 ? (
             <View style={styles.headlineList}>
               <Text style={styles.latestLabel}>Latest updates</Text>
@@ -345,11 +350,6 @@ export default function HomeScreen({ navigation }) {
                 </View>
               ))}
             </View>
-          ) : null}
-          {item.overview ? (
-            <Text style={styles.overviewPreview} numberOfLines={2}>
-              {item.overview}
-            </Text>
           ) : null}
         </View>
       </TouchableOpacity>
@@ -610,12 +610,12 @@ const styles = StyleSheet.create({
   },
 
   headlineList: {
-    marginTop: 4,
+    marginTop: 12,
     gap: 6,
   },
   latestLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
+    fontSize: 11,
+    color: colors.muted,
     textTransform: "uppercase",
     letterSpacing: 1,
   },
@@ -625,19 +625,20 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   headlineBullet: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginTop: 7,
-    backgroundColor: colors.accent,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    marginTop: 9,
+    backgroundColor: "#38BDF8",
   },
   headlineText: {
-    fontSize: 15,
-    color: colors.textPrimary,
-    fontWeight: "600",
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontWeight: "500",
+    lineHeight: 18,
   },
   overviewPreview: {
-    marginTop: 6,
+    marginTop: 2,
     fontSize: 14,
     color: colors.textSecondary,
     lineHeight: 20,

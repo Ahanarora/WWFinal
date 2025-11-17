@@ -18,7 +18,6 @@ import { db } from "../firebaseConfig";
 import { scoreContent } from "../utils/ranking";
 import { formatUpdatedAt } from "../utils/formatTime";
 
-
 export default function ThemesScreen({ navigation }) {
   const [themes, setThemes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,7 +28,6 @@ export default function ThemesScreen({ navigation }) {
         const snapshot = await getDocs(collection(db, "themes"));
         const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
-        // Rank by StoryScore (highest first)
         const ranked = [...data].sort((a, b) => scoreContent(b) - scoreContent(a));
         setThemes(ranked);
       } catch (err) {
@@ -66,7 +64,7 @@ export default function ThemesScreen({ navigation }) {
         navigation.navigate("Theme", {
           theme,
           index,
-          allThemes: themes, // ranked list for infinite theme scroll
+          allThemes: themes,
         })
       }
       style={styles.card}
@@ -78,7 +76,7 @@ export default function ThemesScreen({ navigation }) {
       <View style={styles.content}>
         <Text style={styles.category}>{theme.category || "General"}</Text>
         <Text style={styles.title}>{theme.title}</Text>
-        <Text style={styles.updated}>{formatUpdatedAt(item.updatedAt)}</Text>
+        <Text style={styles.updated}>{formatUpdatedAt(theme.updatedAt)}</Text>
 
         <Text style={styles.overview} numberOfLines={3}>
           {theme.overview}
@@ -89,7 +87,6 @@ export default function ThemesScreen({ navigation }) {
 
   return (
     <ScrollView style={styles.container}>
-      {/* Ranked Themes */}
       {themes.map((theme, index) => renderThemeCard(theme, index))}
     </ScrollView>
   );
@@ -121,4 +118,8 @@ const styles = StyleSheet.create({
   category: { fontSize: 12, color: "#6B7280", textTransform: "uppercase" },
   title: { fontSize: 18, fontWeight: "600", color: "#111" },
   overview: { fontSize: 14, color: "#444", lineHeight: 20 },
+  updated: {
+    fontSize: 12,
+    color: "#6B7280",
+  },
 });

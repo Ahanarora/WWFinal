@@ -11,17 +11,13 @@ import RenderWithContext from "../components/RenderWithContext";
 import { renderLinkedText } from "../utils/renderLinkedText";
 import { formatUpdatedAt } from "../utils/formatTime";
 
-
-
 export default function ThemeScreen({ route, navigation }) {
   const { theme, index, allThemes } = route.params || {};
 
-  // Endless scroll state
   const [feed, setFeed] = useState([theme]);
   const [currentIndex, setCurrentIndex] = useState(index);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // Depth toggle state (KEEP ONLY ONCE)
   const [depth, setDepth] = useState(3);
 
   if (!theme)
@@ -31,7 +27,6 @@ export default function ThemeScreen({ route, navigation }) {
       </View>
     );
 
-  // ----- ENDLESS SCROLL LOADER -----
   const loadNextTheme = () => {
     if (isLoadingMore) return;
     if (currentIndex >= allThemes.length - 1) return;
@@ -51,7 +46,6 @@ export default function ThemeScreen({ route, navigation }) {
     setIsLoadingMore(false);
   };
 
-  // ----- RENDER A SINGLE THEME BLOCK -----
   const renderThemeBlock = (item, isFirst) => {
     const timeline = Array.isArray(item.timeline) ? item.timeline : [];
 
@@ -63,25 +57,19 @@ export default function ThemeScreen({ route, navigation }) {
 
     return (
       <View key={item.id} style={{ marginBottom: 50 }}>
-        {/* Cover */}
         {item.imageUrl && (
           <Image source={{ uri: item.imageUrl }} style={styles.coverImage} />
         )}
 
-        {/* Metadata */}
         <Text style={styles.title}>{item.title || "Untitled Theme"}</Text>
-        <Text style={styles.updated}>
-  {formatUpdatedAt(item.updatedAt)}
-</Text>
+        <Text style={styles.updated}>{formatUpdatedAt(item.updatedAt)}</Text>
 
         <Text style={styles.category}>{item.category || "Uncategorized"}</Text>
 
-        {/* Overview */}
         <View style={{ marginVertical: 10 }}>
           {renderLinkedText(item.overview, navigation)}
         </View>
 
-        {/* Depth Toggle → ONLY FOR FIRST THEME */}
         {!item.disableDepthToggle && isFirst && timeline.length > 0 && (
           <View style={styles.sliderBox}>
             <Text style={styles.sliderLabel}>Essential</Text>
@@ -100,7 +88,6 @@ export default function ThemeScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* TIMELINE */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Chronology of Events</Text>
 
@@ -109,7 +96,6 @@ export default function ThemeScreen({ route, navigation }) {
           ) : (
             filteredTimeline.map((e, i) => (
               <View key={i} style={styles.eventBlock}>
-                {/* Event Row */}
                 <View style={styles.eventRow}>
                   {e.imageUrl ? (
                     <Image source={{ uri: e.imageUrl }} style={styles.thumb} />
@@ -129,7 +115,6 @@ export default function ThemeScreen({ route, navigation }) {
                   </View>
                 </View>
 
-                {/* Event-specific coverage links */}
                 {Array.isArray(e.sources) && e.sources.length > 0 && (
                   <View style={styles.eventSources}>
                     <SourceLinks sources={e.sources} />
@@ -140,7 +125,6 @@ export default function ThemeScreen({ route, navigation }) {
           )}
         </View>
 
-        {/* Analysis */}
         {item.analysis && Object.keys(item.analysis || {}).length > 0 && (
           <View style={{ marginTop: 16 }}>
             <Text style={styles.sectionTitle}>Analysis</Text>
@@ -151,7 +135,6 @@ export default function ThemeScreen({ route, navigation }) {
     );
   };
 
-  // ----- MAIN RETURN -----
   return (
     <ScrollView
       style={styles.container}
@@ -196,13 +179,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: spacing.md,
     letterSpacing: 1,
-  },
-  overview: {
-    fontFamily: fonts.body,
-    fontSize: 16,
-    lineHeight: 24,
-    color: colors.textSecondary,
-    marginBottom: spacing.lg,
   },
   sliderBox: {
     flexDirection: "row",
@@ -263,32 +239,15 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontWeight: "400",
   },
-  eventDesc: {
-    fontFamily: fonts.body,
-    fontSize: 15,
-    color: colors.textSecondary,
-  },
   eventSources: {
     marginTop: 4,
     marginBottom: spacing.sm,
     paddingLeft: 2,
   },
   updated: {
-  fontFamily: fonts.body,
-  fontSize: 13,
-  color: "#6B7280",
-  marginBottom: spacing.md,
-},
-updated: {
-  fontFamily: fonts.body,
-  fontSize: 13,
-  color: "#6B7280",
-  marginBottom: spacing.md,
-},
-updated: {
-  fontSize: 12,
-  color: "#6B7280",
-  marginBottom: 4,
-},
-
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: "#6B7280",
+    marginBottom: spacing.md,
+  },
 });

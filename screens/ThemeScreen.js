@@ -1,5 +1,6 @@
 // ----------------------------------------
 // screens/ThemeScreen.js
+// PHASE SUPPORT + EventReader integration
 // ----------------------------------------
 import React, { useState } from "react";
 import {
@@ -21,12 +22,10 @@ import { normalizeAnalysis } from "../utils/normalizeAnalysis";
 export default function ThemeScreen({ route, navigation }) {
   const { theme, index, allThemes } = route.params || {};
 
-  // Endless scroll state
   const [feed, setFeed] = useState(theme ? [theme] : []);
   const [currentIndex, setCurrentIndex] = useState(index ?? 0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // Depth toggle state (KEEP ONLY ONCE)
   const [depth, setDepth] = useState(3);
 
   if (!theme)
@@ -38,16 +37,18 @@ export default function ThemeScreen({ route, navigation }) {
 
   const primaryAnalysis = normalizeAnalysis(theme.analysis);
   const hasAnyAnalysis =
-    primaryAnalysis &&
-    ((primaryAnalysis.stakeholders?.length || 0) +
-      (primaryAnalysis.faqs?.length || 0) +
-      (primaryAnalysis.future?.length || 0) >
-      0);
+    (primaryAnalysis.stakeholders?.length ?? 0) +
+      (primaryAnalysis.faqs?.length ?? 0) +
+      (primaryAnalysis.future?.length ?? 0) >
+    0;
 
-  // ----- ENDLESS SCROLL LOADER -----
+  // ------------------------------
+  // Endless scroll
+  // ------------------------------
   const loadNextTheme = () => {
     if (isLoadingMore) return;
-    if (!Array.isArray(allThemes) || currentIndex >= allThemes.length - 1) return;
+    if (!Array.isArray(allThemes) || currentIndex >= allThemes.length - 1)
+      return;
 
     setIsLoadingMore(true);
 
@@ -69,41 +70,66 @@ export default function ThemeScreen({ route, navigation }) {
     setIsLoadingMore(false);
   };
 
-  // ----- RENDER A SINGLE THEME BLOCK -----
+  // ------------------------------
+  // Render one theme block
+  // ------------------------------
   const renderThemeBlock = (item, isFirst) => {
-    const timeline = Array.isArray(item.timeline) ? item.timeline : [];
+    const rawTimeline = Array.isArray(item.timeline) ? item.timeline : [];
 
-    const filteredTimeline = timeline.filter((e) => {
+    // Add original index
+    const indexedTimeline = rawTimeline.map((evt, originalIndex) => ({
+      ...evt,
+      _originalIndex: originalIndex,
+    }));
+
+    // Phase definitions from CMS
+    const phases = Array.isArray(item.phases) ? item.phases : [];
+
+    const getPhaseForEvent = (event) => {
+      return phases.find((p) => p.startIndex === event._originalIndex) || null;
+    };
+
+    // Depth filtering
+    const filteredTimeline = indexedTimeline.filter((e) => {
       if (depth === 1) return e.significance === 3;
       if (depth === 2) return e.significance >= 2;
       return true;
     });
 
+    // EventReader modal enriched timeline
+    const timelineForModal = filteredTimeline.map((evt) => {
+      const ph = getPhaseForEvent(evt);
+      return {
+        ...evt,
+        phaseTitle: ph?.title ?? null,
+      };
+    });
+
     return (
       <View key={item.id} style={{ marginBottom: 50 }}>
-        {/* Cover */}
+        {/* COVER */}
         {item.imageUrl && (
           <Image source={{ uri: item.imageUrl }} style={styles.coverImage} />
         )}
 
-        {/* Metadata */}
+        {/* TITLE / META */}
         <Text style={styles.title}>{item.title || "Untitled Theme"}</Text>
         <Text style={styles.updated}>{formatUpdatedAt(item.updatedAt)}</Text>
         <Text style={styles.category}>{item.category || "Uncategorized"}</Text>
 
-        {/* Overview */}
+        {/* OVERVIEW */}
         <View style={{ marginVertical: 10 }}>
           {renderLinkedText(item.overview, navigation)}
         </View>
 
-        {/* 🔵 NEW: ANALYSIS BUTTONS (only for first/primary theme) */}
+        {/* ANALYSIS BUTTONS — only for first theme */}
         {isFirst && hasAnyAnalysis && (
           <View style={styles.analysisButtonsRow}>
             {primaryAnalysis.stakeholders?.length > 0 && (
               <TouchableOpacity
                 style={styles.analysisButton}
                 onPress={() =>
-                  navigation.navigate("AnalysisModal", {
+                  navigation.push("AnalysisModal", {
                     type: "stakeholders",
                     analysis: primaryAnalysis,
                   })
@@ -117,7 +143,7 @@ export default function ThemeScreen({ route, navigation }) {
               <TouchableOpacity
                 style={styles.analysisButton}
                 onPress={() =>
-                  navigation.navigate("AnalysisModal", {
+                  navigation.push("AnalysisModal", {
                     type: "faqs",
                     analysis: primaryAnalysis,
                   })
@@ -131,7 +157,7 @@ export default function ThemeScreen({ route, navigation }) {
               <TouchableOpacity
                 style={styles.analysisButton}
                 onPress={() =>
-                  navigation.navigate("AnalysisModal", {
+                  navigation.push("AnalysisModal", {
                     type: "future",
                     analysis: primaryAnalysis,
                   })
@@ -143,12 +169,12 @@ export default function ThemeScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* Depth Toggle → ONLY FOR FIRST THEME */}
-        {!item.disableDepthToggle && isFirst && timeline.length > 0 && (
+        {/* DEPTH SLIDER */}
+        {!item.disableDepthToggle && isFirst && rawTimeline.length > 0 && (
           <View style={styles.sliderBox}>
             <Text style={styles.sliderLabel}>Essential</Text>
             <Slider
-              style={{ flex: 1, height: 40 }}
+              style={{ flex: 1 }}
               minimumValue={1}
               maximumValue={3}
               step={1}
@@ -162,78 +188,108 @@ export default function ThemeScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* TIMELINE */}
+        {/* ------------------------------
+            TIMELINE WITH PHASE HEADERS
+           ------------------------------ */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Chronology of Events</Text>
 
           {filteredTimeline.length === 0 ? (
             <Text style={styles.empty}>No events for this depth.</Text>
           ) : (
-            filteredTimeline.map((e, i) => (
-  <View key={i} style={styles.eventBlock}>
-    <TouchableOpacity
-      activeOpacity={0.8}
-      onPress={() =>
-        navigation.navigate("EventReader", {
-          events: filteredTimeline,
-          startIndex: i,
-        })
-      }
-    >
-      <View style={styles.eventRow}>
-        {e.imageUrl ? (
-          <Image source={{ uri: e.imageUrl }} style={styles.thumb} />
-        ) : (
-          <View style={styles.thumbPlaceholder}>
-            <Text style={{ fontSize: 16 }}>📰</Text>
-          </View>
-        )}
-        <View style={{ flex: 1 }}>
-          <Text style={styles.eventDate}>{e.date}</Text>
-          <Text style={styles.eventTitle}>{e.event}</Text>
-          <RenderWithContext
-            text={e.description}
-            contexts={e.contexts || []}
-            navigation={navigation}
-          />
-        </View>
-      </View>
-    </TouchableOpacity>
+            filteredTimeline.map((e, i) => {
+              const phase = getPhaseForEvent(e);
 
-    {Array.isArray(e.sources) && e.sources.length > 0 && (
-      <View style={styles.eventSources}>
-        <SourceLinks sources={e.sources} />
-      </View>
-    )}
-  </View>
-))
+              return (
+                <View key={e._originalIndex ?? i} style={styles.eventBlock}>
+                  {/* Phase Header */}
+                  {phase && (
+                    <View style={styles.phaseHeader}>
+                      <Text style={styles.phaseTitle}>{phase.title}</Text>
+                      {phase.description ? (
+                        <Text style={styles.phaseSubtitle}>
+                          {phase.description}
+                        </Text>
+                      ) : null}
+                    </View>
+                  )}
 
+                  {/* EVENT TAPPING */}
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() =>
+                      navigation.navigate("EventReader", {
+                        events: timelineForModal,
+                        startIndex: i,
+                        headerTitle: item.title,
+                      })
+                    }
+                  >
+                    <View style={styles.eventRow}>
+                      {e.imageUrl ? (
+                        <Image
+                          source={{ uri: e.imageUrl }}
+                          style={styles.thumb}
+                        />
+                      ) : (
+                        <View style={styles.thumbPlaceholder}>
+                          <Text>📰</Text>
+                        </View>
+                      )}
+
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.eventDate}>{e.date}</Text>
+                        <Text style={styles.eventTitle}>{e.event}</Text>
+                        <RenderWithContext
+                          text={e.description}
+                          contexts={e.contexts || []}
+                          navigation={navigation}
+                        />
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* SOURCES */}
+                  {Array.isArray(e.sources) && e.sources.length > 0 && (
+                    <View style={styles.eventSources}>
+                      <SourceLinks sources={e.sources} />
+                    </View>
+                  )}
+                </View>
+              );
+            })
           )}
         </View>
       </View>
     );
   };
 
-  // ----- MAIN RETURN -----
+  // ------------------------------
+  // MAIN
+  // ------------------------------
   return (
     <ScrollView
       style={styles.container}
+      scrollEventThrottle={250}
       onScroll={({ nativeEvent }) => {
-        const paddingToBottom = 300;
+        const pad = 300;
         if (
-          nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y >=
-          nativeEvent.contentSize.height - paddingToBottom
+          nativeEvent.layoutMeasurement.height +
+            nativeEvent.contentOffset.y >=
+          nativeEvent.contentSize.height - pad
         ) {
           loadNextTheme();
         }
       }}
-      scrollEventThrottle={250}
     >
       {feed.map((t, i) => renderThemeBlock(t, i === 0))}
     </ScrollView>
   );
 }
 
+// ----------------------------------------
+// STYLES
+// ----------------------------------------
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -242,59 +298,62 @@ const styles = StyleSheet.create({
   },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   error: { color: "red" },
+
   coverImage: {
     width: "100%",
     height: 240,
-    borderRadius: 4,
+    borderRadius: 6,
     marginBottom: spacing.lg,
   },
+
   title: {
     fontFamily: fonts.heading,
     fontSize: 26,
     color: colors.textPrimary,
     marginBottom: spacing.sm,
   },
+
   category: {
     fontFamily: fonts.body,
     color: colors.textSecondary,
     marginBottom: spacing.md,
     letterSpacing: 1,
   },
+
   updated: {
     fontFamily: fonts.body,
     fontSize: 13,
     color: "#6B7280",
     marginBottom: spacing.md,
   },
-  overview: {
-    fontFamily: fonts.body,
-    fontSize: 16,
-    lineHeight: 24,
-    color: colors.textSecondary,
-    marginBottom: spacing.lg,
-  },
 
-  // 🔵 Analysis buttons
+  // ANALYSIS BUTTONS
   analysisButtonsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    gap: 8,
+    gap: 6,
     marginBottom: spacing.md,
+    marginTop: spacing.sm,
   },
   analysisButton: {
     flex: 1,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: "#111827",
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    borderRadius: 14,
+    backgroundColor: "rgba(0,0,0,0.03)",
+    borderWidth: 1,
+    borderColor: "#2563EB",
     alignItems: "center",
     justifyContent: "center",
   },
   analysisButtonText: {
-    color: "#F9FAFB",
+    color: "#2563EB",
     fontFamily: fonts.body,
-    fontSize: 13,
-    fontWeight: "500",
+    fontSize: 12,
+    fontWeight: "600",
   },
+
+  // SLIDER
   sliderBox: {
     flexDirection: "row",
     alignItems: "center",
@@ -308,6 +367,8 @@ const styles = StyleSheet.create({
     width: 60,
     textAlign: "center",
   },
+
+  // TIMELINE
   section: { marginBottom: spacing.lg },
   sectionTitle: {
     fontFamily: fonts.heading,
@@ -317,18 +378,37 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     paddingBottom: 4,
   },
-  empty: { fontFamily: fonts.body, color: "#777" },
+
+  // PHASES
+  phaseHeader: {
+    marginBottom: 6,
+    paddingVertical: 4,
+  },
+  phaseTitle: {
+    fontFamily: fonts.heading,
+    fontSize: 15,
+    color: "#111827",
+  },
+  phaseSubtitle: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: "#6B7280",
+    marginTop: 2,
+  },
+
   eventBlock: {
     marginBottom: spacing.md,
     borderBottomWidth: 1,
     borderColor: colors.border,
     paddingBottom: spacing.sm,
   },
+
   eventRow: {
     flexDirection: "row",
     gap: 10,
     paddingVertical: spacing.sm,
   },
+
   thumb: {
     width: 50,
     height: 50,
@@ -343,22 +423,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
   eventDate: {
     fontFamily: fonts.body,
     fontSize: 12,
     color: "#777",
   },
+
   eventTitle: {
     fontFamily: fonts.heading,
     fontSize: 16,
     color: colors.textPrimary,
     fontWeight: "400",
   },
-  eventDesc: {
-    fontFamily: fonts.body,
-    fontSize: 15,
-    color: colors.textSecondary,
-  },
+
   eventSources: {
     marginTop: 4,
     marginBottom: spacing.sm,

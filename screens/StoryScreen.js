@@ -1,6 +1,6 @@
 // ----------------------------------------
 // screens/StoryScreen.js
-// (RESTORED ORIGINAL + Analysis buttons -> modal)
+// (RESTORED ORIGINAL + Analysis buttons + PHASES + Event Reader phases)
 // ----------------------------------------
 
 import React, { useState } from "react";
@@ -28,8 +28,8 @@ export default function StoryScreen({ route, navigation }) {
   const [currentIndex, setCurrentIndex] = useState(index ?? 0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // Depth slider (1–3)
-  const [depth, setDepth] = useState(3); // 1=Essential, 2=Balanced, 3=Complete
+  // Depth slider
+  const [depth, setDepth] = useState(3);
 
   if (!story)
     return (
@@ -42,7 +42,8 @@ export default function StoryScreen({ route, navigation }) {
 
   const loadNextStory = () => {
     if (isLoadingMore) return;
-    if (!Array.isArray(allStories) || currentIndex >= allStories.length - 1) return;
+    if (!Array.isArray(allStories) || currentIndex >= allStories.length - 1)
+      return;
 
     setIsLoadingMore(true);
 
@@ -72,14 +73,41 @@ export default function StoryScreen({ route, navigation }) {
       (primaryAnalysis.future?.length || 0) >
       0);
 
+  // ---------------------------------------------------------
+  // RENDER SINGLE STORY BLOCK (WITH PHASE HEADERS)
+  // ---------------------------------------------------------
   const renderStoryBlock = (item) => {
-    const timeline = Array.isArray(item.timeline) ? item.timeline : [];
+    const rawTimeline = Array.isArray(item.timeline) ? item.timeline : [];
 
-    // This was your original logic — leaving as-is
-    const filteredTimeline = timeline.filter((e) => {
+    // Add original index to each event
+    const indexedTimeline = rawTimeline.map((evt, originalIndex) => ({
+      ...evt,
+      _originalIndex: originalIndex,
+    }));
+
+    // Depth filtering
+    const filteredTimeline = indexedTimeline.filter((e) => {
       if (depth === 1) return e.significance === 3;
       if (depth === 2) return e.significance >= 2;
       return true;
+    });
+
+    // Phases from CMS
+    const phases = Array.isArray(item.phases) ? item.phases : [];
+
+    // Helper: check if this event triggers a phase header
+    const getPhaseForEvent = (event) => {
+      if (!phases.length) return null;
+      return phases.find((p) => p.startIndex === event._originalIndex) || null;
+    };
+
+    // For EventReaderModal: build enhanced timeline with phase titles
+    const timelineForModal = filteredTimeline.map((evt) => {
+      const phase = getPhaseForEvent(evt);
+      return {
+        ...evt,
+        phaseTitle: phase?.title ?? null,
+      };
     });
 
     return (
@@ -99,7 +127,7 @@ export default function StoryScreen({ route, navigation }) {
           {renderLinkedText(item.overview, navigation)}
         </View>
 
-        {/* 🔵 NEW: ANALYSIS BUTTONS (only for the first / primary story) */}
+        {/* ANALYSIS BUTTONS */}
         {item.id === story.id && hasAnyAnalysis && (
           <View style={styles.analysisButtonsRow}>
             {primaryAnalysis.stakeholders?.length > 0 && (
@@ -146,8 +174,8 @@ export default function StoryScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* DEPTH SLIDER ONLY FOR FIRST STORY */}
-        {feed[0].id === item.id && item.timeline?.length > 0 && (
+        {/* DEPTH SLIDER */}
+        {feed[0].id === item.id && filteredTimeline.length > 0 && (
           <View style={styles.sliderBox}>
             <Text style={styles.sliderLabel}>Essential</Text>
             <Slider
@@ -165,44 +193,60 @@ export default function StoryScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* TIMELINE (leaving existing behaviour, still mapping item.timeline) */}
+        {/* TIMELINE WITH PHASE HEADERS */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Timeline</Text>
 
-         {item.timeline?.map((e, i) => (
-  <View key={i} style={styles.eventBlock}>
-    {/* Tap on the main row to open full-screen event reader */}
-    <TouchableOpacity
-      onPress={() =>
-        navigation.navigate("EventReader", {
-          events: item.timeline || [],
-          startIndex: i,
-        })
-      }
-      activeOpacity={0.8}
-    >
-      <View style={styles.eventRow}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.eventDate}>{e.date}</Text>
-          <Text style={styles.eventTitle}>{e.event}</Text>
-          <RenderWithContext
-            text={e.description}
-            contexts={e.contexts || []}
-            navigation={navigation}
-          />
-        </View>
-      </View>
-    </TouchableOpacity>
+          {filteredTimeline.map((e, i) => {
+            const phase = getPhaseForEvent(e);
 
-    {/* Keep sources separate so taps on links don't trigger the card */}
-    {e.sources?.length > 0 && (
-      <View style={styles.eventSources}>
-        <SourceLinks sources={e.sources} />
-      </View>
-    )}
-  </View>
-))}
+            return (
+              <View key={e._originalIndex ?? i} style={styles.eventBlock}>
+                {/* PHASE HEADER */}
+                {phase && (
+                  <View style={styles.phaseHeader}>
+                    <Text style={styles.phaseTitle}>{phase.title}</Text>
+                    {phase.description ? (
+                      <Text style={styles.phaseSubtitle}>
+                        {phase.description}
+                      </Text>
+                    ) : null}
+                  </View>
+                )}
 
+                {/* EVENT TAP → EventReaderModal */}
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() =>
+                    navigation.navigate("EventReader", {
+                      events: timelineForModal,
+                      startIndex: i,
+                      headerTitle: item.title || "Story",
+                    })
+                  }
+                >
+                  <View style={styles.eventRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.eventDate}>{e.date}</Text>
+                      <Text style={styles.eventTitle}>{e.event}</Text>
+                      <RenderWithContext
+                        text={e.description}
+                        contexts={e.contexts || []}
+                        navigation={navigation}
+                      />
+                    </View>
+                  </View>
+                </TouchableOpacity>
+
+                {/* SOURCES */}
+                {e.sources?.length > 0 && (
+                  <View style={styles.eventSources}>
+                    <SourceLinks sources={e.sources} />
+                  </View>
+                )}
+              </View>
+            );
+          })}
         </View>
       </View>
     );
@@ -214,7 +258,8 @@ export default function StoryScreen({ route, navigation }) {
       onScroll={({ nativeEvent }) => {
         const paddingToBottom = 300;
         if (
-          nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y >=
+          nativeEvent.layoutMeasurement.height +
+            nativeEvent.contentOffset.y >=
           nativeEvent.contentSize.height - paddingToBottom
         ) {
           loadNextStory();
@@ -227,12 +272,16 @@ export default function StoryScreen({ route, navigation }) {
   );
 }
 
+// ----------------------------------------
+// STYLES
+// ----------------------------------------
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
     padding: spacing.md,
   },
+
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   error: { color: "red" },
 
@@ -249,6 +298,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     marginBottom: spacing.sm,
   },
+
   category: {
     fontFamily: fonts.body,
     color: colors.textSecondary,
@@ -263,34 +313,33 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
 
-  // 🔵 Analysis buttons row (three equal pills)
-analysisButtonsRow: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  gap: 6,
-  marginBottom: spacing.md,
-  marginTop: spacing.sm,
-},
+  // ANALYSIS BUTTONS
+  analysisButtonsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 6,
+    marginBottom: spacing.md,
+    marginTop: spacing.sm,
+  },
+  analysisButton: {
+    flex: 1,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    borderRadius: 14,
+    backgroundColor: "rgba(0,0,0,0.03)",
+    borderWidth: 1,
+    borderColor: "#2563EB",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  analysisButtonText: {
+    color: "#2563EB",
+    fontFamily: fonts.body,
+    fontSize: 12,
+    fontWeight: "600",
+  },
 
-analysisButton: {
-  flex: 1,
-  paddingVertical: 4,     // smaller vertical space
-  paddingHorizontal: 6,   // smaller horizontal space
-  borderRadius: 14,       // smaller radius
-  backgroundColor: "rgba(0,0,0,0.03)", // very subtle translucent
-  borderWidth: 1,
-  borderColor: "#2563EB",
-  alignItems: "center",
-  justifyContent: "center",
-},
-
-analysisButtonText: {
-  color: "#2563EB",
-  fontFamily: fonts.body,
-  fontSize: 12,      // smaller font
-  fontWeight: "600",
-},
-
+  // SLIDER
   sliderBox: {
     flexDirection: "row",
     alignItems: "center",
@@ -305,6 +354,7 @@ analysisButtonText: {
     textAlign: "center",
   },
 
+  // TIMELINE
   section: { marginBottom: spacing.lg },
   sectionTitle: {
     fontFamily: fonts.heading,
@@ -315,7 +365,22 @@ analysisButtonText: {
     paddingBottom: 4,
   },
 
-  empty: { fontFamily: fonts.body, color: "#777" },
+  // PHASE HEADER
+  phaseHeader: {
+    marginBottom: 6,
+    paddingVertical: 4,
+  },
+  phaseTitle: {
+    fontFamily: fonts.heading,
+    fontSize: 15,
+    color: "#111827",
+  },
+  phaseSubtitle: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: "#6B7280",
+    marginTop: 2,
+  },
 
   eventBlock: {
     marginBottom: spacing.md,
@@ -323,6 +388,7 @@ analysisButtonText: {
     borderColor: colors.border,
     paddingBottom: spacing.sm,
   },
+
   eventRow: {
     flexDirection: "row",
     gap: 10,
@@ -334,6 +400,7 @@ analysisButtonText: {
     fontSize: 12,
     color: "#777",
   },
+
   eventTitle: {
     fontFamily: fonts.heading,
     fontSize: 16,

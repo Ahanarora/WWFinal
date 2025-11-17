@@ -17,6 +17,7 @@ import ThemesScreen from "./screens/ThemesScreen";
 import StoryScreen from "./screens/StoryScreen";
 import ThemeScreen from "./screens/ThemeScreen";
 import AnalysisModalScreen from "./screens/AnalysisModalScreen"; // ✅ NEW
+import EventReaderModal from "./screens/EventReaderModal";
 
 // Tabs and Stack
 const Tab = createBottomTabNavigator();
@@ -79,8 +80,7 @@ function Tabs() {
 export default function App() {
   // Load fonts
   const [fontsLoaded] = useFonts({
-   Jacquard24: require("./assets/fonts/Jacquard24-Regular.ttf"),
-   Kranky: require("./assets/fonts/Kranky-Regular.ttf"),
+   Barrio: require("./assets/fonts/Barrio-Regular.ttf"),
   });
 
  if (!fontsLoaded) {
@@ -98,19 +98,10 @@ export default function App() {
       headerTitleAlign: "center",
       headerTitle: () => (
         <Text style={{ flexDirection: "row" }}>
-          <Text style={{ fontFamily: "Jacquard24", fontSize: 72, color: "black" }}>
-            W
+          <Text style={{ fontFamily: "Barrio", fontSize: 60, color: "black" }}>
+            Wait...What?
           </Text>
-          <Text
-            style={{
-              fontFamily: "Kranky",
-              fontSize: 55,
-              fontWeight: "500",
-              color: "black",
-            }}
-          >
-            ait...what?
-          </Text>
+         
         </Text>
       ),
     }}
@@ -146,13 +137,12 @@ export default function App() {
 
   <Stack.Screen
   name="EventReader"
-  component={require("./screens/EventReaderModal").default}
+  component={EventReaderModal}
   options={{
     presentation: "modal",
     headerShown: false,
   }}
 />
-
 </Stack.Navigator>
 
     </NavigationContainer>

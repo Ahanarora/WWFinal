@@ -1,33 +1,121 @@
 // ----------------------------------------
 // screens/EventReaderModal.js
-// Full-screen vertical event reader (Inshorts-style)
+// Full-screen vertical event reader (Inshorts-style, crossfade + phases)
 // ----------------------------------------
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useMemo } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  Dimensions,
-  Animated,
   PanResponder,
   Image,
   StatusBar,
+  Animated,
 } from "react-native";
 import { colors, fonts, spacing } from "../styles/theme";
 import RenderWithContext from "../components/RenderWithContext";
 import SourceLinks from "../components/SourceLinks";
 
-const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+// -------------------------------
+// Reusable card for each event
+// -------------------------------
+const EventCard = React.memo(function EventCard({
+  event,
+  navigation,
+  headerTitle,
+}) {
+  if (!event) return null;
 
+  const {
+    date = "",
+    title = "",
+    description = "",
+    contexts = [],
+    sources = [],
+    imageUrl = null,
+    phaseTitle = null,
+  } = event;
+
+  return (
+    <View style={styles.cardInner}>
+      {/* STORY/THEME TITLE */}
+      {headerTitle ? (
+        <Text style={styles.modalStoryTitle}>{headerTitle}</Text>
+      ) : null}
+
+      {/* PHASE TITLE */}
+      {phaseTitle ? (
+        <Text style={styles.modalPhaseTitle}>{phaseTitle}</Text>
+      ) : null}
+
+      
+
+      {/* IMAGE */}
+      {imageUrl ? (
+        <Image source={{ uri: imageUrl }} style={styles.image} />
+      ) : null}
+
+      {/* CONTENT */}
+      <View style={styles.content}>
+        {date ? <Text style={styles.date}>{date}</Text> : null}
+        {title ? <Text style={styles.title}>{title}</Text> : null}
+
+        {description ? (
+          <View style={styles.body}>
+            <RenderWithContext
+              text={description}
+              contexts={contexts}
+              navigation={navigation}
+            />
+          </View>
+        ) : null}
+
+        {/* SOURCES */}
+        {Array.isArray(sources) && sources.length > 0 && (
+          <View style={styles.sources}>
+            <SourceLinks sources={sources} />
+          </View>
+        )}
+      </View>
+    </View>
+  );
+});
+
+// ----------------------------------------
+// MAIN READER COMPONENT
+// ----------------------------------------
 export default function EventReaderModal({ route, navigation }) {
-  const { events = [], startIndex = 0 } = route.params || {};
+  const {
+    events: rawEvents = [],
+    startIndex = 0,
+    headerTitle = "",
+  } = route.params || {};
+
+  // Normalize event data
+  const safeEvents = useMemo(() => {
+    if (!Array.isArray(rawEvents)) return [];
+
+    return rawEvents
+      .filter(Boolean)
+      .map((e) => ({
+        date: e?.date || "",
+        title: e?.event || "",
+        description: e?.description || "",
+        contexts: Array.isArray(e?.contexts) ? e.contexts : [],
+        sources: Array.isArray(e?.sources) ? e.sources : [],
+        imageUrl: e?.imageUrl || null,
+        phaseTitle: e?.phaseTitle || null, // 🔵 ADDED
+      }));
+  }, [rawEvents]);
+
   const [index, setIndex] = useState(
-    Math.min(Math.max(startIndex, 0), Math.max(events.length - 1, 0))
+    Math.min(Math.max(startIndex, 0), Math.max(safeEvents.length - 1, 0))
   );
 
-  const translateY = useRef(new Animated.Value(0)).current;
+  const [nextIndex, setNextIndex] = useState(null);
+  const anim = useRef(new Animated.Value(0)).current;
 
-  if (!Array.isArray(events) || events.length === 0) {
+  if (!safeEvents || safeEvents.length === 0) {
     return (
       <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
         <Text>No events to show.</Text>
@@ -35,122 +123,137 @@ export default function EventReaderModal({ route, navigation }) {
     );
   }
 
-  const current = events[index];
+  const currentEvent = safeEvents[index];
+  const incomingEvent = nextIndex != null ? safeEvents[nextIndex] : null;
+  const isAnimating = nextIndex != null;
 
-  const animateTo = (toValue, cb) => {
-    Animated.timing(translateY, {
-      toValue,
-      duration: 220,
+  // --------------------------
+  // CROSSFADE TRANSITION
+  // --------------------------
+  const startTransition = (targetIndex) => {
+    if (targetIndex === index) return;
+    if (targetIndex < 0 || targetIndex > safeEvents.length - 1) return;
+
+    setNextIndex(targetIndex);
+    anim.setValue(0);
+
+    Animated.timing(anim, {
+      toValue: 1,
+      duration: 140,
       useNativeDriver: true,
     }).start(() => {
-      translateY.setValue(0);
-      cb && cb();
+      setIndex(targetIndex);
+      setNextIndex(null);
+      anim.setValue(0);
     });
   };
 
+  // --------------------------
+  // PAN (SWIPE) HANDLER
+  // --------------------------
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gesture) =>
-        Math.abs(gesture.dy) > 10,
-      onPanResponderMove: (_, gesture) => {
-        translateY.setValue(gesture.dy);
-      },
-      onPanResponderRelease: (_, gesture) => {
-        const { dy, vy } = gesture;
+      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dy) > 10,
+      onPanResponderMove: () => {},
+      onPanResponderRelease: (_, g) => {
+        if (isAnimating) return;
+
+        const { dy, vy } = g;
         const threshold = 80;
         const velocityThreshold = 0.3;
 
-        // Swipe up → next event
-        if (
-          (dy < -threshold || (dy < 0 && Math.abs(vy) > velocityThreshold)) &&
-          index < events.length - 1
-        ) {
-          animateTo(-SCREEN_HEIGHT, () => {
-            setIndex((prev) => prev + 1);
-          });
+        const isSwipeUp =
+          dy < -threshold || (dy < 0 && Math.abs(vy) > velocityThreshold);
+        const isSwipeDown =
+          dy > threshold || (dy > 0 && Math.abs(vy) > velocityThreshold);
+
+        // NEXT
+        if (isSwipeUp && index < safeEvents.length - 1) {
+          startTransition(index + 1);
           return;
         }
 
-        // Swipe down → previous or close
-        if (dy > threshold || (dy > 0 && Math.abs(vy) > velocityThreshold)) {
-          if (index > 0) {
-            // previous event
-            animateTo(SCREEN_HEIGHT, () => {
-              setIndex((prev) => prev - 1);
-            });
-          } else {
-            // at first card: close modal
-            animateTo(SCREEN_HEIGHT, () => {
-              navigation.goBack();
-            });
-          }
-          return;
+        // PREVIOUS
+        if (isSwipeDown) {
+          if (index > 0) startTransition(index - 1);
+          else navigation.goBack();
         }
-
-        // Not enough movement → snap back
-        Animated.spring(translateY, {
-          toValue: 0,
-          useNativeDriver: true,
-        }).start();
       },
     })
   ).current;
 
+  // --------------------------
+  // CROSSFADE VALUES
+  // --------------------------
+  const currentOpacity = isAnimating
+    ? anim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] })
+    : 1;
+
+  const nextOpacity = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  });
+
   return (
     <View style={styles.container}>
-      {/* Optional: dark status bar text on white */}
       <StatusBar barStyle="dark-content" />
 
-      {/* Small drag handle to hint swipe */}
+      {/* HANDLE */}
       <View style={styles.dragHandle} />
 
-      {/* Position indicator */}
+      {/* COUNTER */}
       <View style={styles.counterRow}>
         <Text style={styles.counterText}>
-          {index + 1} / {events.length}
+          {index + 1} / {safeEvents.length}
         </Text>
       </View>
 
-      <Animated.View
-        style={[styles.card, { transform: [{ translateY }] }]}
-        {...panResponder.panHandlers}
-      >
-        {/* IMAGE */}
-        {current.imageUrl ? (
-          <Image source={{ uri: current.imageUrl }} style={styles.image} />
-        ) : null}
+      {/* CARD STACK */}
+      <View style={styles.cardStack} {...panResponder.panHandlers}>
+        {/* CURRENT CARD */}
+        <Animated.View
+          style={[
+            styles.cardLayer,
+            { opacity: currentOpacity, zIndex: isAnimating ? 0 : 1 },
+          ]}
+        >
+          <EventCard
+            event={currentEvent}
+            navigation={navigation}
+            headerTitle={headerTitle}
+          />
+        </Animated.View>
 
-        {/* CONTENT */}
-        <View style={styles.content}>
-          <Text style={styles.date}>{current.date}</Text>
-          <Text style={styles.title}>{current.event}</Text>
-
-          <View style={styles.body}>
-            <RenderWithContext
-              text={current.description}
-              contexts={current.contexts || []}
+        {/* NEXT CARD */}
+        {incomingEvent && (
+          <Animated.View
+            style={[
+              styles.cardLayer,
+              { opacity: nextOpacity, zIndex: 1 },
+            ]}
+          >
+            <EventCard
+              event={incomingEvent}
               navigation={navigation}
+              headerTitle={headerTitle}
             />
-          </View>
-
-          {/* SOURCES */}
-          {Array.isArray(current.sources) && current.sources.length > 0 && (
-            <View style={styles.sources}>
-              <SourceLinks sources={current.sources} />
-            </View>
-          )}
-        </View>
-      </Animated.View>
+          </Animated.View>
+        )}
+      </View>
     </View>
   );
 }
 
+// ----------------------------------------
+// STYLES
+// ----------------------------------------
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#FFFFFF",
     paddingTop: 24,
   },
+
   dragHandle: {
     alignSelf: "center",
     width: 50,
@@ -159,19 +262,51 @@ const styles = StyleSheet.create({
     backgroundColor: "#E5E7EB",
     marginBottom: 8,
   },
+
   counterRow: {
     alignItems: "center",
     marginBottom: 4,
   },
+
   counterText: {
     fontFamily: fonts.body,
     fontSize: 12,
     color: "#6B7280",
   },
 
-  card: {
+  cardStack: {
+    flex: 1,
+    position: "relative",
+  },
+
+  cardLayer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+
+  cardInner: {
     flex: 1,
     backgroundColor: "#FFFFFF",
+  },
+
+  // NEW: Titles
+  modalStoryTitle: {
+    fontFamily: fonts.heading,
+    fontSize: 18,
+    color: "#111827",
+    paddingHorizontal: spacing.md,
+    paddingBottom: 2,
+  },
+
+  modalPhaseTitle: {
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: "#6B7280",
+    paddingHorizontal: spacing.md,
+    paddingBottom: 8,
   },
 
   image: {
@@ -186,22 +321,26 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     paddingBottom: spacing.lg,
   },
+
   date: {
     fontFamily: fonts.body,
     fontSize: 12,
     color: "#6B7280",
     marginBottom: 4,
   },
+
   title: {
     fontFamily: fonts.heading,
     fontSize: 20,
     color: colors.textPrimary,
     marginBottom: spacing.sm,
   },
+
   body: {
     marginTop: 4,
     marginBottom: spacing.md,
   },
+
   sources: {
     marginTop: 8,
   },

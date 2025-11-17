@@ -17,7 +17,8 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import { scoreContent } from "../utils/ranking";
 import { formatUpdatedAt } from "../utils/formatTime";
-
+import { getLatestHeadlines } from "../utils/getLatestHeadlines";
+import { colors } from "../styles/theme";
 
 export default function StoriesScreen({ navigation }) {
   const [stories, setStories] = useState([]);
@@ -57,36 +58,55 @@ export default function StoriesScreen({ navigation }) {
     );
   }
 
-  const renderStoryCard = ({ item, index }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() =>
-        navigation.navigate("Story", {
-          story: item,
-          index,
-          allStories: stories, // full ranked list for infinite scroll
-        })
-      }
-    >
-      {item.imageUrl ? (
-        <Image source={{ uri: item.imageUrl }} style={styles.image} />
-      ) : (
-        <View style={styles.placeholderImage}>
-          <Text style={styles.placeholderText}>No Image</Text>
+  const renderStoryCard = ({ item, index }) => {
+    const headlines = getLatestHeadlines(item.timeline);
+
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() =>
+          navigation.navigate("Story", {
+            story: item,
+            index,
+            allStories: stories, // full ranked list for infinite scroll
+          })
+        }
+      >
+        {item.imageUrl ? (
+          <Image source={{ uri: item.imageUrl }} style={styles.image} />
+        ) : (
+          <View style={styles.placeholderImage}>
+            <Text style={styles.placeholderText}>No Image</Text>
+          </View>
+        )}
+
+        <View style={styles.cardContent}>
+          <Text style={styles.category}>{item.category || "Uncategorized"}</Text>
+          <Text style={styles.title}>{item.title}</Text>
+          <Text style={styles.updated}>{formatUpdatedAt(item.updatedAt)}</Text>
+
+          {headlines.length > 0 ? (
+            <View style={styles.headlineList}>
+              <Text style={styles.latestLabel}>Latest updates</Text>
+              {headlines.map((headline) => (
+                <View key={headline.id} style={styles.headlineRow}>
+                  <View style={styles.headlineBullet} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.headlineText}>{headline.title}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : null}
+          {item.overview ? (
+            <Text style={styles.overviewPreview} numberOfLines={2}>
+              {item.overview}
+            </Text>
+          ) : null}
         </View>
-      )}
-
-      <View style={styles.cardContent}>
-        <Text style={styles.title}>{item.title}</Text>
-        <Text style={styles.category}>{item.category || "Uncategorized"}</Text>
-        <Text style={styles.updated}>{formatUpdatedAt(item.updatedAt)}</Text>
-
-        <Text style={styles.overview} numberOfLines={2}>
-          {item.overview}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -100,42 +120,88 @@ export default function StoriesScreen({ navigation }) {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 12, backgroundColor: "#fff" },
-  header: { fontSize: 22, fontWeight: "700", marginBottom: 10 },
+  container: { flex: 1, padding: 16, backgroundColor: colors.background },
+  header: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: colors.textPrimary,
+    marginBottom: 12,
+  },
 
   card: {
-    backgroundColor: "#f9f9f9",
-    borderRadius: 10,
-    marginVertical: 8,
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    marginVertical: 10,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "#E0E7FF",
   },
-  image: { width: "100%", height: 180 },
+  image: { width: "100%", height: 200, backgroundColor: "#e2e8f0" },
   placeholderImage: {
     width: "100%",
-    height: 180,
-    backgroundColor: "#eee",
+    height: 200,
+    backgroundColor: "#e2e8f0",
     alignItems: "center",
     justifyContent: "center",
   },
-  placeholderText: { color: "#888", fontSize: 12 },
+  placeholderText: { color: colors.muted, fontSize: 12 },
 
-  cardContent: { padding: 12 },
-  title: { fontSize: 16, fontWeight: "600", marginBottom: 4 },
-  category: { fontSize: 13, color: "#007AFF", marginBottom: 4 },
-  overview: { fontSize: 14, color: "#555" },
+  cardContent: { padding: 20, gap: 6 },
+  title: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: colors.textPrimary,
+  },
+  category: {
+    fontSize: 13,
+    color: colors.accent,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
 
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  loadingText: { marginTop: 8, color: "#555" },
-  emptyText: { fontSize: 16, color: "#666" },
+  loadingText: { marginTop: 8, color: colors.textSecondary },
+  emptyText: { fontSize: 16, color: colors.textSecondary },
   updated: {
-  fontSize: 12,
-  color: "#6B7280",
-  marginBottom: 4,
-},
-
+    fontSize: 13,
+    color: colors.muted,
+    marginBottom: 4,
+  },
+  headlineList: {
+    gap: 6,
+  },
+  latestLabel: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  headlineRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+  },
+  headlineBullet: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginTop: 7,
+    backgroundColor: colors.accent,
+  },
+  headlineText: {
+    fontSize: 15,
+    color: colors.textPrimary,
+    fontWeight: "600",
+  },
+  overviewPreview: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 4,
+    lineHeight: 20,
+  },
 });

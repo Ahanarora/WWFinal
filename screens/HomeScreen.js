@@ -19,7 +19,8 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import { scoreContent } from "../utils/ranking";
 import { formatUpdatedAt } from "../utils/formatTime";
-
+import { getLatestHeadlines } from "../utils/getLatestHeadlines";
+import { colors } from "../styles/theme";
 
 // Categories for top filter
 const CATEGORIES = [
@@ -161,6 +162,25 @@ export default function HomeScreen({ navigation }) {
   // -------------------------------
   // RENDER HELPERS
   // -------------------------------
+  const renderHeadlineBullets = (timeline) => {
+    const headlines = getLatestHeadlines(timeline);
+    if (!headlines.length) return null;
+
+    return (
+      <View style={styles.headlineList}>
+        <Text style={styles.latestLabel}>Latest updates</Text>
+        {headlines.map((headline) => (
+          <View key={headline.id} style={styles.headlineRow}>
+            <View style={styles.headlineBullet} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.headlineText}>{headline.title}</Text>
+            </View>
+          </View>
+        ))}
+      </View>
+    );
+  };
+
   const renderFeaturedStoryCard = (item) => (
     <TouchableOpacity
       key={item.id}
@@ -180,9 +200,17 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.placeholderText}>No Image</Text>
         </View>
       )}
-      <Text style={styles.featuredTitle} numberOfLines={2}>
-        {item.title}
-      </Text>
+      <View style={styles.featuredBody}>
+        <Text style={styles.featuredTitle} numberOfLines={2}>
+          {item.title}
+        </Text>
+        {renderHeadlineBullets(item.timeline)}
+        {item.overview ? (
+          <Text style={styles.overviewPreview} numberOfLines={2}>
+            {item.overview}
+          </Text>
+        ) : null}
+      </View>
     </TouchableOpacity>
   );
 
@@ -205,14 +233,23 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.placeholderText}>No Image</Text>
         </View>
       )}
-      <Text style={styles.featuredTitle} numberOfLines={2}>
-        {item.title}
-      </Text>
+      <View style={styles.featuredBody}>
+        <Text style={styles.featuredTitle} numberOfLines={2}>
+          {item.title}
+        </Text>
+        {renderHeadlineBullets(item.timeline)}
+        {item.overview ? (
+          <Text style={styles.overviewPreview} numberOfLines={2}>
+            {item.overview}
+          </Text>
+        ) : null}
+      </View>
     </TouchableOpacity>
   );
 
   const renderRegularItem = ({ item }) => {
     if (item._kind === "story") {
+      const headlines = getLatestHeadlines(item.timeline);
       return (
         <TouchableOpacity
           style={styles.card}
@@ -239,17 +276,34 @@ export default function HomeScreen({ navigation }) {
               {item.category?.toUpperCase() || "GENERAL"}
             </Text>
             <Text style={styles.title}>{item.title}</Text>
-            <Text style={styles.overview} numberOfLines={3}>
-              <Text style={styles.updatedText}>{formatUpdatedAt(item.updatedAt)}</Text>
-
-              {item.overview}
+            <Text style={styles.updatedText}>
+              {formatUpdatedAt(item.updatedAt)}
             </Text>
+            {headlines.length > 0 ? (
+              <View style={styles.headlineList}>
+                <Text style={styles.latestLabel}>Latest updates</Text>
+                {headlines.map((headline) => (
+                  <View key={headline.id} style={styles.headlineRow}>
+                    <View style={styles.headlineBullet} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.headlineText}>{headline.title}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+            {item.overview ? (
+              <Text style={styles.overviewPreview} numberOfLines={2}>
+                {item.overview}
+              </Text>
+            ) : null}
           </View>
         </TouchableOpacity>
       );
     }
 
     // Theme
+    const headlines = getLatestHeadlines(item.timeline);
     return (
       <TouchableOpacity
         style={styles.card}
@@ -276,9 +330,27 @@ export default function HomeScreen({ navigation }) {
             {item.category?.toUpperCase() || "GENERAL"}
           </Text>
           <Text style={styles.title}>{item.title}</Text>
-          <Text style={styles.overview} numberOfLines={3}>
-            {item.overview}
+          <Text style={styles.updatedText}>
+            {formatUpdatedAt(item.updatedAt)}
           </Text>
+          {headlines.length > 0 ? (
+            <View style={styles.headlineList}>
+              <Text style={styles.latestLabel}>Latest updates</Text>
+              {headlines.map((headline) => (
+                <View key={headline.id} style={styles.headlineRow}>
+                  <View style={styles.headlineBullet} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.headlineText}>{headline.title}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : null}
+          {item.overview ? (
+            <Text style={styles.overviewPreview} numberOfLines={2}>
+              {item.overview}
+            </Text>
+          ) : null}
         </View>
       </TouchableOpacity>
     );
@@ -368,15 +440,20 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f9fafb",
+    backgroundColor: colors.background,
   },
 
   // Category filter
   filterWrapper: {
     borderBottomWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: colors.border,
     paddingVertical: 10,
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   categoryRow: {
     flexDirection: "row",
@@ -419,15 +496,17 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   featuredCard: {
-    width: 220,
-    marginRight: 12,
-    backgroundColor: "#fff",
-    borderRadius: 14,
+    width: 240,
+    marginRight: 16,
+    backgroundColor: colors.surface,
+    borderRadius: 18,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.09,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "#E0E7FF",
   },
   featuredImage: {
     width: "100%",
@@ -441,23 +520,30 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  featuredBody: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
   featuredTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "600",
-    padding: 8,
+    color: colors.textPrimary,
+    marginBottom: 8,
   },
 
   // Regular cards
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     marginHorizontal: 16,
     marginTop: 16,
-    borderRadius: 12,
+    borderRadius: 18,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "#E0E7FF",
   },
   image: {
     width: "100%",
@@ -474,7 +560,8 @@ const styles = StyleSheet.create({
     color: "#999",
   },
   textBlock: {
-    padding: 16,
+    padding: 20,
+    gap: 6,
   },
   typeBadge: {
     alignSelf: "flex-start",
@@ -502,11 +589,6 @@ const styles = StyleSheet.create({
     color: "#111827",
     marginBottom: 6,
   },
-  overview: {
-    fontSize: 15,
-    color: "#374151",
-    lineHeight: 22,
-  },
   separator: {
     height: 16,
   },
@@ -522,9 +604,42 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   updatedText: {
-  fontSize: 12,
-  color: "#6B7280",
-  marginTop: 2,
-}
+    fontSize: 13,
+    color: colors.muted,
+    marginBottom: 4,
+  },
 
+  headlineList: {
+    marginTop: 4,
+    gap: 6,
+  },
+  latestLabel: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  headlineRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+  },
+  headlineBullet: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginTop: 7,
+    backgroundColor: colors.accent,
+  },
+  headlineText: {
+    fontSize: 15,
+    color: colors.textPrimary,
+    fontWeight: "600",
+  },
+  overviewPreview: {
+    marginTop: 6,
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
 });

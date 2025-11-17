@@ -15,6 +15,7 @@ import {
 import { colors, fonts, spacing } from "../styles/theme";
 import RenderWithContext from "../components/RenderWithContext";
 import SourceLinks from "../components/SourceLinks";
+import { formatDateDDMMYYYY } from "../utils/formatTime";
 
 // -------------------------------
 // Reusable card for each event
@@ -35,6 +36,8 @@ const EventCard = React.memo(function EventCard({
     imageUrl = null,
     phaseTitle = null,
   } = event;
+
+  const formattedDate = date ? formatDateDDMMYYYY(date) : "";
 
   return (
     <View style={styles.cardInner}>
@@ -57,7 +60,7 @@ const EventCard = React.memo(function EventCard({
 
       {/* CONTENT */}
       <View style={styles.content}>
-        {date ? <Text style={styles.date}>{date}</Text> : null}
+        {formattedDate ? <Text style={styles.date}>{formattedDate}</Text> : null}
         {title ? <Text style={styles.title}>{title}</Text> : null}
 
         {description ? (
@@ -103,7 +106,7 @@ export default function EventReaderModal({ route, navigation }) {
         description: e?.description || "",
         contexts: Array.isArray(e?.contexts) ? e.contexts : [],
         sources: Array.isArray(e?.sources) ? e.sources : [],
-        imageUrl: e?.imageUrl || null,
+        imageUrl: e?.imageUrl || e?.image || e?.thumbnail || null,
         phaseTitle: e?.phaseTitle || null, // 🔵 ADDED
       }));
   }, [rawEvents]);

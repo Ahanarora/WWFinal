@@ -17,7 +17,7 @@ import { colors, fonts, spacing } from "../styles/theme";
 import SourceLinks from "../components/SourceLinks";
 import RenderWithContext from "../components/RenderWithContext";
 import { renderLinkedText } from "../utils/renderLinkedText";
-import { formatUpdatedAt } from "../utils/formatTime";
+import { formatUpdatedAt, formatDateDDMMYYYY } from "../utils/formatTime";
 import { normalizeAnalysis } from "../utils/normalizeAnalysis";
 
 const PHASE_PALETTE = ["#2563EB", "#DC2626", "#059669", "#D97706", "#6D28D9"];
@@ -138,9 +138,11 @@ export default function StoryScreen({ route, navigation }) {
         <Text style={styles.category}>{item.category || "Uncategorized"}</Text>
 
         {/* OVERVIEW */}
-        <View style={{ marginVertical: 10 }}>
-          {renderLinkedText(item.overview, navigation)}
-        </View>
+        {item.overview ? (
+          <View style={styles.overviewBlock}>
+            {renderLinkedText(item.overview, navigation)}
+          </View>
+        ) : null}
 
         {/* ANALYSIS BUTTONS */}
         {item.id === story.id && hasAnyAnalysis && (
@@ -245,25 +247,37 @@ export default function StoryScreen({ route, navigation }) {
                     })
                   }
                 >
-                  <View style={styles.eventRow}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.eventDate}>{e.date}</Text>
+                  <View style={styles.eventCard}>
+                    {e.imageUrl || e.image || e.thumbnail ? (
+                      <Image
+                        source={{
+                          uri: e.imageUrl || e.image || e.thumbnail,
+                        }}
+                        style={styles.eventImage}
+                      />
+                    ) : (
+                      <View style={styles.eventImagePlaceholder}>
+                        <Text style={styles.eventImageEmoji}>🗞️</Text>
+                      </View>
+                    )}
+                    <View style={styles.eventContent}>
+                      <Text style={styles.eventDate}>
+                        {formatDateDDMMYYYY(e.date)}
+                      </Text>
                       <Text style={styles.eventTitle}>{e.event}</Text>
                       <RenderWithContext
                         text={e.description}
                         contexts={e.contexts || []}
                         navigation={navigation}
                       />
+                      {Array.isArray(e.sources) && e.sources.length > 0 && (
+                        <View style={styles.eventSources}>
+                          <SourceLinks sources={e.sources} />
+                        </View>
+                      )}
                     </View>
                   </View>
                 </TouchableOpacity>
-
-                {/* SOURCES */}
-                {e.sources?.length > 0 && (
-                  <View style={styles.eventSources}>
-                    <SourceLinks sources={e.sources} />
-                  </View>
-                )}
               </View>
             );
           })}
@@ -414,24 +428,52 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     textAlign: "center",
   },
-
-  eventBlock: {
-    marginBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderColor: colors.border,
-    paddingBottom: spacing.sm,
+  overviewBlock: {
+    marginBottom: spacing.lg,
   },
 
-  eventRow: {
-    flexDirection: "row",
-    gap: 10,
-    paddingVertical: spacing.sm,
+  eventBlock: {
+    marginBottom: spacing.lg,
+  },
+
+  eventCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: spacing.md,
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+    gap: spacing.sm,
+  },
+  eventImage: {
+    width: "100%",
+    height: 190,
+    borderRadius: 12,
+    backgroundColor: "#e5e7eb",
+  },
+  eventImagePlaceholder: {
+    width: "100%",
+    height: 190,
+    borderRadius: 12,
+    backgroundColor: "#e5e7eb",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  eventImageEmoji: {
+    fontSize: 26,
+  },
+  eventContent: {
+    gap: 6,
   },
 
   eventDate: {
     fontFamily: fonts.body,
-    fontSize: 12,
-    color: "#777",
+    fontSize: 13,
+    color: colors.accent,
+    fontWeight: "700",
+    marginBottom: 4,
   },
 
   eventTitle: {
@@ -443,8 +485,6 @@ const styles = StyleSheet.create({
   },
 
   eventSources: {
-    marginTop: 4,
-    marginBottom: spacing.sm,
-    paddingLeft: 2,
+    marginTop: spacing.sm,
   },
 });

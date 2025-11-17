@@ -1,9 +1,11 @@
 export const colors = {
-  background: "#fafafa",
-  textPrimary: "#111",
-  textSecondary: "#444",
-  border: "#e5e5e5",
-  accent: "#007AFF",
+  background: "#F7F7F8",
+  surface: "#FFFFFF",
+  textPrimary: "#0F172A",
+  textSecondary: "#475467",
+  border: "#E2E8F0",
+  accent: "#2563EB",
+  muted: "#94A3B8",
 };
 
 export const fonts = {
@@ -22,4 +24,5 @@ export const spacing = {
   sm: 8,
   md: 16,
   lg: 24,
+  xl: 32,
 };

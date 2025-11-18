@@ -1,9 +1,9 @@
 // ----------------------------------------
 // screens/StoriesScreen.js
-// Ranked Stories (no Featured blocks)
+// Custom dropdown (Web-safe) + Sorting
 // ----------------------------------------
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -12,10 +12,15 @@ import {
   StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
+  Modal,
 } from "react-native";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
-import { scoreContent } from "../utils/ranking";
+import {
+  scoreContent,
+  getUpdatedAtMs,
+  getPublishedAtMs,
+} from "../utils/ranking";
 import { formatUpdatedAt } from "../utils/formatTime";
 import { getLatestHeadlines } from "../utils/getLatestHeadlines";
 import { colors } from "../styles/theme";
@@ -24,15 +29,22 @@ export default function StoriesScreen({ navigation }) {
   const [stories, setStories] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // NEW: sort mode
+  const [sortMode, setSortMode] = useState("relevance");
+
+  // Dropdown modal
+  const [showSortMenu, setShowSortMenu] = useState(false);
+
+  // -----------------------------
+  // FETCH STORIES
+  // -----------------------------
   useEffect(() => {
     (async () => {
       try {
         const snapshot = await getDocs(collection(db, "stories"));
         const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-        // Rank by StoryScore (highest first)
-        const ranked = [...data].sort((a, b) => scoreContent(b) - scoreContent(a));
-        setStories(ranked);
+        setStories(data);
       } catch (error) {
         console.error("Error fetching stories:", error);
       } finally {
@@ -41,23 +53,32 @@ export default function StoriesScreen({ navigation }) {
     })();
   }, []);
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Loading stories...</Text>
-      </View>
-    );
-  }
+  // -----------------------------
+  // SORTED STORIES
+  // -----------------------------
+  const sortedStories = useMemo(() => {
+    const list = [...stories];
 
-  if (stories.length === 0) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.emptyText}>No stories published yet</Text>
-      </View>
-    );
-  }
+    if (sortMode === "updated") {
+      return list.sort(
+        (a, b) => (getUpdatedAtMs(b) || 0) - (getUpdatedAtMs(a) || 0)
+      );
+    }
 
+    if (sortMode === "published") {
+      return list.sort(
+        (a, b) =>
+          (getPublishedAtMs(b) || getUpdatedAtMs(b) || 0) -
+          (getPublishedAtMs(a) || getUpdatedAtMs(a) || 0)
+      );
+    }
+
+    return list.sort((a, b) => scoreContent(b) - scoreContent(a));
+  }, [stories, sortMode]);
+
+  // -----------------------------
+  // RENDER STORY CARD
+  // -----------------------------
   const renderStoryCard = ({ item, index }) => {
     const headlines = getLatestHeadlines(item.timeline);
 
@@ -68,7 +89,7 @@ export default function StoriesScreen({ navigation }) {
           navigation.navigate("Story", {
             story: item,
             index,
-            allStories: stories, // full ranked list for infinite scroll
+            allStories: sortedStories,
           })
         }
       >
@@ -90,38 +111,109 @@ export default function StoriesScreen({ navigation }) {
               {item.overview}
             </Text>
           ) : null}
-          {headlines.length > 0 ? (
+
+          {headlines.length > 0 && (
             <View style={styles.headlineList}>
               <Text style={styles.latestLabel}>Latest updates</Text>
               {headlines.map((headline) => (
                 <View key={headline.id} style={styles.headlineRow}>
                   <View style={styles.headlineBullet} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.headlineText}>{headline.title}</Text>
-                  </View>
+                  <Text style={styles.headlineText}>{headline.title}</Text>
                 </View>
               ))}
             </View>
-          ) : null}
+          )}
         </View>
       </TouchableOpacity>
     );
   };
 
+  // -----------------------------
+  // UI
+  // -----------------------------
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={styles.loadingText}>Loading stories...</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Stories</Text>
 
+      {/* ---------- SORT DROPDOWN ---------- */}
+      <TouchableOpacity
+        onPress={() => setShowSortMenu(true)}
+        style={styles.dropdownButton}
+      >
+        <Text style={styles.dropdownButtonText}>
+          Sort:{" "}
+          {sortMode === "relevance"
+            ? "Relevance"
+            : sortMode === "updated"
+            ? "Recently Updated"
+            : "Recently Published"}
+        </Text>
+      </TouchableOpacity>
+
+      {/* ---------- SORT MENU MODAL ---------- */}
+      <Modal
+        visible={showSortMenu}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSortMenu(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          onPress={() => setShowSortMenu(false)}
+        >
+          <View style={styles.modalContent}>
+            {[
+              { key: "relevance", label: "Relevance" },
+              { key: "updated", label: "Recently Updated" },
+              { key: "published", label: "Recently Published" },
+            ].map((opt) => (
+              <TouchableOpacity
+                key={opt.key}
+                style={styles.modalOption}
+                onPress={() => {
+                  setSortMode(opt.key);
+                  setShowSortMenu(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.modalOptionText,
+                    sortMode === opt.key && styles.selectedOptionText,
+                  ]}
+                >
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* ---------- STORY LIST ---------- */}
       <FlatList
-        data={stories}
+        data={sortedStories}
         keyExtractor={(item) => item.id}
         renderItem={renderStoryCard}
       />
     </View>
   );
 }
+
+// ----------------------------------------
+// STYLES
+// ----------------------------------------
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: colors.background },
+
   header: {
     fontSize: 24,
     fontWeight: "700",
@@ -129,6 +221,48 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
+  // DROPDOWN BUTTON
+  dropdownButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: "#f2f2f2",
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  dropdownButtonText: {
+    fontSize: 14,
+    color: "#000",
+  },
+
+  // MODAL
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    justifyContent: "center",
+    padding: 30,
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    paddingVertical: 5,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+  },
+  modalOption: {
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+  },
+  modalOptionText: {
+    fontSize: 16,
+    color: "#333",
+  },
+  selectedOptionText: {
+    fontWeight: "bold",
+    color: colors.accent,
+  },
+
+  // STORY CARDS
   card: {
     backgroundColor: colors.surface,
     borderRadius: 18,
@@ -141,13 +275,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E0E7FF",
   },
+
   image: { width: "100%", height: 200, backgroundColor: "#e2e8f0" },
   placeholderImage: {
     width: "100%",
     height: 200,
     backgroundColor: "#e2e8f0",
-    alignItems: "center",
     justifyContent: "center",
+    alignItems: "center",
   },
   placeholderText: { color: colors.muted, fontSize: 12 },
 
@@ -163,19 +298,14 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 1,
   },
-
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  loadingText: { marginTop: 8, color: colors.textSecondary },
-  emptyText: { fontSize: 16, color: colors.textSecondary },
   updated: {
     fontSize: 13,
     color: colors.muted,
     marginBottom: 4,
   },
-  headlineList: {
-    gap: 6,
-    marginTop: 12,
-  },
+
+  // Headlines
+  headlineList: { gap: 6, marginTop: 12 },
   latestLabel: {
     fontSize: 11,
     color: colors.muted,
@@ -200,10 +330,15 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     lineHeight: 18,
   },
+
   overviewPreview: {
     fontSize: 14,
     color: colors.textSecondary,
     marginTop: 2,
     lineHeight: 20,
   },
+
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  loadingText: { marginTop: 8, color: colors.textSecondary },
+  emptyText: { fontSize: 16, color: colors.textSecondary },
 });

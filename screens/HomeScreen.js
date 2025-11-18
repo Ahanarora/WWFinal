@@ -1,7 +1,7 @@
 // ----------------------------------------
 // screens/HomeScreen.js
-// Category → Featured Stories → Featured Themes → Regular Stories + Themes
-// All filtered & ranked by category
+// Category → Featured Stories → Featured Themes → Regular Combined Feed
+// NOW WITH DROPDOWN SORT FOR REGULAR FEED ONLY (Option A)
 // ----------------------------------------
 
 import React, { useEffect, useState, useMemo } from "react";
@@ -14,10 +14,15 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   ScrollView,
+  Modal,
 } from "react-native";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
-import { scoreContent } from "../utils/ranking";
+import {
+  scoreContent,
+  getUpdatedAtMs,
+  getPublishedAtMs,
+} from "../utils/ranking";
 import { formatUpdatedAt } from "../utils/formatTime";
 import { getLatestHeadlines } from "../utils/getLatestHeadlines";
 import { colors } from "../styles/theme";
@@ -42,6 +47,10 @@ export default function HomeScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState("All");
 
+  // NEW: sort dropdown for regular combined list
+  const [sortMode, setSortMode] = useState("relevance");
+  const [showSortMenu, setShowSortMenu] = useState(false);
+
   // -------------------------------
   // FETCH STORIES + THEMES
   // -------------------------------
@@ -55,15 +64,8 @@ export default function HomeScreen({ navigation }) {
         const storyData = storySnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
         // Rank globally by StoryScore
-        const rankedThemes = [...themeData].sort(
-          (a, b) => scoreContent(b) - scoreContent(a)
-        );
-        const rankedStories = [...storyData].sort(
-          (a, b) => scoreContent(b) - scoreContent(a)
-        );
-
-        setThemes(rankedThemes);
-        setStories(rankedStories);
+        setThemes(themeData);
+        setStories(storyData);
       } catch (err) {
         console.error("Error loading home data:", err);
       } finally {
@@ -88,38 +90,31 @@ export default function HomeScreen({ navigation }) {
   }, [themes, activeCategory]);
 
   // -------------------------------
-  // ⭐ NEW SMART FEATURED LOGIC (WITH PIN OVERRIDE)
-  // Option C — Pinned items override selection, NOT ordering
+  // FEATURED ITEMS (unchanged)
   // -------------------------------
   const TOP_N = 3;
 
   function getFeaturedItems(items, category) {
-    // 1️⃣ Pinned (forced include)
     const pinned = items.filter(
       (i) =>
         i.isPinnedFeatured === true &&
         (i.pinnedCategory === "All" || i.pinnedCategory === category)
     );
 
-    // 2️⃣ Auto-ranked (exclude pinned)
     const auto = items
       .filter((i) => !i.isPinnedFeatured)
       .sort((a, b) => scoreContent(b) - scoreContent(a));
 
-    // 3️⃣ Merge pinned + auto and limit to 3
     const combined = [...pinned, ...auto].slice(0, TOP_N);
 
-    // 4️⃣ Final order always by StoryScore (Option C)
     return combined.sort((a, b) => scoreContent(b) - scoreContent(a));
   }
 
-  // Featured Stories/Themes using new logic
   const featuredStories = getFeaturedItems(filteredStories, activeCategory);
   const featuredThemes = getFeaturedItems(filteredThemes, activeCategory);
 
   // -------------------------------
-  // REGULAR COMBINED FEED
-  // stories + themes (non-featured), ranked together
+  // REGULAR COMBINED FEED (OPTION A SORT APPLIED HERE)
   // -------------------------------
   const regularCombined = useMemo(() => {
     const featuredStoryIds = featuredStories.map((s) => s.id);
@@ -143,9 +138,29 @@ export default function HomeScreen({ navigation }) {
 
     const combined = [...taggedStories, ...taggedThemes];
 
-    // Sort combined feed by StoryScore
+    // 🔥 SORT LOGIC APPLIED ONLY TO REGULAR LIST
+    if (sortMode === "updated") {
+      return combined.sort(
+        (a, b) => (getUpdatedAtMs(b) || 0) - (getUpdatedAtMs(a) || 0)
+      );
+    }
+
+    if (sortMode === "published") {
+      return combined.sort(
+        (a, b) =>
+          (getPublishedAtMs(b) || getUpdatedAtMs(b) || 0) -
+          (getPublishedAtMs(a) || getUpdatedAtMs(a) || 0)
+      );
+    }
+
     return combined.sort((a, b) => scoreContent(b) - scoreContent(a));
-  }, [filteredStories, filteredThemes, featuredStories, featuredThemes]);
+  }, [
+    filteredStories,
+    filteredThemes,
+    featuredStories,
+    featuredThemes,
+    sortMode,
+  ]);
 
   // -------------------------------
   // LOADING STATE
@@ -160,7 +175,7 @@ export default function HomeScreen({ navigation }) {
   }
 
   // -------------------------------
-  // RENDER HELPERS
+  // RENDER CARDS HELPERS (unchanged)
   // -------------------------------
   const renderHeadlineBullets = (timeline) => {
     const headlines = getLatestHeadlines(timeline);
@@ -172,9 +187,7 @@ export default function HomeScreen({ navigation }) {
         {headlines.map((headline) => (
           <View key={headline.id} style={styles.headlineRow}>
             <View style={styles.headlineBullet} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.headlineText}>{headline.title}</Text>
-            </View>
+            <Text style={styles.headlineText}>{headline.title}</Text>
           </View>
         ))}
       </View>
@@ -204,11 +217,11 @@ export default function HomeScreen({ navigation }) {
         <Text style={styles.featuredTitle} numberOfLines={2}>
           {item.title}
         </Text>
-        {item.overview ? (
+        {item.overview && (
           <Text style={styles.overviewPreview} numberOfLines={2}>
             {item.overview}
           </Text>
-        ) : null}
+        )}
         {renderHeadlineBullets(item.timeline)}
       </View>
     </TouchableOpacity>
@@ -237,19 +250,20 @@ export default function HomeScreen({ navigation }) {
         <Text style={styles.featuredTitle} numberOfLines={2}>
           {item.title}
         </Text>
-        {item.overview ? (
+        {item.overview && (
           <Text style={styles.overviewPreview} numberOfLines={2}>
             {item.overview}
           </Text>
-        ) : null}
+        )}
         {renderHeadlineBullets(item.timeline)}
       </View>
     </TouchableOpacity>
   );
 
   const renderRegularItem = ({ item }) => {
+    const headlines = getLatestHeadlines(item.timeline);
+
     if (item._kind === "story") {
-      const headlines = getLatestHeadlines(item.timeline);
       return (
         <TouchableOpacity
           style={styles.card}
@@ -270,40 +284,28 @@ export default function HomeScreen({ navigation }) {
               <Text style={styles.placeholderText}>No Image</Text>
             </View>
           )}
+
           <View style={styles.textBlock}>
             <Text style={styles.typeBadge}>Story</Text>
             <Text style={styles.categoryLabel}>
               {item.category?.toUpperCase() || "GENERAL"}
             </Text>
             <Text style={styles.title}>{item.title}</Text>
-            <Text style={styles.updatedText}>
-              {formatUpdatedAt(item.updatedAt)}
-            </Text>
-            {item.overview ? (
+            <Text style={styles.updatedText}>{formatUpdatedAt(item.updatedAt)}</Text>
+
+            {item.overview && (
               <Text style={styles.overviewPreview} numberOfLines={2}>
                 {item.overview}
               </Text>
-            ) : null}
-            {headlines.length > 0 ? (
-              <View style={styles.headlineList}>
-                <Text style={styles.latestLabel}>Latest updates</Text>
-                {headlines.map((headline) => (
-                  <View key={headline.id} style={styles.headlineRow}>
-                    <View style={styles.headlineBullet} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.headlineText}>{headline.title}</Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            ) : null}
+            )}
+
+            {renderHeadlineBullets(item.timeline)}
           </View>
         </TouchableOpacity>
       );
     }
 
-    // Theme
-    const headlines = getLatestHeadlines(item.timeline);
+    // Theme card
     return (
       <TouchableOpacity
         style={styles.card}
@@ -324,33 +326,22 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.placeholderText}>No Image</Text>
           </View>
         )}
+
         <View style={styles.textBlock}>
           <Text style={[styles.typeBadge, styles.typeBadgeTheme]}>Theme</Text>
           <Text style={styles.categoryLabel}>
             {item.category?.toUpperCase() || "GENERAL"}
           </Text>
           <Text style={styles.title}>{item.title}</Text>
-          <Text style={styles.updatedText}>
-            {formatUpdatedAt(item.updatedAt)}
-          </Text>
-          {item.overview ? (
+          <Text style={styles.updatedText}>{formatUpdatedAt(item.updatedAt)}</Text>
+
+          {item.overview && (
             <Text style={styles.overviewPreview} numberOfLines={2}>
               {item.overview}
             </Text>
-          ) : null}
-          {headlines.length > 0 ? (
-            <View style={styles.headlineList}>
-              <Text style={styles.latestLabel}>Latest updates</Text>
-              {headlines.map((headline) => (
-                <View key={headline.id} style={styles.headlineRow}>
-                  <View style={styles.headlineBullet} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.headlineText}>{headline.title}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          ) : null}
+          )}
+
+          {renderHeadlineBullets(item.timeline)}
         </View>
       </TouchableOpacity>
     );
@@ -361,7 +352,7 @@ export default function HomeScreen({ navigation }) {
   // -------------------------------
   return (
     <View style={styles.container}>
-      {/* 🟧 CATEGORY PILLS */}
+      {/* CATEGORY PILLS */}
       <View style={styles.filterWrapper}>
         <ScrollView
           horizontal
@@ -393,7 +384,7 @@ export default function HomeScreen({ navigation }) {
         </ScrollView>
       </View>
 
-      {/* 🔵 FEATURED STORIES */}
+      {/* FEATURED SECTIONS */}
       {featuredStories.length > 0 && (
         <View style={styles.featuredSection}>
           <Text style={styles.featuredHeader}>Featured Stories</Text>
@@ -407,7 +398,6 @@ export default function HomeScreen({ navigation }) {
         </View>
       )}
 
-      {/* 🟩 FEATURED THEMES */}
       {featuredThemes.length > 0 && (
         <View style={styles.featuredSection}>
           <Text style={styles.featuredHeader}>Featured Themes</Text>
@@ -421,7 +411,61 @@ export default function HomeScreen({ navigation }) {
         </View>
       )}
 
-      {/* 🟨 REGULAR STORIES + THEMES (COMBINED) */}
+      {/* SORT DROPDOWN (ONLY FOR REGULAR FEED) */}
+      <TouchableOpacity
+        onPress={() => setShowSortMenu(true)}
+        style={styles.dropdownButton}
+      >
+        <Text style={styles.dropdownButtonText}>
+          Sort:{" "}
+          {sortMode === "relevance"
+            ? "Relevance"
+            : sortMode === "updated"
+            ? "Recently Updated"
+            : "Recently Published"}
+        </Text>
+      </TouchableOpacity>
+
+      {/* SORT MODAL */}
+      <Modal
+        visible={showSortMenu}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setShowSortMenu(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          onPress={() => setShowSortMenu(false)}
+        >
+          <View style={styles.modalContent}>
+            {[
+              { key: "relevance", label: "Relevance" },
+              { key: "updated", label: "Recently Updated" },
+              { key: "published", label: "Recently Published" },
+            ].map((opt) => (
+              <TouchableOpacity
+                key={opt.key}
+                style={styles.modalOption}
+                onPress={() => {
+                  setSortMode(opt.key);
+                  setShowSortMenu(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.modalOptionText,
+                    sortMode === opt.key && styles.selectedOptionText,
+                  ]}
+                >
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* REGULAR COMBINED FEED */}
       <FlatList
         data={regularCombined}
         keyExtractor={(item) => `${item._kind}-${item.id}`}
@@ -443,23 +487,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
 
-  // Category filter
+  // CATEGORY FILTER
   filterWrapper: {
     borderBottomWidth: 1,
     borderColor: colors.border,
     paddingVertical: 10,
     backgroundColor: colors.surface,
-    shadowColor: "#0F172A",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
   },
   categoryRow: {
     flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
     gap: 10,
+    paddingHorizontal: 16,
   },
   categoryPill: {
     borderWidth: 1,
@@ -473,16 +511,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#2563EB",
     borderColor: "#2563EB",
   },
-  categoryText: {
-    fontSize: 13,
-    color: "#4B5563",
-  },
-  categoryTextActive: {
-    color: "#fff",
-    fontWeight: "600",
-  },
+  categoryText: { fontSize: 13, color: "#4B5563" },
+  categoryTextActive: { color: "#fff", fontWeight: "600" },
 
-  // Featured sections
+  // FEATURED SECTION
   featuredSection: {
     paddingHorizontal: 16,
     paddingTop: 16,
@@ -495,16 +527,13 @@ const styles = StyleSheet.create({
   featuredRow: {
     paddingBottom: 4,
   },
+
   featuredCard: {
     width: 240,
     marginRight: 16,
     backgroundColor: colors.surface,
     borderRadius: 18,
     overflow: "hidden",
-    shadowColor: "#0F172A",
-    shadowOpacity: 0.09,
-    shadowRadius: 12,
-    elevation: 4,
     borderWidth: 1,
     borderColor: "#E0E7FF",
   },
@@ -531,17 +560,50 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
 
-  // Regular cards
+  // SORT DROPDOWN
+  dropdownButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: "#f2f2f2",
+    marginTop: 8,
+    borderRadius: 8,
+    marginHorizontal: 16,
+  },
+  dropdownButtonText: {
+    fontSize: 14,
+    color: "#000",
+  },
+
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    justifyContent: "center",
+    padding: 30,
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+  },
+  modalOption: {
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+  },
+  modalOptionText: {
+    fontSize: 16,
+    color: "#333",
+  },
+  selectedOptionText: {
+    fontWeight: "bold",
+    color: colors.accent,
+  },
+
+  // REGULAR FEED
   card: {
     backgroundColor: colors.surface,
     marginHorizontal: 16,
     marginTop: 16,
     borderRadius: 18,
     overflow: "hidden",
-    shadowColor: "#0F172A",
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 4,
     borderWidth: 1,
     borderColor: "#E0E7FF",
   },
@@ -556,13 +618,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  placeholderText: {
-    color: "#999",
-  },
+  placeholderText: { color: "#999" },
   textBlock: {
     padding: 20,
     gap: 6,
   },
+
   typeBadge: {
     alignSelf: "flex-start",
     fontSize: 11,
@@ -577,6 +638,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#DCFCE7",
     color: "#166534",
   },
+
   categoryLabel: {
     fontSize: 12,
     color: "#6B7280",
@@ -589,26 +651,23 @@ const styles = StyleSheet.create({
     color: "#111827",
     marginBottom: 6,
   },
-  separator: {
-    height: 16,
-  },
-
-  // Loading
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loadingText: {
-    color: "#6B7280",
-    marginTop: 8,
-  },
   updatedText: {
     fontSize: 13,
     color: colors.muted,
     marginBottom: 4,
   },
 
+  overviewPreview: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+
+  separator: {
+    height: 16,
+  },
+
+  // HEADLINES
   headlineList: {
     marginTop: 12,
     gap: 6,
@@ -617,7 +676,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.muted,
     textTransform: "uppercase",
-    letterSpacing: 1,
   },
   headlineRow: {
     flexDirection: "row",
@@ -634,13 +692,10 @@ const styles = StyleSheet.create({
   headlineText: {
     fontSize: 13,
     color: colors.textSecondary,
-    fontWeight: "500",
     lineHeight: 18,
   },
-  overviewPreview: {
-    marginTop: 2,
-    fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 20,
-  },
+
+  // LOADING
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  loadingText: { marginTop: 8, color: colors.textSecondary },
 });

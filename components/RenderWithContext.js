@@ -13,7 +13,12 @@ import { parseLinkedText } from "../utils/renderLinkedText";
 import { db } from "../firebaseConfig";
 import { doc, getDoc } from "firebase/firestore";
 
-export default function RenderWithContext({ text = "", contexts = [], navigation }) {
+export default function RenderWithContext({
+  text = "",
+  contexts = [],
+  navigation,
+  textStyle,
+}) {
   const [popup, setPopup] = useState(null);
   if (!text) return null;
 
@@ -113,7 +118,7 @@ export default function RenderWithContext({ text = "", contexts = [], navigation
 
   return (
     <>
-      <Text style={styles.text}>
+      <Text style={[styles.text, textStyle]}>
         {tokens.map((n, i) => renderPart(n, i))}
       </Text>
 

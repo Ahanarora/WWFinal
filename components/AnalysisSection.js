@@ -11,12 +11,13 @@ import {
   UIManager,
   StyleSheet,
 } from "react-native";
+import RenderWithContext from "./RenderWithContext";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-export default function AnalysisSection({ analysis }) {
+export default function AnalysisSection({ analysis, contexts = [], navigation }) {
   const [openSections, setOpenSections] = useState({});
   const [openSub, setOpenSub] = useState({});
 
@@ -58,15 +59,25 @@ export default function AnalysisSection({ analysis }) {
                   list.map((item, idx) => (
                     <View key={idx} style={styles.itemBlock}>
                       <TouchableOpacity onPress={() => toggleSub(key, idx)}>
-                        <Text style={styles.itemTitle}>
-                          {key === "stakeholders" ? item.name : item.question}{" "}
-                          {openSub[`${key}-${idx}`] ? "▲" : "▼"}
-                        </Text>
+                        <View style={styles.itemTitleRow}>
+                          <RenderWithContext
+                            text={key === "stakeholders" ? item.name : item.question}
+                            contexts={contexts}
+                            navigation={navigation}
+                            textStyle={styles.itemTitle}
+                          />
+                          <Text style={styles.itemArrow}>
+                            {openSub[`${key}-${idx}`] ? "▲" : "▼"}
+                          </Text>
+                        </View>
                       </TouchableOpacity>
                       {openSub[`${key}-${idx}`] && (
-                        <Text style={styles.itemDetail}>
-                          {key === "stakeholders" ? item.detail : item.answer}
-                        </Text>
+                        <RenderWithContext
+                          text={key === "stakeholders" ? item.detail : item.answer}
+                          contexts={contexts}
+                          navigation={navigation}
+                          textStyle={styles.itemDetail}
+                        />
                       )}
                     </View>
                   ))
@@ -101,6 +112,13 @@ const styles = StyleSheet.create({
     padding: 8,
     marginTop: 6,
   },
-  itemTitle: { fontWeight: "600", color: "#1f2937" },
+  itemTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  itemTitle: { fontWeight: "600", color: "#1f2937", flex: 1 },
+  itemArrow: { color: "#4b5563" },
   itemDetail: { marginTop: 4, color: "#374151", fontSize: 13 },
 });

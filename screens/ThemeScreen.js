@@ -15,7 +15,6 @@ import Slider from "@react-native-community/slider";
 import { colors, fonts, spacing } from "../styles/theme";
 import SourceLinks from "../components/SourceLinks";
 import RenderWithContext from "../components/RenderWithContext";
-import { renderLinkedText } from "../utils/renderLinkedText";
 import { formatUpdatedAt, formatDateDDMMYYYY } from "../utils/formatTime";
 import { normalizeAnalysis } from "../utils/normalizeAnalysis";
 import DottedDivider from "../components/DottedDivider";
@@ -41,6 +40,10 @@ export default function ThemeScreen({ route, navigation }) {
     );
 
   const primaryAnalysis = normalizeAnalysis(theme.analysis);
+  const primaryContexts = [
+    ...(theme.contexts || []),
+    ...(primaryAnalysis?.contexts || []),
+  ];
   const hasAnyAnalysis =
     (primaryAnalysis.stakeholders?.length ?? 0) +
       (primaryAnalysis.faqs?.length ?? 0) +
@@ -80,6 +83,12 @@ export default function ThemeScreen({ route, navigation }) {
   // ------------------------------
   const renderThemeBlock = (item, isFirst) => {
     const rawTimeline = Array.isArray(item.timeline) ? item.timeline : [];
+    const analysisForItem =
+      item.id === theme.id ? primaryAnalysis : normalizeAnalysis(item.analysis);
+    const combinedContexts = [
+      ...(item.contexts || []),
+      ...(analysisForItem?.contexts || []),
+    ];
 
     // Add original index
     const indexedTimeline = rawTimeline.map((evt, originalIndex) => ({
@@ -172,7 +181,11 @@ export default function ThemeScreen({ route, navigation }) {
         {/* OVERVIEW */}
         {item.overview ? (
           <View style={styles.overviewBlock}>
-            {renderLinkedText(item.overview, navigation)}
+            <RenderWithContext
+              text={item.overview}
+              contexts={combinedContexts}
+              navigation={navigation}
+            />
           </View>
         ) : null}
 
@@ -186,6 +199,7 @@ export default function ThemeScreen({ route, navigation }) {
                   navigation.push("AnalysisModal", {
                     type: "stakeholders",
                     analysis: primaryAnalysis,
+                    contexts: primaryContexts,
                   })
                 }
               >
@@ -200,6 +214,7 @@ export default function ThemeScreen({ route, navigation }) {
                   navigation.push("AnalysisModal", {
                     type: "faqs",
                     analysis: primaryAnalysis,
+                    contexts: primaryContexts,
                   })
                 }
               >
@@ -214,6 +229,7 @@ export default function ThemeScreen({ route, navigation }) {
                   navigation.push("AnalysisModal", {
                     type: "future",
                     analysis: primaryAnalysis,
+                    contexts: primaryContexts,
                   })
                 }
               >

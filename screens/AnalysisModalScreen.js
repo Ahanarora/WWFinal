@@ -15,12 +15,13 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { normalizeAnalysis } from "../utils/normalizeAnalysis";
+import RenderWithContext from "../components/RenderWithContext";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-function AccordionItem({ label, detail }) {
+function AccordionItem({ label, detail, contexts, navigation }) {
   const [open, setOpen] = useState(false);
 
   const toggle = () => {
@@ -31,17 +32,31 @@ function AccordionItem({ label, detail }) {
   return (
     <View style={styles.itemBlock}>
       <TouchableOpacity onPress={toggle}>
-        <Text style={styles.itemTitle}>
-          {label} {open ? "▲" : "▼"}
-        </Text>
+        <View style={styles.itemTitleRow}>
+          <RenderWithContext
+            text={label}
+            contexts={contexts}
+            navigation={navigation}
+            textStyle={styles.itemTitle}
+          />
+          <Text style={styles.itemArrow}>{open ? "▲" : "▼"}</Text>
+        </View>
       </TouchableOpacity>
-      {open && !!detail && <Text style={styles.itemDetail}>{detail}</Text>}
+      {open && !!detail && (
+        <RenderWithContext
+          text={detail}
+          contexts={contexts}
+          navigation={navigation}
+          textStyle={styles.itemDetail}
+        />
+      )}
     </View>
   );
 }
 
 export default function AnalysisModalScreen({ route, navigation }) {
-  const { type, analysis: rawAnalysis } = route.params || {};
+  const { type, analysis: rawAnalysis, contexts: routeContexts = [] } =
+    route.params || {};
   const analysis = normalizeAnalysis(rawAnalysis || {}) || {
     stakeholders: [],
     faqs: [],
@@ -60,6 +75,11 @@ export default function AnalysisModalScreen({ route, navigation }) {
 
   const sectionTitle = titleMap[key] || "Analysis";
   const items = analysis[key] || [];
+
+  const combinedContexts =
+    routeContexts?.length > 0
+      ? routeContexts
+      : analysis?.contexts || [];
 
   const hasContent = Array.isArray(items) && items.length > 0;
 
@@ -99,6 +119,8 @@ export default function AnalysisModalScreen({ route, navigation }) {
                 key={idx}
                 label={label}
                 detail={detail}
+                contexts={combinedContexts}
+                navigation={navigation}
               />
             );
           })
@@ -150,10 +172,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e5e7eb",
   },
+  itemTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
   itemTitle: {
     fontSize: 15,
     fontWeight: "600",
     color: "#111827",
+  },
+  itemArrow: {
+    fontSize: 14,
+    color: "#4B5563",
   },
   itemDetail: {
     marginTop: 6,

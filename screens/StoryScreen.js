@@ -16,7 +16,6 @@ import Slider from "@react-native-community/slider";
 import { colors, fonts, spacing } from "../styles/theme";
 import SourceLinks from "../components/SourceLinks";
 import RenderWithContext from "../components/RenderWithContext";
-import { renderLinkedText } from "../utils/renderLinkedText";
 import { formatUpdatedAt, formatDateDDMMYYYY } from "../utils/formatTime";
 import { normalizeAnalysis } from "../utils/normalizeAnalysis";
 import DottedDivider from "../components/DottedDivider";
@@ -44,6 +43,10 @@ export default function StoryScreen({ route, navigation }) {
     );
 
   const primaryAnalysis = normalizeAnalysis(story.analysis);
+  const primaryContexts = [
+    ...(story.contexts || []),
+    ...(primaryAnalysis?.contexts || []),
+  ];
 
   const loadNextStory = () => {
     if (isLoadingMore) return;
@@ -83,6 +86,12 @@ export default function StoryScreen({ route, navigation }) {
   // ---------------------------------------------------------
   const renderStoryBlock = (item) => {
     const rawTimeline = Array.isArray(item.timeline) ? item.timeline : [];
+    const analysisForItem =
+      item.id === story.id ? primaryAnalysis : normalizeAnalysis(item.analysis);
+    const combinedContexts = [
+      ...(item.contexts || []),
+      ...(analysisForItem?.contexts || []),
+    ];
 
     // Add original index to each event
     const indexedTimeline = rawTimeline.map((evt, originalIndex) => ({
@@ -176,7 +185,11 @@ export default function StoryScreen({ route, navigation }) {
         {/* OVERVIEW */}
         {item.overview ? (
           <View style={styles.overviewBlock}>
-            {renderLinkedText(item.overview, navigation)}
+            <RenderWithContext
+              text={item.overview}
+              contexts={combinedContexts}
+              navigation={navigation}
+            />
           </View>
         ) : null}
 
@@ -190,6 +203,7 @@ export default function StoryScreen({ route, navigation }) {
                   navigation.push("AnalysisModal", {
                     type: "stakeholders",
                     analysis: primaryAnalysis,
+                    contexts: primaryContexts,
                   })
                 }
               >
@@ -204,6 +218,7 @@ export default function StoryScreen({ route, navigation }) {
                   navigation.push("AnalysisModal", {
                     type: "faqs",
                     analysis: primaryAnalysis,
+                    contexts: primaryContexts,
                   })
                 }
               >
@@ -218,6 +233,7 @@ export default function StoryScreen({ route, navigation }) {
                   navigation.push("AnalysisModal", {
                     type: "future",
                     analysis: primaryAnalysis,
+                    contexts: primaryContexts,
                   })
                 }
               >

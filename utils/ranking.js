@@ -1,12 +1,4 @@
-// ----------------------------------------
-// utils/ranking.js — New Velocity + 4-Hour-Window Ranking
-// ----------------------------------------
-
-/**
- * Convert Firestore timestamp to ms.
- * Prefer createdAt → fallback updatedAt.
- */
-function getMs(t) {
+function safeMs(t) {
   if (!t) return null;
 
   if (typeof t.toDate === "function") return t.toDate().getTime();
@@ -16,71 +8,42 @@ function getMs(t) {
   return isNaN(d) ? null : d.getTime();
 }
 
-/**
- * Count how many timeline events were added
- * within the last X hours.
- *
- * Velocity = "recent story changes".
- */
-function getVelocityScore(item, hours = 48) {
-  const events = Array.isArray(item.timeline) ? item.timeline : [];
-  const cutoff = Date.now() - hours * 60 * 60 * 1000;
-
-  // count events whose creation/update time is recent
-  const recent = events.filter((ev) => {
-    const ts = ev.updatedAt || ev.createdAt;
-    if (!ts) return false;
-    const ms = getMs(ts);
-    return ms && ms >= cutoff;
-  }).length;
-
-  // Normalize: 0 → 1
-  // 5 new events in 48 hours = full score
-  const score = Math.min(recent / 5, 1);
-
-  return score;
-}
-
-/**
- * Recency Score:
- * Split timeline into 4-hour freshness windows.
- * 0–4 hours old → 1.0
- * 4–8 hours old → 0.9
- * ...
- * > 48 hours old → 0
- */
 function getRecencyScore(item) {
-  const ts =
-    getMs(item.createdAt) ||
-    getMs(item.updatedAt);
+  const created = safeMs(item.createdAt);
+  const updated = safeMs(item.updatedAt);
 
+  const ts = created || updated;
   if (!ts) return 0;
 
-  const diffHours = (Date.now() - ts) / (1000 * 60 * 60);
+  const diff = Date.now() - ts;
+  if (!diff || isNaN(diff)) return 0;
 
-  // 4-hour windows decay
-  const windowIndex = Math.floor(diffHours / 4);
+  const hours = diff / (1000 * 60 * 60);
+  if (isNaN(hours)) return 0;
 
-  // Example:
-  // window 0 → 1.0
-  // window 1 → 0.9
-  // window 2 → 0.8, etc.
-  const score = Math.max(1 - windowIndex * 0.1, 0);
+  const windowIndex = Math.floor(hours / 4);
+  if (isNaN(windowIndex)) return 0;
 
-  return score;
+  return Math.max(1 - windowIndex * 0.1, 0);
 }
 
-/**
- * Final ranking:
- * 60% Velocity (FAST stories)
- * 40% Recency (NEW stories)
- */
-export function scoreContent(item = {}) {
-  const recency = getRecencyScore(item);      // 0 → 1
-  const velocity = getVelocityScore(item);    // 0 → 1
+function getVelocityScore(item) {
+  const events = Array.isArray(item.timeline) ? item.timeline : [];
 
-  return (
-    recency * 0.40 +
-    velocity * 0.60
-  );
+  const cutoff = Date.now() - 48 * 60 * 60 * 1000;
+
+  let recent = 0;
+  for (const ev of events) {
+    const ts = safeMs(ev.updatedAt || ev.createdAt);
+    if (ts && ts >= cutoff) recent++;
+  }
+
+  return Math.min(recent / 5, 1);
+}
+
+export function scoreContent(item = {}) {
+  const recency = getRecencyScore(item);
+  const velocity = getVelocityScore(item);
+
+  return recency * 0.4 + velocity * 0.6;
 }

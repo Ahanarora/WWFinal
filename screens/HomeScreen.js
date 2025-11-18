@@ -1,7 +1,7 @@
 // ----------------------------------------
 // screens/HomeScreen.js
 // Category → Featured Stories → Featured Themes → Regular Combined Feed
-// NOW WITH DROPDOWN SORT FOR REGULAR FEED ONLY (Option A)
+// NOW WITH FIXED SORT LOGIC
 // ----------------------------------------
 
 import React, { useEffect, useState, useMemo } from "react";
@@ -18,14 +18,37 @@ import {
 } from "react-native";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
-import {
-  scoreContent,
-  getUpdatedAtMs,
-  getPublishedAtMs,
-} from "../utils/ranking";
+import { scoreContent } from "../utils/ranking";
+
 import { formatUpdatedAt } from "../utils/formatTime";
 import { getLatestHeadlines } from "../utils/getLatestHeadlines";
 import { colors } from "../styles/theme";
+
+// Safe unified timestamp helper
+const safeTimestamp = (item) => {
+  if (!item) return 0;
+
+  const t = item.createdAt || item.publishedAt || item.updatedAt;
+  if (!t) return 0;
+
+  if (typeof t.toDate === "function") return t.toDate().getTime();
+  if (t.seconds) return t.seconds * 1000;
+
+  const d = new Date(t);
+  return isNaN(d) ? 0 : d.getTime();
+};
+
+// Only createdAt for Recently Published
+const getCreatedAtMs = (item) => {
+  const t = item.createdAt;
+  if (!t) return 0;
+
+  if (typeof t.toDate === "function") return t.toDate().getTime();
+  if (t.seconds) return t.seconds * 1000;
+
+  const d = new Date(t);
+  return isNaN(d) ? 0 : d.getTime();
+};
 
 // Categories for top filter
 const CATEGORIES = [
@@ -47,7 +70,6 @@ export default function HomeScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState("All");
 
-  // NEW: sort dropdown for regular combined list
   const [sortMode, setSortMode] = useState("relevance");
   const [showSortMenu, setShowSortMenu] = useState(false);
 
@@ -63,7 +85,6 @@ export default function HomeScreen({ navigation }) {
         const themeData = themeSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
         const storyData = storySnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-        // Rank globally by StoryScore
         setThemes(themeData);
         setStories(storyData);
       } catch (err) {
@@ -90,7 +111,7 @@ export default function HomeScreen({ navigation }) {
   }, [themes, activeCategory]);
 
   // -------------------------------
-  // FEATURED ITEMS (unchanged)
+  // FEATURED ITEMS
   // -------------------------------
   const TOP_N = 3;
 
@@ -105,16 +126,14 @@ export default function HomeScreen({ navigation }) {
       .filter((i) => !i.isPinnedFeatured)
       .sort((a, b) => scoreContent(b) - scoreContent(a));
 
-    const combined = [...pinned, ...auto].slice(0, TOP_N);
-
-    return combined.sort((a, b) => scoreContent(b) - scoreContent(a));
+    return [...pinned, ...auto].slice(0, TOP_N);
   }
 
   const featuredStories = getFeaturedItems(filteredStories, activeCategory);
   const featuredThemes = getFeaturedItems(filteredThemes, activeCategory);
 
   // -------------------------------
-  // REGULAR COMBINED FEED (OPTION A SORT APPLIED HERE)
+  // REGULAR COMBINED FEED SORTING
   // -------------------------------
   const regularCombined = useMemo(() => {
     const featuredStoryIds = featuredStories.map((s) => s.id);
@@ -138,21 +157,21 @@ export default function HomeScreen({ navigation }) {
 
     const combined = [...taggedStories, ...taggedThemes];
 
-    // 🔥 SORT LOGIC APPLIED ONLY TO REGULAR LIST
+    // 🔥 Recently Updated
     if (sortMode === "updated") {
       return combined.sort(
-        (a, b) => (getUpdatedAtMs(b) || 0) - (getUpdatedAtMs(a) || 0)
-      );
-    }
-
-    if (sortMode === "published") {
-      return combined.sort(
         (a, b) =>
-          (getPublishedAtMs(b) || getUpdatedAtMs(b) || 0) -
-          (getPublishedAtMs(a) || getUpdatedAtMs(a) || 0)
+          safeTimestamp({ updatedAt: b.updatedAt }) -
+          safeTimestamp({ updatedAt: a.updatedAt })
       );
     }
 
+    // 🔥 Recently Published
+    if (sortMode === "published") {
+      return combined.sort((a, b) => getCreatedAtMs(b) - getCreatedAtMs(a));
+    }
+
+    // Default relevance
     return combined.sort((a, b) => scoreContent(b) - scoreContent(a));
   }, [
     filteredStories,
@@ -175,7 +194,7 @@ export default function HomeScreen({ navigation }) {
   }
 
   // -------------------------------
-  // RENDER CARDS HELPERS (unchanged)
+  // RENDER CARDS
   // -------------------------------
   const renderHeadlineBullets = (timeline) => {
     const headlines = getLatestHeadlines(timeline);
@@ -305,7 +324,6 @@ export default function HomeScreen({ navigation }) {
       );
     }
 
-    // Theme card
     return (
       <TouchableOpacity
         style={styles.card}
@@ -411,7 +429,7 @@ export default function HomeScreen({ navigation }) {
         </View>
       )}
 
-      {/* SORT DROPDOWN (ONLY FOR REGULAR FEED) */}
+      {/* SORT DROPDOWN */}
       <TouchableOpacity
         onPress={() => setShowSortMenu(true)}
         style={styles.dropdownButton}
@@ -465,7 +483,7 @@ export default function HomeScreen({ navigation }) {
         </TouchableOpacity>
       </Modal>
 
-      {/* REGULAR COMBINED FEED */}
+      {/* REGULAR FEED */}
       <FlatList
         data={regularCombined}
         keyExtractor={(item) => `${item._kind}-${item.id}`}
@@ -487,18 +505,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
 
-  // CATEGORY FILTER
   filterWrapper: {
     borderBottomWidth: 1,
     borderColor: colors.border,
     paddingVertical: 10,
     backgroundColor: colors.surface,
   },
+
   categoryRow: {
     flexDirection: "row",
     gap: 10,
     paddingHorizontal: 16,
   },
+
   categoryPill: {
     borderWidth: 1,
     borderColor: "#d1d5db",
@@ -514,7 +533,6 @@ const styles = StyleSheet.create({
   categoryText: { fontSize: 13, color: "#4B5563" },
   categoryTextActive: { color: "#fff", fontWeight: "600" },
 
-  // FEATURED SECTION
   featuredSection: {
     paddingHorizontal: 16,
     paddingTop: 16,
@@ -560,7 +578,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
 
-  // SORT DROPDOWN
   dropdownButton: {
     paddingVertical: 10,
     paddingHorizontal: 16,
@@ -597,7 +614,6 @@ const styles = StyleSheet.create({
     color: colors.accent,
   },
 
-  // REGULAR FEED
   card: {
     backgroundColor: colors.surface,
     marginHorizontal: 16,
@@ -607,6 +623,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E0E7FF",
   },
+
   image: {
     width: "100%",
     height: 200,
@@ -619,6 +636,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   placeholderText: { color: "#999" },
+
   textBlock: {
     padding: 20,
     gap: 6,
@@ -667,7 +685,6 @@ const styles = StyleSheet.create({
     height: 16,
   },
 
-  // HEADLINES
   headlineList: {
     marginTop: 12,
     gap: 6,
@@ -695,7 +712,6 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  // LOADING
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   loadingText: { marginTop: 8, color: colors.textSecondary },
 });

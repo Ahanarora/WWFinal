@@ -16,20 +16,46 @@ import {
 } from "react-native";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
-import {
-  scoreContent,
-  getUpdatedAtMs,
-  getPublishedAtMs,
-} from "../utils/ranking";
+import { scoreContent } from "../utils/ranking";
+
 import { formatUpdatedAt } from "../utils/formatTime";
 import { getLatestHeadlines } from "../utils/getLatestHeadlines";
 import { colors } from "../styles/theme";
+
+/**
+ * ⭐ Safe timestamp normalizer for sorting.
+ * PRIORITY:
+ *   createdAt → publishedAt → updatedAt
+ */
+const safeTimestamp = (item) => {
+  if (!item) return 0;
+
+  const t = item.createdAt || item.publishedAt || item.updatedAt;
+  if (!t) return 0;
+
+  if (typeof t.toDate === "function") return t.toDate().getTime();
+  if (t.seconds) return t.seconds * 1000;
+
+  const d = new Date(t);
+  return isNaN(d) ? 0 : d.getTime();
+};
+
+/** ONLY createdAt for Recently Published */
+const getCreatedAtMs = (item) => {
+  const t = item.createdAt;
+  if (!t) return 0;
+
+  if (typeof t.toDate === "function") return t.toDate().getTime();
+  if (t.seconds) return t.seconds * 1000;
+
+  const d = new Date(t);
+  return isNaN(d) ? 0 : d.getTime();
+};
 
 export default function ThemesScreen({ navigation }) {
   const [themes, setThemes] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // NEW: sort mode
   const [sortMode, setSortMode] = useState("relevance");
   const [showSortMenu, setShowSortMenu] = useState(false);
 
@@ -58,18 +84,18 @@ export default function ThemesScreen({ navigation }) {
   const sortedThemes = useMemo(() => {
     const list = [...themes];
 
+    // 🔥 Recently Updated → updatedAt only
     if (sortMode === "updated") {
       return list.sort(
-        (a, b) => (getUpdatedAtMs(b) || 0) - (getUpdatedAtMs(a) || 0)
+        (a, b) =>
+          safeTimestamp({ updatedAt: b.updatedAt }) -
+          safeTimestamp({ updatedAt: a.updatedAt })
       );
     }
 
+    // 🔥 Recently Published → createdAt only
     if (sortMode === "published") {
-      return list.sort(
-        (a, b) =>
-          (getPublishedAtMs(b) || getUpdatedAtMs(b) || 0) -
-          (getPublishedAtMs(a) || getUpdatedAtMs(a) || 0)
-      );
+      return list.sort((a, b) => getCreatedAtMs(b) - getCreatedAtMs(a));
     }
 
     // Default relevance
@@ -113,8 +139,12 @@ export default function ThemesScreen({ navigation }) {
         }
         style={styles.card}
       >
-        {theme.imageUrl && (
+        {theme.imageUrl ? (
           <Image source={{ uri: theme.imageUrl }} style={styles.image} />
+        ) : (
+          <View style={styles.placeholder}>
+            <Text style={styles.placeholderText}>No Image</Text>
+          </View>
         )}
 
         <View style={styles.content}>
@@ -216,7 +246,6 @@ export default function ThemesScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { padding: 16, backgroundColor: colors.background, flex: 1 },
 
-  // SORT DROPDOWN
   dropdownButton: {
     paddingVertical: 10,
     paddingHorizontal: 14,
@@ -268,12 +297,23 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E0E7FF",
   },
+
   image: {
     width: "100%",
     height: 200,
     backgroundColor: "#e2e8f0",
   },
+  placeholder: {
+    width: "100%",
+    height: 200,
+    backgroundColor: "#eee",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  placeholderText: { color: "#888" },
+
   content: { padding: 20, gap: 8 },
+
   category: {
     fontSize: 13,
     color: colors.accent,
@@ -281,6 +321,7 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 20, fontWeight: "700", color: colors.textPrimary },
   updated: { fontSize: 13, color: colors.muted },
+
   headlineList: { marginTop: 12, gap: 6 },
   latestLabel: {
     fontSize: 11,
@@ -290,6 +331,7 @@ const styles = StyleSheet.create({
   headlineRow: {
     flexDirection: "row",
     gap: 8,
+    alignItems: "flex-start",
   },
   headlineBullet: {
     width: 4,
@@ -302,6 +344,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
   },
+
   overviewPreview: {
     fontSize: 14,
     color: colors.textSecondary,

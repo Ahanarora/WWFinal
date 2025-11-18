@@ -16,14 +16,45 @@ import {
 } from "react-native";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
-import {
-  scoreContent,
-  getUpdatedAtMs,
-  getPublishedAtMs,
-} from "../utils/ranking";
+import { scoreContent } from "../utils/ranking";
+
 import { formatUpdatedAt } from "../utils/formatTime";
 import { getLatestHeadlines } from "../utils/getLatestHeadlines";
 import { colors } from "../styles/theme";
+
+/**
+ * ⭐ Safe timestamp normalizer for sorting.
+ * PRIORITY:
+ * 1) createdAt     → for Published sort
+ * 2) publishedAt   → fallback
+ * 3) updatedAt     → for Updated sort
+ */
+const safeTimestamp = (item) => {
+  if (!item) return 0;
+
+  const t = item.createdAt || item.publishedAt || item.updatedAt;
+  if (!t) return 0;
+
+  // Firestore Timestamp
+  if (typeof t.toDate === "function") return t.toDate().getTime();
+  if (t.seconds) return t.seconds * 1000;
+
+  // String / JS Date fallback
+  const d = new Date(t);
+  return isNaN(d) ? 0 : d.getTime();
+};
+
+/** Only createdAt for RECENTLY PUBLISHED */
+const getCreatedAtMs = (item) => {
+  const t = item.createdAt;
+  if (!t) return 0;
+
+  if (typeof t.toDate === "function") return t.toDate().getTime();
+  if (t.seconds) return t.seconds * 1000;
+
+  const d = new Date(t);
+  return isNaN(d) ? 0 : d.getTime();
+};
 
 export default function StoriesScreen({ navigation }) {
   const [stories, setStories] = useState([]);
@@ -43,7 +74,6 @@ export default function StoriesScreen({ navigation }) {
       try {
         const snapshot = await getDocs(collection(db, "stories"));
         const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-
         setStories(data);
       } catch (error) {
         console.error("Error fetching stories:", error);
@@ -59,20 +89,21 @@ export default function StoriesScreen({ navigation }) {
   const sortedStories = useMemo(() => {
     const list = [...stories];
 
+    // 🔥 Recently Updated — uses updatedAt
     if (sortMode === "updated") {
       return list.sort(
-        (a, b) => (getUpdatedAtMs(b) || 0) - (getUpdatedAtMs(a) || 0)
-      );
-    }
-
-    if (sortMode === "published") {
-      return list.sort(
         (a, b) =>
-          (getPublishedAtMs(b) || getUpdatedAtMs(b) || 0) -
-          (getPublishedAtMs(a) || getUpdatedAtMs(a) || 0)
+          safeTimestamp({ updatedAt: b.updatedAt }) -
+          safeTimestamp({ updatedAt: a.updatedAt })
       );
     }
 
+    // 🔥 Recently Published — MUST use createdAt ONLY
+    if (sortMode === "published") {
+      return list.sort((a, b) => getCreatedAtMs(b) - getCreatedAtMs(a));
+    }
+
+    // 🔥 Relevance (velocity + recency)
     return list.sort((a, b) => scoreContent(b) - scoreContent(a));
   }, [stories, sortMode]);
 

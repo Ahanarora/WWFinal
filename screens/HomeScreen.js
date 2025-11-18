@@ -115,71 +115,69 @@ export default function HomeScreen({ navigation }) {
   // -------------------------------
   const TOP_N = 3;
 
-  function getFeaturedItems(items, category) {
-    const pinned = items.filter(
-      (i) =>
-        i.isPinnedFeatured === true &&
-        (i.pinnedCategory === "All" || i.pinnedCategory === category)
+  const tagItems = (items, kind) =>
+    items.map((item) => ({
+      ...item,
+      _kind: kind,
+    }));
+
+  const isPinnedForCategory = (item, category) => {
+    const pinned =
+      item.isPinned === true ||
+      item.isPinnedFeatured === true;
+    if (!pinned) return false;
+
+    if (!item.pinnedCategory || item.pinnedCategory === "All") return true;
+    return item.pinnedCategory === category;
+  };
+
+  const combinedItems = useMemo(() => {
+    const taggedStories = tagItems(filteredStories, "story");
+    const taggedThemes = tagItems(filteredThemes, "theme");
+    return [...taggedStories, ...taggedThemes];
+  }, [filteredStories, filteredThemes]);
+
+  const featuredItems = useMemo(() => {
+    const pinned = combinedItems.filter((item) =>
+      isPinnedForCategory(item, activeCategory)
+    );
+    const pinnedKeys = new Set(
+      pinned.map((item) => `${item._kind}-${item.id}`)
     );
 
-    const auto = items
-      .filter((i) => !i.isPinnedFeatured)
+    const auto = combinedItems
+      .filter((item) => !pinnedKeys.has(`${item._kind}-${item.id}`))
       .sort((a, b) => scoreContent(b) - scoreContent(a));
 
     return [...pinned, ...auto].slice(0, TOP_N);
-  }
-
-  const featuredStories = getFeaturedItems(filteredStories, activeCategory);
-  const featuredThemes = getFeaturedItems(filteredThemes, activeCategory);
+  }, [combinedItems, activeCategory]);
 
   // -------------------------------
   // REGULAR COMBINED FEED SORTING
   // -------------------------------
   const regularCombined = useMemo(() => {
-    const featuredStoryIds = featuredStories.map((s) => s.id);
-    const featuredThemeIds = featuredThemes.map((t) => t.id);
-
-    const regularStories = filteredStories.filter(
-      (s) => !featuredStoryIds.includes(s.id)
-    );
-    const regularThemes = filteredThemes.filter(
-      (t) => !featuredThemeIds.includes(t.id)
+    const featuredKeys = new Set(
+      featuredItems.map((item) => `${item._kind}-${item.id}`)
     );
 
-    const taggedStories = regularStories.map((s) => ({
-      ...s,
-      _kind: "story",
-    }));
-    const taggedThemes = regularThemes.map((t) => ({
-      ...t,
-      _kind: "theme",
-    }));
+    const remaining = combinedItems.filter(
+      (item) => !featuredKeys.has(`${item._kind}-${item.id}`)
+    );
 
-    const combined = [...taggedStories, ...taggedThemes];
-
-    // 🔥 Recently Updated
     if (sortMode === "updated") {
-      return combined.sort(
+      return remaining.sort(
         (a, b) =>
           safeTimestamp({ updatedAt: b.updatedAt }) -
           safeTimestamp({ updatedAt: a.updatedAt })
       );
     }
 
-    // 🔥 Recently Published
     if (sortMode === "published") {
-      return combined.sort((a, b) => getCreatedAtMs(b) - getCreatedAtMs(a));
+      return remaining.sort((a, b) => getCreatedAtMs(b) - getCreatedAtMs(a));
     }
 
-    // Default relevance
-    return combined.sort((a, b) => scoreContent(b) - scoreContent(a));
-  }, [
-    filteredStories,
-    filteredThemes,
-    featuredStories,
-    featuredThemes,
-    sortMode,
-  ]);
+    return remaining.sort((a, b) => scoreContent(b) - scoreContent(a));
+  }, [combinedItems, featuredItems, sortMode]);
 
   // -------------------------------
   // LOADING STATE
@@ -213,8 +211,12 @@ export default function HomeScreen({ navigation }) {
     );
   };
 
-  const renderCompactCard = (item, typeLabel, onPress) => (
-    <TouchableOpacity key={item.id} style={styles.compactCard} onPress={onPress}>
+  const renderCompactCard = (item, typeLabel, onPress, keyOverride) => (
+    <TouchableOpacity
+      key={keyOverride || item.id}
+      style={styles.compactCard}
+      onPress={onPress}
+    >
       {item.imageUrl ? (
         <Image source={{ uri: item.imageUrl }} style={styles.compactThumbnail} />
       ) : (
@@ -231,83 +233,74 @@ export default function HomeScreen({ navigation }) {
     </TouchableOpacity>
   );
 
-  const renderFeaturedStoryCard = (item) => {
-    const onPress = () =>
-      navigation.navigate("Story", {
-        story: item,
-        index: filteredStories.indexOf(item),
-        allStories: filteredStories,
-      });
+  const getTypeLabel = (kind) => (kind === "story" ? "Story" : "Theme");
+
+  const findStoryById = (id) =>
+    filteredStories.find((story) => story.id === id) ||
+    stories.find((story) => story.id === id);
+
+  const findThemeById = (id) =>
+    filteredThemes.find((theme) => theme.id === id) ||
+    themes.find((theme) => theme.id === id);
+
+  const renderFeaturedCard = (item) => {
+    const typeLabel = getTypeLabel(item._kind);
+
+    const onPress = () => {
+      if (item._kind === "story") {
+        const target = findStoryById(item.id) || item;
+        const storyIndex = filteredStories.findIndex((s) => s.id === item.id);
+        navigation.navigate("Story", {
+          story: target,
+          index: storyIndex >= 0 ? storyIndex : 0,
+          allStories: filteredStories,
+        });
+      } else {
+        const target = findThemeById(item.id) || item;
+        const themeIndex = filteredThemes.findIndex((t) => t.id === item.id);
+        navigation.navigate("Theme", {
+          theme: target,
+          index: themeIndex >= 0 ? themeIndex : 0,
+          allThemes: filteredThemes,
+        });
+      }
+    };
 
     if (item.isCompactCard) {
-      return renderCompactCard(item, "Story", onPress);
+      return renderCompactCard(
+        item,
+        typeLabel,
+        onPress,
+        `${item._kind}-${item.id}`
+      );
     }
 
     return (
-    <TouchableOpacity
-      key={item.id}
-      style={styles.featuredCard}
-      onPress={onPress}
-    >
-      {item.imageUrl ? (
-        <Image source={{ uri: item.imageUrl }} style={styles.featuredImage} />
-      ) : (
-        <View style={styles.featuredPlaceholder}>
-          <Text style={styles.placeholderText}>No Image</Text>
-        </View>
-      )}
-      <View style={styles.featuredBody}>
-        <Text style={styles.featuredTitle} numberOfLines={2}>
-          {item.title}
-        </Text>
-        {item.overview && (
-          <Text style={styles.overviewPreview} numberOfLines={2}>
-            {item.overview}
-          </Text>
+      <TouchableOpacity
+        key={`${item._kind}-${item.id}`}
+        style={styles.featuredCard}
+        onPress={onPress}
+      >
+        {item.imageUrl ? (
+          <Image source={{ uri: item.imageUrl }} style={styles.featuredImage} />
+        ) : (
+          <View style={styles.featuredPlaceholder}>
+            <Text style={styles.placeholderText}>No Image</Text>
+          </View>
         )}
-        {renderHeadlineBullets(item.timeline)}
-      </View>
-    </TouchableOpacity>
-    );
-  };
-
-  const renderFeaturedThemeCard = (item) => {
-    const onPress = () =>
-      navigation.navigate("Theme", {
-        theme: item,
-        index: filteredThemes.indexOf(item),
-        allThemes: filteredThemes,
-      });
-
-    if (item.isCompactCard) {
-      return renderCompactCard(item, "Theme", onPress);
-    }
-
-    return (
-    <TouchableOpacity
-      key={item.id}
-      style={styles.featuredCard}
-      onPress={onPress}
-    >
-      {item.imageUrl ? (
-        <Image source={{ uri: item.imageUrl }} style={styles.featuredImage} />
-      ) : (
-        <View style={styles.featuredPlaceholder}>
-          <Text style={styles.placeholderText}>No Image</Text>
-        </View>
-      )}
-      <View style={styles.featuredBody}>
-        <Text style={styles.featuredTitle} numberOfLines={2}>
-          {item.title}
-        </Text>
-        {item.overview && (
-          <Text style={styles.overviewPreview} numberOfLines={2}>
-            {item.overview}
+        <View style={styles.featuredBody}>
+          <Text style={styles.featuredTypeLabel}>{typeLabel}</Text>
+          <Text style={styles.featuredTitle} numberOfLines={2}>
+            {item.title}
           </Text>
-        )}
-        {renderHeadlineBullets(item.timeline)}
-      </View>
-    </TouchableOpacity>
+          {item.overview && (
+            <Text style={styles.overviewPreview} numberOfLines={2}>
+              {item.overview}
+            </Text>
+          )}
+          {renderHeadlineBullets(item.timeline)}
+        </View>
+      </TouchableOpacity>
     );
   };
 
@@ -325,7 +318,12 @@ export default function HomeScreen({ navigation }) {
         });
 
       if (item.isCompactCard) {
-        return renderCompactCard(item, "Story", onPress);
+        return renderCompactCard(
+          item,
+          "Story",
+          onPress,
+          `${item._kind}-${item.id}`
+        );
       }
 
       return (
@@ -340,6 +338,8 @@ export default function HomeScreen({ navigation }) {
               <Text style={styles.placeholderText}>No Image</Text>
             </View>
           )}
+
+          <Text style={styles.mediaTypeLabel}>Story</Text>
 
           <View style={styles.textBlock}>
             <Text style={styles.typeBadge}>Story</Text>
@@ -371,7 +371,12 @@ export default function HomeScreen({ navigation }) {
       });
 
     if (item.isCompactCard) {
-      return renderCompactCard(item, "Theme", onPress);
+      return renderCompactCard(
+        item,
+        "Theme",
+        onPress,
+        `${item._kind}-${item.id}`
+      );
     }
 
     return (
@@ -386,6 +391,8 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.placeholderText}>No Image</Text>
           </View>
         )}
+
+        <Text style={styles.mediaTypeLabel}>Theme</Text>
 
         <View style={styles.textBlock}>
           <Text style={[styles.typeBadge, styles.typeBadgeTheme]}>Theme</Text>
@@ -444,29 +451,16 @@ export default function HomeScreen({ navigation }) {
         </ScrollView>
       </View>
 
-      {/* FEATURED SECTIONS */}
-      {featuredStories.length > 0 && (
+      {/* FEATURED SECTION */}
+      {featuredItems.length > 0 && (
         <View style={styles.featuredSection}>
-          <Text style={styles.featuredHeader}>Featured Stories</Text>
+          <Text style={styles.featuredHeader}>Featured</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.featuredRow}
           >
-            {featuredStories.map(renderFeaturedStoryCard)}
-          </ScrollView>
-        </View>
-      )}
-
-      {featuredThemes.length > 0 && (
-        <View style={styles.featuredSection}>
-          <Text style={styles.featuredHeader}>Featured Themes</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.featuredRow}
-          >
-            {featuredThemes.map(renderFeaturedThemeCard)}
+            {featuredItems.map(renderFeaturedCard)}
           </ScrollView>
         </View>
       )}
@@ -613,6 +607,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
+  featuredTypeLabel: {
+    fontSize: 11,
+    color: colors.muted,
+    textAlign: "right",
+    textTransform: "uppercase",
+    marginBottom: 4,
+  },
   featuredTitle: {
     fontSize: 16,
     fontWeight: "600",
@@ -678,6 +679,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   placeholderText: { color: "#999" },
+
+  mediaTypeLabel: {
+    alignSelf: "flex-end",
+    marginRight: 16,
+    marginTop: 8,
+    fontSize: 11,
+    color: colors.muted,
+    textTransform: "uppercase",
+  },
 
   textBlock: {
     padding: 20,

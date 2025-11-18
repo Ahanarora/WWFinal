@@ -19,6 +19,8 @@ import RenderWithContext from "../components/RenderWithContext";
 import { renderLinkedText } from "../utils/renderLinkedText";
 import { formatUpdatedAt, formatDateDDMMYYYY } from "../utils/formatTime";
 import { normalizeAnalysis } from "../utils/normalizeAnalysis";
+import DottedDivider from "../components/DottedDivider";
+
 
 const PHASE_PALETTE = ["#2563EB", "#DC2626", "#059669", "#D97706", "#6D28D9"];
 const SKY_BLUE = "#38BDF8";
@@ -160,7 +162,7 @@ export default function StoryScreen({ route, navigation }) {
     });
 
     return (
-      <View key={item.id} style={{ marginBottom: 50 }}>
+      <View key={item.id} style={{ marginBottom: 0 }}>
         {/* COVER */}
         {item.imageUrl && (
           <Image source={{ uri: item.imageUrl }} style={styles.coverImage} />
@@ -358,7 +360,17 @@ export default function StoryScreen({ route, navigation }) {
       }}
       scrollEventThrottle={250}
     >
-      {feed.map((s) => renderStoryBlock(s))}
+    {feed.map((s) => (
+  <View key={s.id}>
+    {renderStoryBlock(s)}
+
+    <View style={{ marginTop: 0, marginBottom: 60 }}>
+      <DottedDivider />
+    </View>
+  </View>
+))}
+
+
     </ScrollView>
   );
 }

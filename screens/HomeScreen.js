@@ -414,122 +414,128 @@ export default function HomeScreen({ navigation }) {
     );
   };
 
-  // -------------------------------
-  // MAIN RENDER
-  // -------------------------------
-  return (
-    <View style={styles.container}>
-      {/* CATEGORY PILLS */}
-      <View style={styles.filterWrapper}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryRow}
-        >
-          {CATEGORIES.map((cat) => {
-            const active = cat === activeCategory;
-            return (
-              <TouchableOpacity
-                key={cat}
-                onPress={() => setActiveCategory(cat)}
+// -------------------------------
+// MAIN RENDER
+// -------------------------------
+return (
+  <View style={styles.container}>
+
+    {/* MAIN FEED WITH SCROLLABLE HEADER */}
+    <FlatList
+      data={regularCombined}
+      keyExtractor={(item) => `${item._kind}-${item.id}`}
+      renderItem={renderRegularItem}
+      ItemSeparatorComponent={() => <View style={styles.separator} />}
+      contentContainerStyle={{ paddingBottom: 24 }}
+
+      ListHeaderComponent={
+        <>
+          {/* CATEGORY PILLS */}
+          <View style={styles.filterWrapper}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoryRow}
+            >
+              {CATEGORIES.map((cat) => {
+                const active = cat === activeCategory;
+                return (
+                  <TouchableOpacity
+                    key={cat}
+                    onPress={() => setActiveCategory(cat)}
+                    style={[
+                      styles.categoryPill,
+                      active && styles.categoryPillActive,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.categoryText,
+                        active && styles.categoryTextActive,
+                      ]}
+                    >
+                      {cat}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          {/* FEATURED SECTION */}
+          {featuredItems.length > 0 && (
+            <View style={styles.featuredSection}>
+              <Text style={styles.featuredHeader}>Featured</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.featuredRow}
+              >
+                {featuredItems.map(renderFeaturedCard)}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* SORT DROPDOWN */}
+          <TouchableOpacity
+            onPress={() => setShowSortMenu(true)}
+            style={styles.dropdownButton}
+          >
+            <Text style={styles.dropdownButtonText}>
+              Sort:{" "}
+              {sortMode === "relevance"
+                ? "Relevance"
+                : sortMode === "updated"
+                ? "Recently Updated"
+                : "Recently Published"}
+            </Text>
+          </TouchableOpacity>
+        </>
+      }
+    />
+
+    {/* SORT MODAL */}
+    <Modal
+      visible={showSortMenu}
+      animationType="fade"
+      transparent
+      onRequestClose={() => setShowSortMenu(false)}
+    >
+      <TouchableOpacity
+        style={styles.modalBackdrop}
+        onPress={() => setShowSortMenu(false)}
+      >
+        <View style={styles.modalContent}>
+          {[
+            { key: "relevance", label: "Relevance" },
+            { key: "updated", label: "Recently Updated" },
+            { key: "published", label: "Recently Published" },
+          ].map((opt) => (
+            <TouchableOpacity
+              key={opt.key}
+              style={styles.modalOption}
+              onPress={() => {
+                setSortMode(opt.key);
+                setShowSortMenu(false);
+              }}
+            >
+              <Text
                 style={[
-                  styles.categoryPill,
-                  active && styles.categoryPillActive,
+                  styles.modalOptionText,
+                  sortMode === opt.key && styles.selectedOptionText,
                 ]}
               >
-                <Text
-                  style={[
-                    styles.categoryText,
-                    active && styles.categoryTextActive,
-                  ]}
-                >
-                  {cat}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
-
-      {/* FEATURED SECTION */}
-      {featuredItems.length > 0 && (
-        <View style={styles.featuredSection}>
-          <Text style={styles.featuredHeader}>Featured</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.featuredRow}
-          >
-            {featuredItems.map(renderFeaturedCard)}
-          </ScrollView>
+                {opt.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
-      )}
-
-      {/* SORT DROPDOWN */}
-      <TouchableOpacity
-        onPress={() => setShowSortMenu(true)}
-        style={styles.dropdownButton}
-      >
-        <Text style={styles.dropdownButtonText}>
-          Sort:{" "}
-          {sortMode === "relevance"
-            ? "Relevance"
-            : sortMode === "updated"
-            ? "Recently Updated"
-            : "Recently Published"}
-        </Text>
       </TouchableOpacity>
+    </Modal>
 
-      {/* SORT MODAL */}
-      <Modal
-        visible={showSortMenu}
-        animationType="fade"
-        transparent
-        onRequestClose={() => setShowSortMenu(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalBackdrop}
-          onPress={() => setShowSortMenu(false)}
-        >
-          <View style={styles.modalContent}>
-            {[
-              { key: "relevance", label: "Relevance" },
-              { key: "updated", label: "Recently Updated" },
-              { key: "published", label: "Recently Published" },
-            ].map((opt) => (
-              <TouchableOpacity
-                key={opt.key}
-                style={styles.modalOption}
-                onPress={() => {
-                  setSortMode(opt.key);
-                  setShowSortMenu(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.modalOptionText,
-                    sortMode === opt.key && styles.selectedOptionText,
-                  ]}
-                >
-                  {opt.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* REGULAR FEED */}
-      <FlatList
-        data={regularCombined}
-        keyExtractor={(item) => `${item._kind}-${item.id}`}
-        renderItem={renderRegularItem}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-        contentContainerStyle={{ paddingBottom: 24 }}
-      />
-    </View>
-  );
-}
+  </View>
+);
+} // end HomeScreen
 
 // ----------------------------------------
 // STYLES

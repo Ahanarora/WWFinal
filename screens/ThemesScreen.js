@@ -209,19 +209,35 @@ export default function ThemesScreen({ navigation }) {
   return (
     <View style={styles.container}>
       {/* SORT DROPDOWN */}
-      <TouchableOpacity
-        onPress={() => setShowSortMenu(true)}
-        style={styles.dropdownButton}
-      >
-        <Text style={styles.dropdownButtonText}>
-          Sort:{" "}
-          {sortMode === "relevance"
-            ? "Relevance"
-            : sortMode === "updated"
-            ? "Recently Updated"
-            : "Recently Published"}
-        </Text>
-      </TouchableOpacity>
+      {/* SORT BUTTON WITH ARROW */}
+<TouchableOpacity
+  onPress={() => setShowSortMenu(true)}
+  style={[
+    styles.dropdownButton,
+    {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+  ]}
+>
+  <Text style={styles.dropdownButtonText}>
+    Sort:{" "}
+    {sortMode === "relevance"
+      ? "Relevance"
+      : sortMode === "updated"
+      ? "Recently Updated"
+      : "Recently Published"}
+  </Text>
+
+  <Ionicons
+    name="chevron-down-outline"
+    size={18}
+    color="#000"
+    style={{ marginLeft: 8 }}
+  />
+</TouchableOpacity>
+
 
       {/* Modal */}
       <Modal

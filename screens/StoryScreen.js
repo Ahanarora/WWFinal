@@ -545,13 +545,13 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
 
-  eventTitle: {
-    fontFamily: fonts.heading,
-    fontSize: 16,
-    color: colors.textPrimary,
-    paddingBottom: 4,
-    fontWeight: "400",
-  },
+ eventTitle: {
+  fontFamily: fonts.heading,
+  fontSize: 16,
+  color: colors.textPrimary,
+  fontWeight: "700",   // BOLD
+},
+
 
   eventSources: {
     marginTop: spacing.sm,

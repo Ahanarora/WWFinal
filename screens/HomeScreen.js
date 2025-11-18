@@ -23,6 +23,8 @@ import { scoreContent } from "../utils/ranking";
 import { formatUpdatedAt } from "../utils/formatTime";
 import { getLatestHeadlines } from "../utils/getLatestHeadlines";
 import { colors } from "../styles/theme";
+import { Ionicons } from "@expo/vector-icons";
+
 
 // Safe unified timestamp helper
 const safeTimestamp = (item) => {
@@ -478,18 +480,30 @@ return (
 
           {/* SORT DROPDOWN */}
           <TouchableOpacity
-            onPress={() => setShowSortMenu(true)}
-            style={styles.dropdownButton}
-          >
-            <Text style={styles.dropdownButtonText}>
-              Sort:{" "}
-              {sortMode === "relevance"
-                ? "Relevance"
-                : sortMode === "updated"
-                ? "Recently Updated"
-                : "Recently Published"}
-            </Text>
-          </TouchableOpacity>
+  onPress={() => setShowSortMenu(true)}
+  style={[styles.dropdownButton, {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between"
+  }]}
+>
+  <Text style={styles.dropdownButtonText}>
+    Sort:{" "}
+    {sortMode === "relevance"
+      ? "Relevance"
+      : sortMode === "updated"
+      ? "Recently Updated"
+      : "Recently Published"}
+  </Text>
+
+  <Ionicons 
+    name="chevron-down-outline" 
+    size={18} 
+    color="#000" 
+    style={{ marginLeft: 8 }} 
+  />
+</TouchableOpacity>
+
         </>
       }
     />

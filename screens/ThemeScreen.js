@@ -552,11 +552,12 @@ const styles = StyleSheet.create({
   },
 
   eventTitle: {
-    fontFamily: fonts.heading,
-    fontSize: 16,
-    color: colors.textPrimary,
-    fontWeight: "400",
-  },
+  fontFamily: fonts.heading,
+  fontSize: 16,
+  color: colors.textPrimary,
+  fontWeight: "700",   // BOLD
+},
+
 
   eventSources: {
     marginTop: spacing.sm,

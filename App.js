@@ -94,37 +94,19 @@ export default function App() {
   });
 
   const waitHeader = useMemo(() => {
-    const text = "Wait...What?".split("");
-    const fontCycle = [
-      "Barrio",
-      "Bangers",
-      "CinzelDecorative",
-      "Jacquard24",
-      "OldeEnglish",
-      "Kranky",
-      "LondrinaShadow",
-      "TurretRoadBold",
-      "TurretRoadExtraBold",
-      "Montserrat",
-    ];
+  return (
+    <Text
+      style={{
+        fontFamily: "Jacquard24",
+        fontSize: 64,
+        color: colors.textPrimary,
+      }}
+    >
+      Wait...What?
+    </Text>
+  );
+}, []);
 
-    return (
-      <Text style={{ flexDirection: "row", fontSize: 0 }}>
-        {text.map((char, index) => (
-          <Text
-            key={`${char}-${index}`}
-            style={{
-              fontFamily: fontCycle[index % fontCycle.length],
-              fontSize: 32,
-              color: index % 2 === 0 ? colors.textPrimary : colors.accent,
-            }}
-          >
-            {char}
-          </Text>
-        ))}
-      </Text>
-    );
-  }, []);
 
  if (!fontsLoaded) {
   return null; // OR return a splash component

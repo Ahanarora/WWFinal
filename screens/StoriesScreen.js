@@ -110,7 +110,35 @@ export default function StoriesScreen({ navigation }) {
   // -----------------------------
   // RENDER STORY CARD
   // -----------------------------
+  const renderCompactStoryCard = (item, index) => (
+    <TouchableOpacity
+      style={styles.compactCard}
+      onPress={() =>
+        navigation.navigate("Story", {
+          story: item,
+          index,
+          allStories: sortedStories,
+        })
+      }
+    >
+      {item.imageUrl ? (
+        <Image source={{ uri: item.imageUrl }} style={styles.compactThumbnail} />
+      ) : (
+        <View style={[styles.compactThumbnail, styles.compactPlaceholder]}>
+          <Text style={styles.placeholderText}>No Image</Text>
+        </View>
+      )}
+      <Text style={styles.compactTitle} numberOfLines={2}>
+        {item.title}
+      </Text>
+    </TouchableOpacity>
+  );
+
   const renderStoryCard = ({ item, index }) => {
+    if (item.isCompactCard) {
+      return renderCompactStoryCard(item, index);
+    }
+
     const headlines = getLatestHeadlines(item.timeline);
 
     return (
@@ -367,6 +395,34 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 2,
     lineHeight: 20,
+  },
+
+  compactCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    borderRadius: 16,
+    marginVertical: 10,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: "#E0E7FF",
+    gap: 12,
+  },
+  compactThumbnail: {
+    width: 64,
+    height: 64,
+    borderRadius: 12,
+    backgroundColor: "#E5E7EB",
+  },
+  compactPlaceholder: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  compactTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "600",
+    color: colors.textPrimary,
   },
 
   center: { flex: 1, justifyContent: "center", alignItems: "center" },

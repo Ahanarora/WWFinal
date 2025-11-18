@@ -213,50 +213,41 @@ export default function HomeScreen({ navigation }) {
     );
   };
 
-  const renderFeaturedStoryCard = (item) => (
-    <TouchableOpacity
-      key={item.id}
-      style={styles.featuredCard}
-      onPress={() =>
-        navigation.navigate("Story", {
-          story: item,
-          index: filteredStories.indexOf(item),
-          allStories: filteredStories,
-        })
-      }
-    >
+  const renderCompactCard = (item, typeLabel, onPress) => (
+    <TouchableOpacity key={item.id} style={styles.compactCard} onPress={onPress}>
       {item.imageUrl ? (
-        <Image source={{ uri: item.imageUrl }} style={styles.featuredImage} />
+        <Image source={{ uri: item.imageUrl }} style={styles.compactThumbnail} />
       ) : (
-        <View style={styles.featuredPlaceholder}>
+        <View style={[styles.compactThumbnail, styles.compactPlaceholder]}>
           <Text style={styles.placeholderText}>No Image</Text>
         </View>
       )}
-      <View style={styles.featuredBody}>
-        <Text style={styles.featuredTitle} numberOfLines={2}>
+      <View style={styles.compactBody}>
+        <Text style={styles.compactType}>{typeLabel}</Text>
+        <Text style={styles.compactTitle} numberOfLines={2}>
           {item.title}
         </Text>
-        {item.overview && (
-          <Text style={styles.overviewPreview} numberOfLines={2}>
-            {item.overview}
-          </Text>
-        )}
-        {renderHeadlineBullets(item.timeline)}
       </View>
     </TouchableOpacity>
   );
 
-  const renderFeaturedThemeCard = (item) => (
+  const renderFeaturedStoryCard = (item) => {
+    const onPress = () =>
+      navigation.navigate("Story", {
+        story: item,
+        index: filteredStories.indexOf(item),
+        allStories: filteredStories,
+      });
+
+    if (item.isCompactCard) {
+      return renderCompactCard(item, "Story", onPress);
+    }
+
+    return (
     <TouchableOpacity
       key={item.id}
       style={styles.featuredCard}
-      onPress={() =>
-        navigation.navigate("Theme", {
-          theme: item,
-          index: filteredThemes.indexOf(item),
-          allThemes: filteredThemes,
-        })
-      }
+      onPress={onPress}
     >
       {item.imageUrl ? (
         <Image source={{ uri: item.imageUrl }} style={styles.featuredImage} />
@@ -277,24 +268,70 @@ export default function HomeScreen({ navigation }) {
         {renderHeadlineBullets(item.timeline)}
       </View>
     </TouchableOpacity>
-  );
+    );
+  };
+
+  const renderFeaturedThemeCard = (item) => {
+    const onPress = () =>
+      navigation.navigate("Theme", {
+        theme: item,
+        index: filteredThemes.indexOf(item),
+        allThemes: filteredThemes,
+      });
+
+    if (item.isCompactCard) {
+      return renderCompactCard(item, "Theme", onPress);
+    }
+
+    return (
+    <TouchableOpacity
+      key={item.id}
+      style={styles.featuredCard}
+      onPress={onPress}
+    >
+      {item.imageUrl ? (
+        <Image source={{ uri: item.imageUrl }} style={styles.featuredImage} />
+      ) : (
+        <View style={styles.featuredPlaceholder}>
+          <Text style={styles.placeholderText}>No Image</Text>
+        </View>
+      )}
+      <View style={styles.featuredBody}>
+        <Text style={styles.featuredTitle} numberOfLines={2}>
+          {item.title}
+        </Text>
+        {item.overview && (
+          <Text style={styles.overviewPreview} numberOfLines={2}>
+            {item.overview}
+          </Text>
+        )}
+        {renderHeadlineBullets(item.timeline)}
+      </View>
+    </TouchableOpacity>
+    );
+  };
 
   const renderRegularItem = ({ item }) => {
     const headlines = getLatestHeadlines(item.timeline);
 
     if (item._kind === "story") {
+      const onPress = () =>
+        navigation.navigate("Story", {
+          story: item,
+          index: filteredStories.indexOf(
+            stories.find((s) => s.id === item.id)
+          ),
+          allStories: filteredStories,
+        });
+
+      if (item.isCompactCard) {
+        return renderCompactCard(item, "Story", onPress);
+      }
+
       return (
         <TouchableOpacity
           style={styles.card}
-          onPress={() =>
-            navigation.navigate("Story", {
-              story: item,
-              index: filteredStories.indexOf(
-                stories.find((s) => s.id === item.id)
-              ),
-              allStories: filteredStories,
-            })
-          }
+          onPress={onPress}
         >
           {item.imageUrl ? (
             <Image source={{ uri: item.imageUrl }} style={styles.image} />
@@ -324,18 +361,23 @@ export default function HomeScreen({ navigation }) {
       );
     }
 
+    const onPress = () =>
+      navigation.navigate("Theme", {
+        theme: item,
+        index: filteredThemes.indexOf(
+          themes.find((t) => t.id === item.id)
+        ),
+        allThemes: filteredThemes,
+      });
+
+    if (item.isCompactCard) {
+      return renderCompactCard(item, "Theme", onPress);
+    }
+
     return (
       <TouchableOpacity
         style={styles.card}
-        onPress={() =>
-          navigation.navigate("Theme", {
-            theme: item,
-            index: filteredThemes.indexOf(
-              themes.find((t) => t.id === item.id)
-            ),
-            allThemes: filteredThemes,
-          })
-        }
+        onPress={onPress}
       >
         {item.imageUrl ? (
           <Image source={{ uri: item.imageUrl }} style={styles.image} />
@@ -710,6 +752,44 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
     lineHeight: 18,
+  },
+
+  compactCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: "#E0E7FF",
+    gap: 12,
+  },
+  compactThumbnail: {
+    width: 64,
+    height: 64,
+    borderRadius: 12,
+    backgroundColor: "#E5E7EB",
+  },
+  compactPlaceholder: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  compactBody: {
+    flex: 1,
+    gap: 4,
+  },
+  compactType: {
+    fontSize: 11,
+    textTransform: "uppercase",
+    color: colors.muted,
+    letterSpacing: 1,
+  },
+  compactTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: colors.textPrimary,
   },
 
   center: { flex: 1, justifyContent: "center", alignItems: "center" },

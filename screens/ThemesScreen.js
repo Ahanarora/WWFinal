@@ -125,7 +125,36 @@ export default function ThemesScreen({ navigation }) {
   // ----------------------------------
   // RENDER THEME CARD
   // ----------------------------------
+  const renderCompactThemeCard = (theme, index) => (
+    <TouchableOpacity
+      key={theme.id}
+      style={styles.compactCard}
+      onPress={() =>
+        navigation.navigate("Theme", {
+          theme,
+          index,
+          allThemes: sortedThemes,
+        })
+      }
+    >
+      {theme.imageUrl ? (
+        <Image source={{ uri: theme.imageUrl }} style={styles.compactThumbnail} />
+      ) : (
+        <View style={[styles.compactThumbnail, styles.compactPlaceholder]}>
+          <Text style={styles.placeholderText}>No Image</Text>
+        </View>
+      )}
+      <Text style={styles.compactTitle} numberOfLines={2}>
+        {theme.title}
+      </Text>
+    </TouchableOpacity>
+  );
+
   const renderThemeCard = (theme, index) => {
+    if (theme.isCompactCard) {
+      return renderCompactThemeCard(theme, index);
+    }
+
     const headlines = getLatestHeadlines(theme.timeline);
     return (
       <TouchableOpacity
@@ -349,5 +378,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     lineHeight: 20,
+  },
+
+  compactCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    borderRadius: 16,
+    marginBottom: 22,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: "#E0E7FF",
+    gap: 12,
+  },
+  compactThumbnail: {
+    width: 64,
+    height: 64,
+    borderRadius: 12,
+    backgroundColor: "#E5E7EB",
+  },
+  compactPlaceholder: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  compactTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "600",
+    color: colors.textPrimary,
   },
 });

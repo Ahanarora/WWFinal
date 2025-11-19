@@ -1,6 +1,6 @@
 // ----------------------------------------
 // screens/EventReaderModal.js
-// Full-screen vertical event reader (Inshorts-style, crossfade + phases)
+// Full-screen vertical event reader (Inshorts-style, fade-in + phases)
 // ----------------------------------------
 import React, { useRef, useState, useMemo } from "react";
 import {
@@ -50,8 +50,6 @@ const EventCard = React.memo(function EventCard({
       {phaseTitle ? (
         <Text style={styles.modalPhaseTitle}>{phaseTitle}</Text>
       ) : null}
-
-      
 
       {/* IMAGE */}
       {imageUrl ? (
@@ -107,7 +105,7 @@ export default function EventReaderModal({ route, navigation }) {
         contexts: Array.isArray(e?.contexts) ? e.contexts : [],
         sources: Array.isArray(e?.sources) ? e.sources : [],
         imageUrl: e?.imageUrl || e?.image || e?.thumbnail || null,
-        phaseTitle: e?.phaseTitle || null, // 🔵 ADDED
+        phaseTitle: e?.phaseTitle || null,
       }));
   }, [rawEvents]);
 
@@ -115,87 +113,88 @@ export default function EventReaderModal({ route, navigation }) {
     Math.min(Math.max(startIndex, 0), Math.max(safeEvents.length - 1, 0))
   );
 
-  const [nextIndex, setNextIndex] = useState(null);
-  const anim = useRef(new Animated.Value(0)).current;
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const anim = useRef(new Animated.Value(1)).current;
 
   if (!safeEvents || safeEvents.length === 0) {
     return (
-      <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
+      <View
+        style={[
+          styles.container,
+          { justifyContent: "center", alignItems: "center" },
+        ]}
+      >
         <Text>No events to show.</Text>
       </View>
     );
   }
 
   const currentEvent = safeEvents[index];
-  const incomingEvent = nextIndex != null ? safeEvents[nextIndex] : null;
-  const isAnimating = nextIndex != null;
 
   // --------------------------
-  // CROSSFADE TRANSITION
+  // SIMPLE FADE-IN TRANSITION (SINGLE CARD)
   // --------------------------
   const startTransition = (targetIndex) => {
     if (targetIndex === index) return;
     if (targetIndex < 0 || targetIndex > safeEvents.length - 1) return;
+    if (isTransitioning) return;
 
-    setNextIndex(targetIndex);
+    setIsTransitioning(true);
+
+    // Immediately switch to the new event, but start from opacity 0
+    setIndex(targetIndex);
     anim.setValue(0);
 
     Animated.timing(anim, {
       toValue: 1,
-      duration: 140,
+      duration: 160,
       useNativeDriver: true,
     }).start(() => {
-      setIndex(targetIndex);
-      setNextIndex(null);
-      anim.setValue(0);
+      setIsTransitioning(false);
     });
   };
 
   // --------------------------
-  // PAN (SWIPE) HANDLER
+  // SWIPE HANDLER
   // --------------------------
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dy) > 10,
-      onPanResponderMove: () => {},
-      onPanResponderRelease: (_, g) => {
-        if (isAnimating) return;
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_, g) => {
+          // Only start on vertical gestures
+          return Math.abs(g.dy) > 10 && Math.abs(g.dy) > Math.abs(g.dx);
+        },
+        onPanResponderMove: () => {},
+        onPanResponderRelease: (_, g) => {
+          if (isTransitioning) return;
 
-        const { dy, vy } = g;
-        const threshold = 80;
-        const velocityThreshold = 0.3;
+          const { dy, vy } = g;
+          const threshold = 80;
+          const velocityThreshold = 0.3;
 
-        const isSwipeUp =
-          dy < -threshold || (dy < 0 && Math.abs(vy) > velocityThreshold);
-        const isSwipeDown =
-          dy > threshold || (dy > 0 && Math.abs(vy) > velocityThreshold);
+          const isSwipeUp =
+            dy < -threshold || (dy < 0 && Math.abs(vy) > velocityThreshold);
+          const isSwipeDown =
+            dy > threshold || (dy > 0 && Math.abs(vy) > velocityThreshold);
 
-        // NEXT
-        if (isSwipeUp && index < safeEvents.length - 1) {
-          startTransition(index + 1);
-          return;
-        }
+          // NEXT
+          if (isSwipeUp && index < safeEvents.length - 1) {
+            startTransition(index + 1);
+            return;
+          }
 
-        // PREVIOUS
-        if (isSwipeDown) {
-          if (index > 0) startTransition(index - 1);
-          else navigation.goBack();
-        }
-      },
-    })
-  ).current;
-
-  // --------------------------
-  // CROSSFADE VALUES
-  // --------------------------
-  const currentOpacity = isAnimating
-    ? anim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] })
-    : 1;
-
-  const nextOpacity = anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 1],
-  });
+          // PREVIOUS (or close if at first)
+          if (isSwipeDown) {
+            if (index > 0) {
+              startTransition(index - 1);
+            } else {
+              navigation.goBack();
+            }
+          }
+        },
+      }),
+    [index, isTransitioning, safeEvents.length, navigation]
+  );
 
   return (
     <View style={styles.container}>
@@ -211,13 +210,14 @@ export default function EventReaderModal({ route, navigation }) {
         </Text>
       </View>
 
-      {/* CARD STACK */}
+      {/* SINGLE CARD (NO STACK) */}
       <View style={styles.cardStack} {...panResponder.panHandlers}>
-        {/* CURRENT CARD */}
         <Animated.View
           style={[
             styles.cardLayer,
-            { opacity: currentOpacity, zIndex: isAnimating ? 0 : 1 },
+            {
+              opacity: anim,
+            },
           ]}
         >
           <EventCard
@@ -226,22 +226,6 @@ export default function EventReaderModal({ route, navigation }) {
             headerTitle={headerTitle}
           />
         </Animated.View>
-
-        {/* NEXT CARD */}
-        {incomingEvent && (
-          <Animated.View
-            style={[
-              styles.cardLayer,
-              { opacity: nextOpacity, zIndex: 1 },
-            ]}
-          >
-            <EventCard
-              event={incomingEvent}
-              navigation={navigation}
-              headerTitle={headerTitle}
-            />
-          </Animated.View>
-        )}
       </View>
     </View>
   );
@@ -288,6 +272,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    backgroundColor: "#FFFFFF",
   },
 
   cardInner: {
@@ -295,7 +280,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
 
-  // NEW: Titles
   modalStoryTitle: {
     fontFamily: fonts.heading,
     fontSize: 18,

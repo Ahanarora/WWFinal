@@ -87,10 +87,12 @@ export default function RenderWithContext({
               const data = { id: snap.id, ...snap.data() };
               console.log("✅ Document found:", data.title || data.id);
 
-              navigation.navigate(
-                n.linkType === "story" ? "Story" : "Theme",
-                { [n.linkType]: data }
-              );
+              const routeName = n.linkType === "story" ? "Story" : "Theme";
+              if (navigation?.push) {
+                navigation.push(routeName, { [n.linkType]: data });
+              } else if (navigation?.navigate) {
+                navigation.navigate(routeName, { [n.linkType]: data });
+              }
             } catch (err) {
               console.error("🔗 Link navigation error:", err);
               alert("⚠️ Failed to open link");

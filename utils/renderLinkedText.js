@@ -1,17 +1,18 @@
 // utils/renderLinkedText.js
 import React from "react";
-import { Text } from "react-native";
+import { Text, Linking } from "react-native";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 
 /**
- * Parse [Label](@story/ID) or [Label](@theme/ID) or [Label](https://...) into JSX tokens.
- * Returns an array of nodes (text or link elements).
+ * Parse [Label](@story/ID) or [Label](@theme/ID) or [Label](https://...) into nodes.
  */
-export function parseLinkedText(text, navigation) {
+export function parseLinkedText(text) {
   if (typeof text !== "string" || !text) return [<Text>{text}</Text>];
 
-  const regex = /\[([^\]]+)\]\((@?(story|theme)\/[A-Za-z0-9_-]+|https?:\/\/[^\s)]+)\)/g;
+  const regex =
+    /\[([^\]]+)\]\((@?(story|theme)\/[A-Za-z0-9_-]+|https?:\/\/[^\s)]+)\)/g;
+
   const nodes = [];
   let lastIndex = 0;
   let match;
@@ -19,6 +20,7 @@ export function parseLinkedText(text, navigation) {
   while ((match = regex.exec(text)) !== null) {
     const [full, label, target] = match;
 
+    // Push preceding plain text, if any
     if (match.index > lastIndex) {
       nodes.push({
         type: "text",
@@ -31,7 +33,7 @@ export function parseLinkedText(text, navigation) {
       nodes.push({
         type: "internalLink",
         label,
-        linkType: type,
+        linkType: type, // "story" | "theme"
         id,
       });
     } else {
@@ -45,25 +47,29 @@ export function parseLinkedText(text, navigation) {
     lastIndex = match.index + full.length;
   }
 
-  if (lastIndex < text.length)
+  if (lastIndex < text.length) {
     nodes.push({ type: "text", value: text.slice(lastIndex) });
+  }
 
   return nodes;
 }
 
 /**
- * Simple fallback renderer (if you want to use directly)
+ * Render parsed text to RN elements.
  */
 export function renderLinkedText(text, navigation) {
-  const nodes = parseLinkedText(text, navigation);
+  const nodes = parseLinkedText(text);
 
   return (
     <>
       {nodes.map((n, i) => {
-        if (n.type === "text")
+        // Plain text
+        if (n.type === "text") {
           return <Text key={i}>{n.value}</Text>;
+        }
 
-        if (n.type === "internalLink")
+        // Internal links: @story/id or @theme/id
+        if (n.type === "internalLink") {
           return (
             <Text
               key={i}
@@ -72,33 +78,74 @@ export function renderLinkedText(text, navigation) {
                 textDecorationLine: "underline",
               }}
               onPress={async () => {
-                const ref = doc(db, `${n.linkType}s`, n.id);
-                const snap = await getDoc(ref);
-                if (!snap.exists()) {
-                  alert(`⚠️ ${n.linkType} not found`);
-                  return;
+                try {
+                  const collection =
+                    n.linkType === "story" ? "stories" : "themes";
+
+                  console.log(
+                    "🔎 Fetching path:",
+                    `${collection}/${n.id}`
+                  );
+
+                  const ref = doc(db, collection, n.id);
+                  const snap = await getDoc(ref);
+
+                  if (!snap.exists()) {
+                    alert(`⚠️ ${n.linkType} not found`);
+                    return;
+                  }
+
+                  const data = { id: snap.id, ...snap.data() };
+
+                  console.log(
+                    "✅ Document found: –",
+                    data.title || data.name || data.id
+                  );
+
+                  // Use Stack route names from App.js
+                  const screen = n.linkType === "story" ? "Story" : "Theme";
+
+                  // Your choice: PUSH (stack of stories/themes)
+                  if (n.linkType === "story") {
+                    navigation.push(screen, {
+                      story: data,
+                      index: 0,
+                      allStories: [data],
+                    });
+                  } else {
+                    navigation.push(screen, {
+                      theme: data,
+                      index: 0,
+                      allThemes: [data],
+                    });
+                  }
+                } catch (err) {
+                  console.log("⚠️ link nav error:", err);
                 }
-                const data = { id: n.id, ...snap.data() };
-                navigation.navigate(
-                  n.linkType === "story" ? "Story" : "Theme",
-                  { [n.linkType]: data }
-                );
               }}
             >
               {n.label}
             </Text>
           );
+        }
 
-        if (n.type === "externalLink")
+        // External link
+        if (n.type === "externalLink") {
           return (
             <Text
               key={i}
-              style={{ color: "#2563EB", textDecorationLine: "underline" }}
+              style={{
+                color: "#2563EB",
+                textDecorationLine: "underline",
+              }}
               onPress={() => Linking.openURL(n.href)}
             >
               {n.label}
             </Text>
           );
+        }
+
+        return null;
       })}
     </>
   );

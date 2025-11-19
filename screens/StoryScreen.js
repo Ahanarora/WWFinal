@@ -11,6 +11,7 @@ import {
   ScrollView,
   Image,
   TouchableOpacity,
+  Pressable,
 } from "react-native";
 import Slider from "@react-native-community/slider";
 import { colors, fonts, spacing } from "../styles/theme";
@@ -19,7 +20,6 @@ import RenderWithContext from "../components/RenderWithContext";
 import { formatUpdatedAt, formatDateDDMMYYYY } from "../utils/formatTime";
 import { normalizeAnalysis } from "../utils/normalizeAnalysis";
 import DottedDivider from "../components/DottedDivider";
-
 
 const PHASE_PALETTE = ["#2563EB", "#DC2626", "#059669", "#D97706", "#6D28D9"];
 const SKY_BLUE = "#38BDF8";
@@ -63,7 +63,6 @@ export default function StoryScreen({ route, navigation }) {
       return;
     }
 
-    // Avoid duplicates
     if (feed.some((s) => s.id === nextStory.id)) {
       setIsLoadingMore(false);
       return;
@@ -110,7 +109,6 @@ export default function StoryScreen({ route, navigation }) {
     const rawPhases = Array.isArray(item.phases) ? item.phases : [];
     const timelineLength = indexedTimeline.length;
     const phasesWithAccent = rawPhases.map((phase, idx) => {
-      // CMS can now optionally provide phase.endIndex to mark the final event of a phase.
       const accentColor =
         phase?.accentColor ||
         phase?.color ||
@@ -155,13 +153,11 @@ export default function StoryScreen({ route, navigation }) {
       return acc;
     }, {});
 
-    // Helper: check if this event triggers a phase header
     const getPhaseForEventStart = (event) => {
       if (!phasesWithAccent.length) return null;
       return phaseStartLookup[event._originalIndex] || null;
     };
 
-    // For EventReaderModal: build enhanced timeline with phase titles
     const timelineForModal = filteredTimeline.map((evt) => {
       const phase = getPhaseForEventStart(evt);
       return {
@@ -262,7 +258,7 @@ export default function StoryScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* TIMELINE WITH PHASE HEADERS */}
+        {/* TIMELINE */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Timeline</Text>
 
@@ -291,9 +287,8 @@ export default function StoryScreen({ route, navigation }) {
                   </View>
                 )}
 
-                {/* EVENT TAP → EventReaderModal */}
-                <TouchableOpacity
-                  activeOpacity={0.8}
+                {/* EVENT CARD */}
+                <Pressable
                   onPress={() =>
                     navigation.navigate("EventReader", {
                       events: timelineForModal,
@@ -301,6 +296,7 @@ export default function StoryScreen({ route, navigation }) {
                       headerTitle: item.title || "Story",
                     })
                   }
+                  android_disableSound={true}
                 >
                   <View
                     style={[
@@ -324,16 +320,20 @@ export default function StoryScreen({ route, navigation }) {
                         <Text style={styles.eventImageEmoji}>🗞️</Text>
                       </View>
                     )}
+
                     <View style={styles.eventContent}>
                       <Text style={styles.eventDate}>
                         {formatDateDDMMYYYY(e.date)}
                       </Text>
+
                       <Text style={styles.eventTitle}>{e.event}</Text>
+
                       <RenderWithContext
                         text={e.description}
                         contexts={e.contexts || []}
                         navigation={navigation}
                       />
+
                       {Array.isArray(e.sources) && e.sources.length > 0 && (
                         <View style={styles.eventSources}>
                           <SourceLinks sources={e.sources} />
@@ -341,8 +341,9 @@ export default function StoryScreen({ route, navigation }) {
                       )}
                     </View>
                   </View>
-                </TouchableOpacity>
+                </Pressable>
 
+                {/* PHASE END */}
                 {isPhaseEnd && (
                   <View style={styles.phaseEndIndicator}>
                     <View
@@ -365,28 +366,26 @@ export default function StoryScreen({ route, navigation }) {
     <ScrollView
       style={styles.container}
       onScroll={({ nativeEvent }) => {
-        const paddingToBottom = 300;
+        const pad = 300;
         if (
           nativeEvent.layoutMeasurement.height +
             nativeEvent.contentOffset.y >=
-          nativeEvent.contentSize.height - paddingToBottom
+          nativeEvent.contentSize.height - pad
         ) {
           loadNextStory();
         }
       }}
       scrollEventThrottle={250}
     >
-    {feed.map((s) => (
-  <View key={s.id}>
-    {renderStoryBlock(s)}
+      {feed.map((s) => (
+        <View key={s.id}>
+          {renderStoryBlock(s)}
 
-    <View style={{ marginTop: 0, marginBottom: 60 }}>
-      <DottedDivider />
-    </View>
-  </View>
-))}
-
-
+          <View style={{ marginTop: 0, marginBottom: 60 }}>
+            <DottedDivider />
+          </View>
+        </View>
+      ))}
     </ScrollView>
   );
 }
@@ -400,7 +399,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     padding: spacing.md,
   },
-
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   error: { color: "red" },
 
@@ -432,7 +430,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
 
-  // ANALYSIS BUTTONS
   analysisButtonsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -458,7 +455,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  // SLIDER
   sliderBox: {
     flexDirection: "row",
     alignItems: "center",
@@ -473,7 +469,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  // TIMELINE
   section: { marginBottom: spacing.lg },
   sectionTitle: {
     fontFamily: fonts.heading,
@@ -484,7 +479,6 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
 
-  // PHASE HEADER
   phaseHeader: {
     marginBottom: 12,
     paddingVertical: spacing.sm,
@@ -501,18 +495,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 4,
   },
+
   phaseTitle: {
     fontFamily: fonts.heading,
     fontSize: 15,
     color: "#111827",
     textAlign: "center",
   },
+
   phaseSubtitle: {
     fontFamily: fonts.body,
     fontSize: 13,
     color: "#6B7280",
     textAlign: "center",
   },
+
   overviewBlock: {
     marginBottom: spacing.lg,
   },
@@ -532,12 +529,14 @@ const styles = StyleSheet.create({
     elevation: 3,
     gap: spacing.sm,
   },
+
   eventImage: {
     width: "100%",
     height: 190,
     borderRadius: 12,
     backgroundColor: "#e5e7eb",
   },
+
   eventImagePlaceholder: {
     width: "100%",
     height: 190,
@@ -546,9 +545,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
   eventImageEmoji: {
     fontSize: 26,
   },
+
   eventContent: {
     gap: 6,
   },
@@ -561,13 +562,12 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
 
- eventTitle: {
-  fontFamily: fonts.heading,
-  fontSize: 16,
-  color: colors.textPrimary,
-  fontWeight: "700",   // BOLD
-},
-
+  eventTitle: {
+    fontFamily: fonts.heading,
+    fontSize: 16,
+    color: colors.textPrimary,
+    fontWeight: "700",
+  },
 
   eventSources: {
     marginTop: spacing.sm,
@@ -580,6 +580,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     paddingLeft: spacing.sm,
   },
+
   phaseEndDot: {
     width: 6,
     height: 6,

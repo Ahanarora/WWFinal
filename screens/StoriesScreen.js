@@ -21,6 +21,8 @@ import { scoreContent } from "../utils/ranking";
 import { formatUpdatedAt } from "../utils/formatTime";
 import { getLatestHeadlines } from "../utils/getLatestHeadlines";
 import { colors } from "../styles/theme";
+import { Ionicons } from "@expo/vector-icons";
+
 
 /**
  * ⭐ Safe timestamp normalizer for sorting.

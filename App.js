@@ -1,7 +1,7 @@
 // ----------------------------------------
 // App.js — Wait...What? News App (WITH AUTH)
 // ----------------------------------------
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Text,
   View,
@@ -21,7 +21,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { useFonts } from "expo-font";
-import { colors } from "./styles/theme";
+import { colors, getThemeColors } from "./styles/theme";
 
 // 🔐 AUTH IMPORTS
 import { onAuthStateChanged } from "firebase/auth";
@@ -53,16 +53,18 @@ const Stack = createNativeStackNavigator();
 // 🧭 Tab Navigation
 // ----------------------------------------
 function Tabs() {
+  const { themeColors } = useUserData();
+  const palette = themeColors || getThemeColors(false);
   return (
     <Tab.Navigator
       initialRouteName="HomeTab"
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: "#2563EB",
-        tabBarInactiveTintColor: "#6B7280",
+        tabBarActiveTintColor: palette.accent,
+        tabBarInactiveTintColor: palette.muted,
         tabBarStyle: {
-          backgroundColor: "#fff",
-          borderTopColor: "#E5E7EB",
+          backgroundColor: palette.surface,
+          borderTopColor: palette.border,
           height: 60,
           paddingBottom: 5,
         },
@@ -148,10 +150,21 @@ function MenuSheet({
   );
 }
 
-function AppNavigator({ user, waitHeader }) {
+function AppNavigator({ user }) {
   const navigationRef = useNavigationContainerRef();
   const { darkMode, toggleDarkMode } = useUserData();
   const [menuVisible, setMenuVisible] = useState(false);
+  const WaitHeader = () => (
+    <Text
+      style={{
+        fontFamily: "Jacquard24",
+        fontSize: 64,
+        color: darkMode ? "#f8fafc" : colors.textPrimary,
+      }}
+    >
+      Wait...What?
+    </Text>
+  );
 
   const screenOptions = {
     headerTitleAlign: "center",
@@ -185,7 +198,7 @@ function AppNavigator({ user, waitHeader }) {
               name="RootTabs"
               component={Tabs}
               options={{
-                headerTitle: () => waitHeader,
+                headerTitle: () => <WaitHeader />,
                 headerLeft: () => (
                   <TouchableOpacity
                     onPress={openMenu}
@@ -273,25 +286,11 @@ export default function App() {
     TurretRoadExtraBold: require("./assets/fonts/TurretRoad-ExtraBold.ttf"),
   });
 
-  const waitHeader = useMemo(() => {
-    return (
-      <Text
-        style={{
-          fontFamily: "Jacquard24",
-          fontSize: 64,
-          color: colors.textPrimary,
-        }}
-      >
-        Wait...What?
-      </Text>
-    );
-  }, []);
-
   if (!fontsLoaded || authChecking) return null;
 
   return (
     <UserDataProvider user={user}>
-      <AppNavigator user={user} waitHeader={waitHeader} />
+      <AppNavigator user={user} />
     </UserDataProvider>
   );
 }

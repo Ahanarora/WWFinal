@@ -3,7 +3,7 @@
 // (RESTORED ORIGINAL + Analysis buttons + PHASES + Event Reader phases)
 // ----------------------------------------
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -20,6 +20,8 @@ import RenderWithContext from "../components/RenderWithContext";
 import { formatUpdatedAt, formatDateDDMMYYYY } from "../utils/formatTime";
 import { normalizeAnalysis } from "../utils/normalizeAnalysis";
 import DottedDivider from "../components/DottedDivider";
+import { useUserData } from "../contexts/UserDataContext";
+import { Ionicons } from "@expo/vector-icons";
 
 const PHASE_PALETTE = ["#2563EB", "#DC2626", "#059669", "#D97706", "#6D28D9"];
 const SKY_BLUE = "#38BDF8";
@@ -34,6 +36,23 @@ export default function StoryScreen({ route, navigation }) {
 
   // Depth slider
   const [depth, setDepth] = useState(3);
+  const {
+    user,
+    favorites,
+    toggleFavorite,
+    recordVisit,
+  } = useUserData();
+  const isFavoriteStory = (id) => favorites?.stories?.includes(id);
+  const handleFavorite = (item) => {
+    if (!user) {
+      alert("Sign in to save stories.");
+      return;
+    }
+    toggleFavorite("stories", item.id, {
+      ...item,
+      _kind: "story",
+    });
+  };
 
   if (!story)
     return (
@@ -43,6 +62,11 @@ export default function StoryScreen({ route, navigation }) {
     );
 
   const primaryAnalysis = normalizeAnalysis(story.analysis);
+  useEffect(() => {
+    if (story?.id) {
+      recordVisit("stories", story.id);
+    }
+  }, [story?.id, recordVisit]);
   const primaryContexts = [
     ...(story.contexts || []),
     ...(primaryAnalysis?.contexts || []),
@@ -174,7 +198,16 @@ export default function StoryScreen({ route, navigation }) {
         )}
 
         {/* TITLE */}
-        <Text style={styles.title}>{item.title || "Untitled Story"}</Text>
+        <View style={styles.storyHeaderRow}>
+          <Text style={styles.title}>{item.title || "Untitled Story"}</Text>
+          <TouchableOpacity onPress={() => handleFavorite(item)}>
+            <Ionicons
+              name={isFavoriteStory(item.id) ? "bookmark" : "bookmark-outline"}
+              size={22}
+              color={isFavoriteStory(item.id) ? "#2563EB" : colors.muted}
+            />
+          </TouchableOpacity>
+        </View>
         <Text style={styles.updated}>{formatUpdatedAt(item.updatedAt)}</Text>
         <Text style={styles.category}>{item.category || "Uncategorized"}</Text>
 
@@ -414,6 +447,12 @@ const styles = StyleSheet.create({
     fontSize: 26,
     color: colors.textPrimary,
     marginBottom: spacing.sm,
+  },
+  storyHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.md,
   },
 
   category: {

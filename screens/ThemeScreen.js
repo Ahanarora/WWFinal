@@ -2,7 +2,7 @@
 // screens/ThemeScreen.js
 // PHASE SUPPORT + EventReader integration
 // ----------------------------------------
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -18,7 +18,8 @@ import RenderWithContext from "../components/RenderWithContext";
 import { formatUpdatedAt, formatDateDDMMYYYY } from "../utils/formatTime";
 import { normalizeAnalysis } from "../utils/normalizeAnalysis";
 import DottedDivider from "../components/DottedDivider";
-
+import { useUserData } from "../contexts/UserDataContext";
+import { Ionicons } from "@expo/vector-icons";
 
 const PHASE_PALETTE = ["#2563EB", "#DC2626", "#059669", "#D97706", "#6D28D9"];
 const SKY_BLUE = "#38BDF8";
@@ -31,6 +32,13 @@ export default function ThemeScreen({ route, navigation }) {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const [depth, setDepth] = useState(3);
+  const {
+    user,
+    favorites,
+    toggleFavorite,
+    getUpdatesSinceLastVisit,
+    recordVisit,
+  } = useUserData();
 
   if (!theme)
     return (
@@ -44,11 +52,39 @@ export default function ThemeScreen({ route, navigation }) {
     ...(theme.contexts || []),
     ...(primaryAnalysis?.contexts || []),
   ];
+  const isFavorite = (id) => favorites?.themes?.includes(id);
+  const handleFavorite = (item) => {
+    if (!user) {
+      alert("Sign in to save themes.");
+      return;
+    }
+    toggleFavorite("themes", item.id, {
+      ...item,
+      _kind: "theme",
+    });
+  };
+  const updatesCount = (item) =>
+    getUpdatesSinceLastVisit("themes", item);
+
+  const renderUpdateBadge = (count) =>
+    count > 0 ? (
+      <View style={styles.updateBadge}>
+        <Text style={styles.updateBadgeText}>
+          {count} update{count > 1 ? "s" : ""} since you visited
+        </Text>
+      </View>
+    ) : null;
   const hasAnyAnalysis =
     (primaryAnalysis.stakeholders?.length ?? 0) +
       (primaryAnalysis.faqs?.length ?? 0) +
       (primaryAnalysis.future?.length ?? 0) >
     0;
+
+  useEffect(() => {
+    if (theme?.id) {
+      recordVisit("themes", theme.id);
+    }
+  }, [theme?.id, recordVisit]);
 
   // ------------------------------
   // Endless scroll
@@ -181,11 +217,22 @@ export default function ThemeScreen({ route, navigation }) {
         {/* OVERVIEW */}
         {item.overview ? (
           <View style={styles.overviewBlock}>
+            <View style={styles.cardHeaderRow}>
+              <Text style={styles.overviewHeading}>Overview</Text>
+              <TouchableOpacity onPress={() => handleFavorite(item)}>
+                <Ionicons
+                  name={isFavorite(item.id) ? "bookmark" : "bookmark-outline"}
+                  size={20}
+                  color={isFavorite(item.id) ? "#2563EB" : colors.muted}
+                />
+              </TouchableOpacity>
+            </View>
             <RenderWithContext
               text={item.overview}
               contexts={combinedContexts}
               navigation={navigation}
             />
+            {renderUpdateBadge(updatesCount(item))}
           </View>
         ) : null}
 
@@ -521,6 +568,30 @@ const styles = StyleSheet.create({
 
   overviewBlock: {
     marginBottom: spacing.lg,
+  },
+  cardHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: spacing.xs,
+  },
+  overviewHeading: {
+    fontFamily: fonts.heading,
+    fontSize: 16,
+    color: colors.textPrimary,
+  },
+  updateBadge: {
+    backgroundColor: "#DBEAFE",
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    alignSelf: "flex-start",
+    marginTop: spacing.xs,
+  },
+  updateBadgeText: {
+    fontSize: 11,
+    color: "#1D4ED8",
+    fontWeight: "600",
   },
 
   eventBlock: {

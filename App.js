@@ -2,8 +2,21 @@
 // App.js — Wait...What? News App (WITH AUTH)
 // ----------------------------------------
 import React, { useState, useEffect, useMemo } from "react";
-import { Text } from "react-native";
-import { NavigationContainer } from "@react-navigation/native";
+import {
+  Text,
+  View,
+  TouchableOpacity,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Switch,
+} from "react-native";
+import {
+  NavigationContainer,
+  DarkTheme as NavigationDarkTheme,
+  DefaultTheme as NavigationDefaultTheme,
+  useNavigationContainerRef,
+} from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
@@ -22,10 +35,15 @@ import StoryScreen from "./screens/StoryScreen";
 import ThemeScreen from "./screens/ThemeScreen";
 import AnalysisModalScreen from "./screens/AnalysisModalScreen";
 import EventReaderModal from "./screens/EventReaderModal";
+import SavedScreen from "./screens/SavedScreen";
 
 // 👉 You must create this file:
 //    /screens/LoginScreen.js
 import LoginScreen from "./screens/LoginScreen";
+import {
+  UserDataProvider,
+  useUserData,
+} from "./contexts/UserDataContext";
 
 // Tabs and Stack
 const Tab = createBottomTabNavigator();
@@ -68,6 +86,166 @@ function Tabs() {
 // ----------------------------------------
 // 🧭 Root Stack Navigation + AUTH GATE
 // ----------------------------------------
+const LightNavTheme = {
+  ...NavigationDefaultTheme,
+  colors: {
+    ...NavigationDefaultTheme.colors,
+    background: "#FFFFFF",
+    card: "#FFFFFF",
+    text: "#111827",
+  },
+};
+
+const DarkNavTheme = {
+  ...NavigationDarkTheme,
+  colors: {
+    ...NavigationDarkTheme.colors,
+    background: "#050505",
+    card: "#111827",
+    border: "#1f2937",
+    text: "#F3F4F6",
+  },
+};
+
+function MenuSheet({
+  visible,
+  onClose,
+  onOpenSaved,
+  darkMode,
+  onToggleDarkMode,
+  user,
+}) {
+  return (
+    <Modal visible={visible} transparent animationType="fade">
+      <Pressable style={styles.menuOverlay} onPress={onClose}>
+        <Pressable style={styles.menuContainer}>
+          <Text style={styles.menuTitle}>Menu</Text>
+          {user ? (
+            <Text style={styles.menuSubtitle}>
+              Signed in as {user.email || user.uid}
+            </Text>
+          ) : (
+            <Text style={styles.menuSubtitle}>Not signed in</Text>
+          )}
+
+          <TouchableOpacity style={styles.menuOption} onPress={onOpenSaved}>
+            <Ionicons name="bookmark" size={18} style={styles.menuOptionIcon} />
+            <Text style={styles.menuOptionText}>Saved</Text>
+          </TouchableOpacity>
+
+          <View style={[styles.menuOption, styles.menuToggleRow]}>
+            <Ionicons name="moon" size={18} style={styles.menuOptionIcon} />
+            <Text style={styles.menuOptionText}>Dark Mode</Text>
+            <Switch
+              value={darkMode}
+              onValueChange={onToggleDarkMode}
+              style={{ marginLeft: "auto" }}
+            />
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+function AppNavigator({ user, waitHeader }) {
+  const navigationRef = useNavigationContainerRef();
+  const { darkMode, toggleDarkMode } = useUserData();
+  const [menuVisible, setMenuVisible] = useState(false);
+
+  const screenOptions = {
+    headerTitleAlign: "center",
+    headerStyle: {
+      backgroundColor: darkMode ? "#0f172a" : "#fff",
+    },
+    headerTintColor: darkMode ? "#f8fafc" : "#111827",
+  };
+
+  const openMenu = () => setMenuVisible(true);
+  const closeMenu = () => setMenuVisible(false);
+
+  const handleOpenSaved = () => {
+    closeMenu();
+    navigationRef.current?.navigate("Saved");
+  };
+
+  return (
+    <>
+      <NavigationContainer
+        ref={navigationRef}
+        theme={darkMode ? DarkNavTheme : LightNavTheme}
+      >
+        {!user ? (
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="Login" component={LoginScreen} />
+          </Stack.Navigator>
+        ) : (
+          <Stack.Navigator screenOptions={screenOptions}>
+            <Stack.Screen
+              name="RootTabs"
+              component={Tabs}
+              options={{
+                headerTitle: () => waitHeader,
+                headerLeft: () => (
+                  <TouchableOpacity
+                    onPress={openMenu}
+                    style={{ paddingRight: 12 }}
+                  >
+                    <Ionicons
+                      name="menu"
+                      size={24}
+                      color={darkMode ? "#f8fafc" : "#111827"}
+                    />
+                  </TouchableOpacity>
+                ),
+              }}
+            />
+
+            <Stack.Screen
+              name="Story"
+              component={StoryScreen}
+              options={{ title: "Story", headerBackTitle: "Back" }}
+            />
+
+            <Stack.Screen
+              name="Theme"
+              component={ThemeScreen}
+              options={{ title: "Theme", headerBackTitle: "Back" }}
+            />
+
+            <Stack.Screen
+              name="Saved"
+              component={SavedScreen}
+              options={{ title: "Saved Items" }}
+            />
+
+            <Stack.Screen
+              name="AnalysisModal"
+              component={AnalysisModalScreen}
+              options={{ presentation: "modal", headerShown: false }}
+            />
+
+            <Stack.Screen
+              name="EventReader"
+              component={EventReaderModal}
+              options={{ presentation: "modal", headerShown: false }}
+            />
+          </Stack.Navigator>
+        )}
+      </NavigationContainer>
+
+      <MenuSheet
+        visible={menuVisible}
+        onClose={closeMenu}
+        onOpenSaved={handleOpenSaved}
+        darkMode={darkMode}
+        onToggleDarkMode={toggleDarkMode}
+        user={user}
+      />
+    </>
+  );
+}
+
 export default function App() {
   // 🔐 Manage Auth State
   const [user, setUser] = useState(null);
@@ -112,48 +290,54 @@ export default function App() {
   if (!fontsLoaded || authChecking) return null;
 
   return (
-    <NavigationContainer>
-      {/* 🔐 AUTH GATE */}
-      {!user ? (
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Login" component={LoginScreen} />
-        </Stack.Navigator>
-      ) : (
-        <Stack.Navigator>
-          <Stack.Screen
-            name="RootTabs"
-            component={Tabs}
-            options={{
-              headerTitleAlign: "center",
-              headerTitle: () => waitHeader,
-            }}
-          />
-
-          <Stack.Screen
-            name="Story"
-            component={StoryScreen}
-            options={{ title: "Story", headerBackTitle: "Back" }}
-          />
-
-          <Stack.Screen
-            name="Theme"
-            component={ThemeScreen}
-            options={{ title: "Theme", headerBackTitle: "Back" }}
-          />
-
-          <Stack.Screen
-            name="AnalysisModal"
-            component={AnalysisModalScreen}
-            options={{ presentation: "modal", headerShown: false }}
-          />
-
-          <Stack.Screen
-            name="EventReader"
-            component={EventReaderModal}
-            options={{ presentation: "modal", headerShown: false }}
-          />
-        </Stack.Navigator>
-      )}
-    </NavigationContainer>
+    <UserDataProvider user={user}>
+      <AppNavigator user={user} waitHeader={waitHeader} />
+    </UserDataProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-start",
+    alignItems: "flex-start",
+  },
+  menuContainer: {
+    width: "70%",
+    backgroundColor: "#fff",
+    paddingHorizontal: 20,
+    paddingVertical: 30,
+    borderBottomRightRadius: 24,
+    borderTopRightRadius: 24,
+    marginTop: 40,
+  },
+  menuTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  menuSubtitle: {
+    fontSize: 13,
+    color: colors.muted,
+    marginBottom: 20,
+  },
+  menuOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+  },
+  menuOptionIcon: {
+    marginRight: 10,
+    color: colors.textPrimary,
+  },
+  menuOptionText: {
+    fontSize: 16,
+    color: colors.textPrimary,
+  },
+  menuToggleRow: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "#E5E7EB",
+    marginTop: 8,
+  },
+});

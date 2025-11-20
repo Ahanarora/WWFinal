@@ -1,4 +1,4 @@
-export const colors = {
+export const lightColors = {
   background: "#F7F7F8",
   surface: "#FFFFFF",
   textPrimary: "#0F172A",
@@ -7,6 +7,20 @@ export const colors = {
   accent: "#2563EB",
   muted: "#94A3B8",
 };
+
+export const darkColors = {
+  background: "#0A0F1C",
+  surface: "#121A2A",
+  textPrimary: "#F8FAFC",
+  textSecondary: "#CBD5F5",
+  border: "#1E293B",
+  accent: "#60A5FA",
+  muted: "#94A3B8",
+};
+
+export const colors = lightColors;
+
+export const getThemeColors = (isDark) => (isDark ? darkColors : lightColors);
 
 export const fonts = {
   regular: "System",

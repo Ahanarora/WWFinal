@@ -22,8 +22,10 @@ import { scoreContent } from "../utils/ranking";
 
 import { formatUpdatedAt } from "../utils/formatTime";
 import { getLatestHeadlines } from "../utils/getLatestHeadlines";
-import { colors } from "../styles/theme";
+import { getThemeColors } from "../styles/theme";
 import { Ionicons } from "@expo/vector-icons";
+import { useUserData } from "../contexts/UserDataContext";
+
 
 
 // Safe unified timestamp helper
@@ -74,6 +76,15 @@ export default function HomeScreen({ navigation }) {
 
   const [sortMode, setSortMode] = useState("relevance");
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const {
+    user,
+    favorites,
+    toggleFavorite,
+    getUpdatesSinceLastVisit,
+    themeColors,
+  } = useUserData();
+  const palette = themeColors || getThemeColors(false);
+  const styles = useMemo(() => createStyles(palette), [palette]);
 
   // -------------------------------
   // FETCH STORIES + THEMES
@@ -231,6 +242,10 @@ export default function HomeScreen({ navigation }) {
         <Text style={styles.compactTitle} numberOfLines={2}>
           {item.title}
         </Text>
+        <FavoriteButton
+          active={isFavorite(item)}
+          onPress={() => handleFavoritePress(item)}
+        />
       </View>
     </TouchableOpacity>
   );
@@ -244,6 +259,47 @@ export default function HomeScreen({ navigation }) {
   const findThemeById = (id) =>
     filteredThemes.find((theme) => theme.id === id) ||
     themes.find((theme) => theme.id === id);
+
+  const isFavorite = (item) => {
+    if (!item?.id) return false;
+    if (item._kind === "story") {
+      return favorites?.stories?.includes(item.id);
+    }
+    return favorites?.themes?.includes(item.id);
+  };
+
+  const handleFavoritePress = (item) => {
+    if (!user) {
+      alert("Sign in to save items.");
+      return;
+    }
+    const key = item._kind === "story" ? "stories" : "themes";
+    toggleFavorite(key, item.id, item);
+  };
+
+  const updatesCount = (item) => {
+    const type = item._kind === "story" ? "stories" : "themes";
+    return getUpdatesSinceLastVisit(type, item);
+  };
+
+  const FavoriteButton = ({ active, onPress }) => (
+    <TouchableOpacity onPress={onPress} style={styles.favoriteButton}>
+      <Ionicons
+        name={active ? "bookmark" : "bookmark-outline"}
+        size={18}
+        color={active ? palette.accent : palette.muted}
+      />
+    </TouchableOpacity>
+  );
+
+  const renderUpdateBadge = (count) =>
+    count > 0 ? (
+      <View style={styles.updateBadge}>
+        <Text style={styles.updateBadgeText}>
+          {count} update{count > 1 ? "s" : ""} since you visited
+        </Text>
+      </View>
+    ) : null;
 
   const renderFeaturedCard = (item) => {
     const typeLabel = getTypeLabel(item._kind);
@@ -291,7 +347,14 @@ export default function HomeScreen({ navigation }) {
           </View>
         )}
         <View style={styles.featuredBody}>
-          <Text style={styles.featuredTypeLabel}>{typeLabel}</Text>
+          <View style={styles.cardHeaderRow}>
+            <Text style={styles.featuredTypeLabel}>{typeLabel}</Text>
+            <FavoriteButton
+              active={isFavorite(item)}
+              onPress={() => handleFavoritePress(item)}
+            />
+          </View>
+          {renderUpdateBadge(updatesCount(item))}
           <Text style={styles.featuredTitle} numberOfLines={2}>
             {item.title}
           </Text>
@@ -341,7 +404,13 @@ export default function HomeScreen({ navigation }) {
             </View>
           )}
 
-          <Text style={styles.mediaTypeLabel}>Story</Text>
+          <View style={styles.cardHeaderRow}>
+            <Text style={styles.mediaTypeLabel}>Story</Text>
+            <FavoriteButton
+              active={isFavorite(item)}
+              onPress={() => handleFavoritePress(item)}
+            />
+          </View>
 
           <View style={styles.textBlock}>
             <Text style={styles.typeBadge}>Story</Text>
@@ -349,6 +418,7 @@ export default function HomeScreen({ navigation }) {
               {item.category?.toUpperCase() || "GENERAL"}
             </Text>
             <Text style={styles.title}>{item.title}</Text>
+            {renderUpdateBadge(updatesCount(item))}
             <Text style={styles.updatedText}>{formatUpdatedAt(item.updatedAt)}</Text>
 
             {item.overview && (
@@ -402,6 +472,7 @@ export default function HomeScreen({ navigation }) {
             {item.category?.toUpperCase() || "GENERAL"}
           </Text>
           <Text style={styles.title}>{item.title}</Text>
+          {renderUpdateBadge(updatesCount(item))}
           <Text style={styles.updatedText}>{formatUpdatedAt(item.updatedAt)}</Text>
 
           {item.overview && (
@@ -555,273 +626,280 @@ return (
 // STYLES
 // ----------------------------------------
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-
-  filterWrapper: {
-    borderBottomWidth: 1,
-    borderColor: colors.border,
-    paddingVertical: 10,
-    backgroundColor: colors.surface,
-  },
-
-  categoryRow: {
-    flexDirection: "row",
-    gap: 10,
-    paddingHorizontal: 16,
-  },
-
-  categoryPill: {
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderRadius: 999,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    backgroundColor: "#f8f8f8",
-  },
-  categoryPillActive: {
-    backgroundColor: "#2563EB",
-    borderColor: "#2563EB",
-  },
-  categoryText: { fontSize: 13, color: "#4B5563" },
-  categoryTextActive: { color: "#fff", fontWeight: "600" },
-
-  featuredSection: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-  },
-  featuredHeader: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 8,
-  },
-  featuredRow: {
-    paddingBottom: 4,
-  },
-
-  featuredCard: {
-    width: 240,
-    marginRight: 16,
-    backgroundColor: colors.surface,
-    borderRadius: 18,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#E0E7FF",
-  },
-  featuredImage: {
-    width: "100%",
-    height: 120,
-    backgroundColor: "#eee",
-  },
-  featuredPlaceholder: {
-    width: "100%",
-    height: 120,
-    backgroundColor: "#eee",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  featuredBody: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  featuredTypeLabel: {
-    fontSize: 11,
-    color: colors.muted,
-    textAlign: "right",
-    textTransform: "uppercase",
-    marginBottom: 4,
-  },
-  featuredTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.textPrimary,
-    marginBottom: 8,
-  },
-
-  dropdownButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    backgroundColor: "#f2f2f2",
-    marginTop: 8,
-    borderRadius: 8,
-    marginHorizontal: 16,
-  },
-  dropdownButtonText: {
-    fontSize: 14,
-    color: "#000",
-  },
-
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.3)",
-    justifyContent: "center",
-    padding: 30,
-  },
-  modalContent: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-  },
-  modalOption: {
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-  },
-  modalOptionText: {
-    fontSize: 16,
-    color: "#333",
-  },
-  selectedOptionText: {
-    fontWeight: "bold",
-    color: colors.accent,
-  },
-
-  card: {
-    backgroundColor: colors.surface,
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 18,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#E0E7FF",
-  },
-
-  image: {
-    width: "100%",
-    height: 200,
-    backgroundColor: "#eee",
-  },
-  placeholder: {
-    height: 200,
-    backgroundColor: "#eee",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  placeholderText: { color: "#999" },
-
-  mediaTypeLabel: {
-    alignSelf: "flex-end",
-    marginRight: 16,
-    marginTop: 8,
-    fontSize: 11,
-    color: colors.muted,
-    textTransform: "uppercase",
-  },
-
-  textBlock: {
-    padding: 20,
-    gap: 6,
-  },
-
-  typeBadge: {
-    alignSelf: "flex-start",
-    fontSize: 11,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 999,
-    backgroundColor: "#DBEAFE",
-    color: "#1D4ED8",
-    marginBottom: 4,
-  },
-  typeBadgeTheme: {
-    backgroundColor: "#DCFCE7",
-    color: "#166534",
-  },
-
-  categoryLabel: {
-    fontSize: 12,
-    color: "#6B7280",
-    letterSpacing: 1,
-    marginBottom: 4,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#111827",
-    marginBottom: 6,
-  },
-  updatedText: {
-    fontSize: 13,
-    color: colors.muted,
-    marginBottom: 4,
-  },
-
-  overviewPreview: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 20,
-  },
-
-  separator: {
-    height: 16,
-  },
-
-  headlineList: {
-    marginTop: 12,
-    gap: 6,
-  },
-  latestLabel: {
-    fontSize: 11,
-    color: colors.muted,
-    textTransform: "uppercase",
-  },
-  headlineRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 8,
-  },
-  headlineBullet: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    marginTop: 9,
-    backgroundColor: "#38BDF8",
-  },
-  headlineText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    lineHeight: 18,
-  },
-
-  compactCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 14,
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 16,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: "#E0E7FF",
-    gap: 12,
-  },
-  compactThumbnail: {
-    width: 64,
-    height: 64,
-    borderRadius: 12,
-    backgroundColor: "#E5E7EB",
-  },
-  compactPlaceholder: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  compactBody: {
-    flex: 1,
-    gap: 4,
-  },
-  compactType: {
-    fontSize: 11,
-    textTransform: "uppercase",
-    color: colors.muted,
-    letterSpacing: 1,
-  },
-  compactTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  loadingText: { marginTop: 8, color: colors.textSecondary },
-});
+const createStyles = (palette) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: palette.background,
+    },
+    filterWrapper: {
+      borderBottomWidth: 1,
+      borderColor: palette.border,
+      paddingVertical: 10,
+      backgroundColor: palette.surface,
+    },
+    categoryRow: {
+      flexDirection: "row",
+      gap: 10,
+      paddingHorizontal: 16,
+    },
+    categoryPill: {
+      borderWidth: 1,
+      borderColor: palette.border,
+      borderRadius: 999,
+      paddingVertical: 6,
+      paddingHorizontal: 14,
+      backgroundColor: palette.surface,
+    },
+    categoryPillActive: {
+      backgroundColor: palette.accent,
+      borderColor: palette.accent,
+    },
+    categoryText: { fontSize: 13, color: palette.textSecondary },
+    categoryTextActive: { color: "#fff", fontWeight: "600" },
+    featuredSection: {
+      paddingHorizontal: 16,
+      paddingTop: 16,
+    },
+    featuredHeader: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: palette.textPrimary,
+      marginBottom: 8,
+    },
+    featuredRow: {
+      paddingBottom: 4,
+    },
+    featuredCard: {
+      width: 240,
+      marginRight: 16,
+      backgroundColor: palette.surface,
+      borderRadius: 18,
+      overflow: "hidden",
+      borderWidth: 1,
+      borderColor: palette.border,
+    },
+    featuredImage: {
+      width: "100%",
+      height: 120,
+      backgroundColor: palette.border,
+    },
+    featuredPlaceholder: {
+      width: "100%",
+      height: 120,
+      backgroundColor: palette.border,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    featuredBody: {
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+    },
+    cardHeaderRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 4,
+    },
+    featuredTypeLabel: {
+      fontSize: 11,
+      color: palette.muted,
+      textTransform: "uppercase",
+      marginBottom: 4,
+    },
+    featuredTitle: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: palette.textPrimary,
+      marginBottom: 8,
+    },
+    dropdownButton: {
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      backgroundColor: palette.surface,
+      marginTop: 8,
+      borderRadius: 8,
+      marginHorizontal: 16,
+      borderWidth: 1,
+      borderColor: palette.border,
+    },
+    dropdownButtonText: {
+      fontSize: 14,
+      color: palette.textPrimary,
+    },
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.3)",
+      justifyContent: "center",
+      padding: 30,
+    },
+    modalContent: {
+      backgroundColor: palette.surface,
+      borderRadius: 10,
+    },
+    modalOption: {
+      paddingVertical: 14,
+      paddingHorizontal: 18,
+    },
+    modalOptionText: {
+      fontSize: 16,
+      color: palette.textPrimary,
+    },
+    selectedOptionText: {
+      fontWeight: "bold",
+      color: palette.accent,
+    },
+    card: {
+      backgroundColor: palette.surface,
+      marginHorizontal: 16,
+      marginTop: 16,
+      borderRadius: 18,
+      overflow: "hidden",
+      borderWidth: 1,
+      borderColor: palette.border,
+    },
+    image: {
+      width: "100%",
+      height: 200,
+      backgroundColor: palette.border,
+    },
+    placeholder: {
+      height: 200,
+      backgroundColor: palette.border,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    placeholderText: { color: palette.muted },
+    mediaTypeLabel: {
+      alignSelf: "flex-end",
+      marginRight: 16,
+      marginTop: 8,
+      fontSize: 11,
+      color: palette.muted,
+      textTransform: "uppercase",
+    },
+    favoriteButton: {
+      padding: 6,
+    },
+    updateBadge: {
+      backgroundColor: "#1d4ed80f",
+      borderRadius: 12,
+      paddingVertical: 4,
+      paddingHorizontal: 8,
+      alignSelf: "flex-start",
+      marginBottom: 6,
+    },
+    updateBadgeText: {
+      fontSize: 11,
+      color: palette.accent,
+      fontWeight: "600",
+    },
+    textBlock: {
+      padding: 20,
+      gap: 6,
+    },
+    typeBadge: {
+      alignSelf: "flex-start",
+      fontSize: 11,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 999,
+      backgroundColor: "#DBEAFE",
+      color: "#1D4ED8",
+      marginBottom: 4,
+    },
+    typeBadgeTheme: {
+      backgroundColor: "#DCFCE7",
+      color: "#166534",
+    },
+    categoryLabel: {
+      fontSize: 12,
+      color: palette.textSecondary,
+      letterSpacing: 1,
+      marginBottom: 4,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: palette.textPrimary,
+      marginBottom: 6,
+    },
+    updatedText: {
+      fontSize: 13,
+      color: palette.muted,
+      marginBottom: 4,
+    },
+    overviewPreview: {
+      fontSize: 14,
+      color: palette.textSecondary,
+      lineHeight: 20,
+    },
+    separator: {
+      height: 16,
+    },
+    headlineList: {
+      marginTop: 12,
+      gap: 6,
+    },
+    latestLabel: {
+      fontSize: 11,
+      color: palette.muted,
+      textTransform: "uppercase",
+    },
+    headlineRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 8,
+    },
+    headlineBullet: {
+      width: 4,
+      height: 4,
+      borderRadius: 2,
+      marginTop: 9,
+      backgroundColor: palette.accent,
+    },
+    headlineText: {
+      fontSize: 13,
+      color: palette.textSecondary,
+      lineHeight: 18,
+    },
+    compactCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      padding: 14,
+      marginHorizontal: 16,
+      marginTop: 16,
+      borderRadius: 16,
+      backgroundColor: palette.surface,
+      borderWidth: 1,
+      borderColor: palette.border,
+      gap: 12,
+    },
+    compactThumbnail: {
+      width: 64,
+      height: 64,
+      borderRadius: 12,
+      backgroundColor: palette.border,
+    },
+    compactPlaceholder: {
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    compactBody: {
+      flex: 1,
+      gap: 4,
+    },
+    compactType: {
+      fontSize: 11,
+      textTransform: "uppercase",
+      color: palette.muted,
+      letterSpacing: 1,
+    },
+    compactTitle: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: palette.textPrimary,
+    },
+    center: { flex: 1, justifyContent: "center", alignItems: "center" },
+    loadingText: { marginTop: 8, color: palette.textSecondary },
+  });

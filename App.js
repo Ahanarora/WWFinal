@@ -37,6 +37,7 @@ import AnalysisModalScreen from "./screens/AnalysisModalScreen";
 import EventReaderModal from "./screens/EventReaderModal";
 import SavedScreen from "./screens/SavedScreen";
 import SearchScreen from "./screens/SearchScreen";
+import { getStorySearchCache } from "./utils/storyCache";
 
 // 👉 You must create this file:
 //    /screens/LoginScreen.js
@@ -165,25 +166,54 @@ function AppNavigator({ user }) {
   const navigationRef = useNavigationContainerRef();
   const { darkMode, toggleDarkMode } = useUserData();
   const [menuVisible, setMenuVisible] = useState(false);
-  const WaitHeader = () => (
-    <Text
-      style={{
-        fontFamily: "Jacquard24",
-        fontSize: 64,
-        color: darkMode ? "#f8fafc" : colors.textPrimary,
-      }}
+  const WaitHeader = ({ onPress }) => (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.8}
+      style={{ paddingHorizontal: 4 }}
     >
-      Wait...What?
-    </Text>
+      <Text
+        style={{
+          fontFamily: "Jacquard24",
+          fontSize: 44,
+          color: darkMode ? "#f8fafc" : colors.textPrimary,
+        }}
+      >
+        Wait...What?
+      </Text>
+    </TouchableOpacity>
   );
 
-  const screenOptions = {
+  const navigateHome = (navigation) => {
+    navigation.navigate("RootTabs", { screen: "HomeTab" });
+  };
+
+  const openSearch = (navigation) => {
+    navigation.navigate("Search", { stories: getStorySearchCache() });
+  };
+
+  const screenOptions = ({ navigation }) => ({
     headerTitleAlign: "center",
     headerStyle: {
       backgroundColor: darkMode ? "#0f172a" : "#fff",
     },
     headerTintColor: darkMode ? "#f8fafc" : "#111827",
-  };
+    headerTitle: () => (
+      <WaitHeader onPress={() => navigateHome(navigation)} />
+    ),
+    headerRight: () => (
+      <TouchableOpacity
+        onPress={() => openSearch(navigation)}
+        style={{ paddingLeft: 12 }}
+      >
+        <Ionicons
+          name="search"
+          size={22}
+          color={darkMode ? "#f8fafc" : "#111827"}
+        />
+      </TouchableOpacity>
+    ),
+  });
 
   const openMenu = () => setMenuVisible(true);
   const closeMenu = () => setMenuVisible(false);
@@ -214,7 +244,6 @@ function AppNavigator({ user }) {
               name="RootTabs"
               component={Tabs}
               options={{
-                headerTitle: () => <WaitHeader />,
                 headerLeft: () => (
                   <TouchableOpacity
                     onPress={openMenu}
@@ -233,25 +262,23 @@ function AppNavigator({ user }) {
             <Stack.Screen
               name="Story"
               component={StoryScreen}
-              options={{ title: "Story", headerBackTitle: "Back" }}
+              options={{ headerBackTitle: "Back" }}
             />
 
             <Stack.Screen
               name="Theme"
               component={ThemeScreen}
-              options={{ title: "Theme", headerBackTitle: "Back" }}
+              options={{ headerBackTitle: "Back" }}
             />
 
             <Stack.Screen
               name="Saved"
               component={SavedScreen}
-              options={{ title: "Saved Items" }}
             />
 
             <Stack.Screen
               name="Search"
               component={SearchScreen}
-              options={{ title: "Search" }}
             />
 
             <Stack.Screen

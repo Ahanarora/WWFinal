@@ -19,7 +19,6 @@ import SourceLinks from "../components/SourceLinks";
 import RenderWithContext from "../components/RenderWithContext";
 import { formatUpdatedAt, formatDateDDMMYYYY } from "../utils/formatTime";
 import { normalizeAnalysis } from "../utils/normalizeAnalysis";
-import DottedDivider from "../components/DottedDivider";
 import CommentsSection from "../components/CommentsSection";
 import { useUserData } from "../contexts/UserDataContext";
 import { Ionicons } from "@expo/vector-icons";
@@ -416,9 +415,6 @@ export default function StoryScreen({ route, navigation }) {
           {renderStoryBlock(s)}
 
           <CommentsSection type="story" itemId={s.id} />
-          <View style={{ marginTop: 12, marginBottom: 60 }}>
-            <DottedDivider />
-          </View>
         </View>
       ))}
     </ScrollView>

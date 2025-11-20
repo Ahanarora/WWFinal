@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { formatUpdatedAt } from "../utils/formatTime";
+import { getStorySearchCache } from "../utils/storyCache";
 
 const getTimestampMs = (value) => {
   if (!value) return 0;
@@ -19,7 +20,7 @@ const getTimestampMs = (value) => {
 };
 
 export default function SearchScreen({ route, navigation }) {
-  const stories = route.params?.stories || [];
+  const stories = route.params?.stories || getStorySearchCache() || [];
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [results, setResults] = useState([]);

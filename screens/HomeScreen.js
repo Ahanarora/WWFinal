@@ -25,6 +25,7 @@ import { getLatestHeadlines } from "../utils/getLatestHeadlines";
 import { getThemeColors } from "../styles/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useUserData } from "../contexts/UserDataContext";
+import { setStorySearchCache } from "../utils/storyCache";
 
 
 
@@ -85,9 +86,6 @@ export default function HomeScreen({ navigation }) {
   } = useUserData();
   const palette = themeColors || getThemeColors(false);
   const styles = useMemo(() => createStyles(palette), [palette]);
-  const goToSearch = () => {
-    navigation.navigate("Search", { stories });
-  };
 
   // -------------------------------
   // FETCH STORIES + THEMES
@@ -103,6 +101,7 @@ export default function HomeScreen({ navigation }) {
 
         setThemes(themeData);
         setStories(storyData);
+        setStorySearchCache(storyData);
       } catch (err) {
         console.error("Error loading home data:", err);
       } finally {
@@ -227,7 +226,7 @@ export default function HomeScreen({ navigation }) {
     );
   };
 
-  const renderCompactCard = (item, typeLabel, onPress, keyOverride) => (
+  const renderCompactCard = (item, kind, onPress, keyOverride) => (
     <TouchableOpacity
       key={keyOverride || item.id}
       style={styles.compactCard}
@@ -241,7 +240,7 @@ export default function HomeScreen({ navigation }) {
         </View>
       )}
       <View style={styles.compactBody}>
-        <Text style={styles.compactType}>{typeLabel}</Text>
+        {renderTypeBadge(kind, { marginBottom: 6 })}
         <Text style={styles.compactTitle} numberOfLines={2}>
           {item.title}
         </Text>
@@ -252,8 +251,6 @@ export default function HomeScreen({ navigation }) {
       </View>
     </TouchableOpacity>
   );
-
-  const getTypeLabel = (kind) => (kind === "story" ? "Story" : "Theme");
 
   const findStoryById = (id) =>
     filteredStories.find((story) => story.id === id) ||
@@ -304,8 +301,27 @@ export default function HomeScreen({ navigation }) {
       </View>
     ) : null;
 
+  const renderTypeBadge = (kind, extraStyle) => (
+    <View
+      style={[
+        styles.typeBadge,
+        kind === "theme" && styles.typeBadgeTheme,
+        extraStyle,
+      ]}
+    >
+      <Text
+        style={[
+          styles.typeBadgeText,
+          kind === "theme" && styles.typeBadgeTextTheme,
+        ]}
+      >
+        {kind === "story" ? "Story" : "Theme"}
+      </Text>
+    </View>
+  );
+
   const renderFeaturedCard = (item) => {
-    const typeLabel = getTypeLabel(item._kind);
+    const kind = item._kind === "theme" ? "theme" : "story";
 
     const onPress = () => {
       if (item._kind === "story") {
@@ -330,7 +346,7 @@ export default function HomeScreen({ navigation }) {
     if (item.isCompactCard) {
       return renderCompactCard(
         item,
-        typeLabel,
+        kind,
         onPress,
         `${item._kind}-${item.id}`
       );
@@ -351,7 +367,7 @@ export default function HomeScreen({ navigation }) {
         )}
         <View style={styles.featuredBody}>
           <View style={styles.cardHeaderRow}>
-            <Text style={styles.featuredTypeLabel}>{typeLabel}</Text>
+            {renderTypeBadge(kind)}
             <FavoriteButton
               active={isFavorite(item)}
               onPress={() => handleFavoritePress(item)}
@@ -388,7 +404,7 @@ export default function HomeScreen({ navigation }) {
       if (item.isCompactCard) {
         return renderCompactCard(
           item,
-          "Story",
+          "story",
           onPress,
           `${item._kind}-${item.id}`
         );
@@ -408,7 +424,7 @@ export default function HomeScreen({ navigation }) {
           )}
 
           <View style={styles.cardHeaderRow}>
-            <Text style={styles.mediaTypeLabel}>Story</Text>
+            {renderTypeBadge("story")}
             <FavoriteButton
               active={isFavorite(item)}
               onPress={() => handleFavoritePress(item)}
@@ -416,7 +432,6 @@ export default function HomeScreen({ navigation }) {
           </View>
 
           <View style={styles.textBlock}>
-            <Text style={styles.typeBadge}>Story</Text>
             <Text style={styles.categoryLabel}>
               {item.category?.toUpperCase() || "GENERAL"}
             </Text>
@@ -448,7 +463,7 @@ export default function HomeScreen({ navigation }) {
     if (item.isCompactCard) {
       return renderCompactCard(
         item,
-        "Theme",
+        "theme",
         onPress,
         `${item._kind}-${item.id}`
       );
@@ -467,10 +482,15 @@ export default function HomeScreen({ navigation }) {
           </View>
         )}
 
-        <Text style={styles.mediaTypeLabel}>Theme</Text>
+        <View style={styles.cardHeaderRow}>
+          {renderTypeBadge("theme")}
+          <FavoriteButton
+            active={isFavorite(item)}
+            onPress={() => handleFavoritePress(item)}
+          />
+        </View>
 
         <View style={styles.textBlock}>
-          <Text style={[styles.typeBadge, styles.typeBadgeTheme]}>Theme</Text>
           <Text style={styles.categoryLabel}>
             {item.category?.toUpperCase() || "GENERAL"}
           </Text>
@@ -506,14 +526,8 @@ return (
 
       ListHeaderComponent={
         <>
-      {/* CATEGORY PILLS + SEARCH */}
+      {/* CATEGORY PILLS */}
       <View style={styles.filterWrapper}>
-        <View style={styles.filterTopRow}>
-          <TouchableOpacity style={styles.searchButton} onPress={goToSearch}>
-            <Ionicons name="search" size={18} color={palette.textPrimary} />
-            <Text style={styles.searchButtonText}>Search</Text>
-          </TouchableOpacity>
-        </View>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -647,28 +661,6 @@ const createStyles = (palette) =>
       paddingVertical: 10,
       backgroundColor: palette.surface,
     },
-    filterTopRow: {
-      flexDirection: "row",
-      justifyContent: "flex-end",
-      paddingHorizontal: 16,
-      marginBottom: 8,
-    },
-    searchButton: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 999,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.background,
-    },
-    searchButtonText: {
-      color: palette.textPrimary,
-      fontSize: 13,
-      fontWeight: "600",
-    },
     categoryRow: {
       flexDirection: "row",
       gap: 10,
@@ -801,14 +793,6 @@ const createStyles = (palette) =>
       alignItems: "center",
     },
     placeholderText: { color: palette.muted },
-    mediaTypeLabel: {
-      alignSelf: "flex-end",
-      marginRight: 16,
-      marginTop: 8,
-      fontSize: 11,
-      color: palette.muted,
-      textTransform: "uppercase",
-    },
     favoriteButton: {
       padding: 6,
     },
@@ -831,16 +815,23 @@ const createStyles = (palette) =>
     },
     typeBadge: {
       alignSelf: "flex-start",
-      fontSize: 11,
-      paddingHorizontal: 8,
-      paddingVertical: 2,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
       borderRadius: 999,
       backgroundColor: "#DBEAFE",
-      color: "#1D4ED8",
-      marginBottom: 4,
+      marginBottom: 6,
     },
     typeBadgeTheme: {
       backgroundColor: "#DCFCE7",
+    },
+    typeBadgeText: {
+      fontSize: 11,
+      fontWeight: "700",
+      letterSpacing: 0.5,
+      color: "#1D4ED8",
+      textTransform: "uppercase",
+    },
+    typeBadgeTextTheme: {
       color: "#166534",
     },
     categoryLabel: {
@@ -919,12 +910,6 @@ const createStyles = (palette) =>
     compactBody: {
       flex: 1,
       gap: 4,
-    },
-    compactType: {
-      fontSize: 11,
-      textTransform: "uppercase",
-      color: palette.muted,
-      letterSpacing: 1,
     },
     compactTitle: {
       fontSize: 16,

@@ -17,7 +17,6 @@ import SourceLinks from "../components/SourceLinks";
 import RenderWithContext from "../components/RenderWithContext";
 import { formatUpdatedAt, formatDateDDMMYYYY } from "../utils/formatTime";
 import { normalizeAnalysis } from "../utils/normalizeAnalysis";
-import DottedDivider from "../components/DottedDivider";
 import { useUserData } from "../contexts/UserDataContext";
 import { Ionicons } from "@expo/vector-icons";
 import CommentsSection from "../components/CommentsSection";
@@ -434,15 +433,9 @@ export default function ThemeScreen({ route, navigation }) {
           {renderThemeBlock(t, i === 0)}
 
           <CommentsSection type="theme" itemId={t.id} />
-          <View style={{ marginTop: 15, marginBottom: 60 }}>
-            <DottedDivider />
-          </View>
         </View>
       ))}
-
-
     </ScrollView>
-    
   );
 }
 

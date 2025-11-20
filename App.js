@@ -115,6 +115,7 @@ function MenuSheet({
   onOpenSaved,
   darkMode,
   onToggleDarkMode,
+  onLogout,
   user,
 }) {
   return (
@@ -129,6 +130,15 @@ function MenuSheet({
           ) : (
             <Text style={styles.menuSubtitle}>Not signed in</Text>
           )}
+
+          <TouchableOpacity style={styles.menuOption} onPress={onLogout}>
+            <Ionicons
+              name="log-out-outline"
+              size={18}
+              style={styles.menuOptionIcon}
+            />
+            <Text style={styles.menuOptionText}>Log out</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity style={styles.menuOption} onPress={onOpenSaved}>
             <Ionicons name="bookmark" size={18} style={styles.menuOptionIcon} />
@@ -180,6 +190,11 @@ function AppNavigator({ user }) {
   const handleOpenSaved = () => {
     closeMenu();
     navigationRef.current?.navigate("Saved");
+  };
+
+  const handleLogout = () => {
+    auth.signOut();
+    setMenuVisible(false);
   };
 
   return (
@@ -253,7 +268,8 @@ function AppNavigator({ user }) {
         onOpenSaved={handleOpenSaved}
         darkMode={darkMode}
         onToggleDarkMode={toggleDarkMode}
-        user={user}
+          user={user}
+        onLogout={handleLogout}
       />
     </>
   );

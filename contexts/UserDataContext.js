@@ -186,10 +186,7 @@ export function UserDataProvider({ user, children }) {
         if (dateMs > last) count += 1;
       });
 
-      if (count > 0) return count;
-
-      const updatedAtMs = timestampToMs(item.updatedAt);
-      return updatedAtMs > last ? 1 : 0;
+      return count;
     },
     [lastVisited]
   );

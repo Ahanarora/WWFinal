@@ -56,7 +56,7 @@ export default function SearchScreen({ route, navigation }) {
         if (title.includes(debouncedQuery)) score += 3;
         if (overview.includes(debouncedQuery)) score += 1;
         if (analysisSummary.includes(debouncedQuery)) score += 1;
-        if (timelineText.includes(debouncedQuery)) score += 1;
+        if (timelineText.includes(debouncedQuery)) score += 2;
         return { story, score };
       })
       .filter((entry) => entry.score > 0)

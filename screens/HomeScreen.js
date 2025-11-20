@@ -423,15 +423,14 @@ export default function HomeScreen({ navigation }) {
             </View>
           )}
 
-          <View style={styles.cardHeaderRow}>
-            {renderTypeBadge("story")}
-            <FavoriteButton
-              active={isFavorite(item)}
-              onPress={() => handleFavoritePress(item)}
-            />
-          </View>
-
           <View style={styles.textBlock}>
+            <View style={styles.cardHeaderRow}>
+              {renderTypeBadge("story")}
+              <FavoriteButton
+                active={isFavorite(item)}
+                onPress={() => handleFavoritePress(item)}
+              />
+            </View>
             <Text style={styles.categoryLabel}>
               {item.category?.toUpperCase() || "GENERAL"}
             </Text>
@@ -482,15 +481,14 @@ export default function HomeScreen({ navigation }) {
           </View>
         )}
 
-        <View style={styles.cardHeaderRow}>
-          {renderTypeBadge("theme")}
-          <FavoriteButton
-            active={isFavorite(item)}
-            onPress={() => handleFavoritePress(item)}
-          />
-        </View>
-
         <View style={styles.textBlock}>
+          <View style={styles.cardHeaderRow}>
+            {renderTypeBadge("theme")}
+            <FavoriteButton
+              active={isFavorite(item)}
+              onPress={() => handleFavoritePress(item)}
+            />
+          </View>
           <Text style={styles.categoryLabel}>
             {item.category?.toUpperCase() || "GENERAL"}
           </Text>
@@ -825,8 +823,7 @@ const createStyles = (palette) =>
       backgroundColor: "#DCFCE7",
     },
     typeBadgeText: {
-      fontSize: 11,
-      fontWeight: "700",
+      fontSize: 10,
       letterSpacing: 0.5,
       color: "#1D4ED8",
       textTransform: "uppercase",

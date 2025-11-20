@@ -247,11 +247,12 @@ function AppNavigator({ user }) {
                 headerLeft: () => (
                   <TouchableOpacity
                     onPress={openMenu}
-                    style={{ paddingRight: 12 }}
+                    style={{ paddingRight: 16, paddingVertical: 4 }}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
                     <Ionicons
                       name="menu"
-                      size={24}
+                      size={28}
                       color={darkMode ? "#f8fafc" : "#111827"}
                     />
                   </TouchableOpacity>

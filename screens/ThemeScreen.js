@@ -31,7 +31,7 @@ export default function ThemeScreen({ route, navigation }) {
   const [currentIndex, setCurrentIndex] = useState(index ?? 0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  const [depth, setDepth] = useState(3);
+  const [depth, setDepth] = useState(1);
   const {
     user,
     favorites,

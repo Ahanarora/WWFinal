@@ -35,7 +35,7 @@ export default function StoryScreen({ route, navigation }) {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   // Depth slider
-  const [depth, setDepth] = useState(3);
+  const [depth, setDepth] = useState(1);
   const {
     user,
     favorites,

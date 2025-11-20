@@ -19,6 +19,14 @@ const getTimestampMs = (value) => {
   return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
 };
 
+const collectTimelineText = (timeline) => {
+  if (!Array.isArray(timeline) || timeline.length === 0) return "";
+  return timeline
+    .map((evt) => `${evt.event || ""} ${evt.description || ""}`)
+    .join(" ")
+    .toLowerCase();
+};
+
 export default function SearchScreen({ route, navigation }) {
   const stories = route.params?.stories || getStorySearchCache() || [];
   const [query, setQuery] = useState("");
@@ -43,10 +51,12 @@ export default function SearchScreen({ route, navigation }) {
         const title = (story.title || "").toLowerCase();
         const overview = (story.overview || "").toLowerCase();
         const analysisSummary = (story.analysis?.summary || "").toLowerCase();
+        const timelineText = collectTimelineText(story.timeline);
         let score = 0;
         if (title.includes(debouncedQuery)) score += 3;
         if (overview.includes(debouncedQuery)) score += 1;
         if (analysisSummary.includes(debouncedQuery)) score += 1;
+        if (timelineText.includes(debouncedQuery)) score += 1;
         return { story, score };
       })
       .filter((entry) => entry.score > 0)

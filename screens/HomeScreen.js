@@ -85,6 +85,9 @@ export default function HomeScreen({ navigation }) {
   } = useUserData();
   const palette = themeColors || getThemeColors(false);
   const styles = useMemo(() => createStyles(palette), [palette]);
+  const goToSearch = () => {
+    navigation.navigate("Search", { stories });
+  };
 
   // -------------------------------
   // FETCH STORIES + THEMES
@@ -503,13 +506,19 @@ return (
 
       ListHeaderComponent={
         <>
-          {/* CATEGORY PILLS */}
-          <View style={styles.filterWrapper}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.categoryRow}
-            >
+      {/* CATEGORY PILLS + SEARCH */}
+      <View style={styles.filterWrapper}>
+        <View style={styles.filterTopRow}>
+          <TouchableOpacity style={styles.searchButton} onPress={goToSearch}>
+            <Ionicons name="search" size={18} color={palette.textPrimary} />
+            <Text style={styles.searchButtonText}>Search</Text>
+          </TouchableOpacity>
+        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoryRow}
+        >
               {CATEGORIES.map((cat) => {
                 const active = cat === activeCategory;
                 return (
@@ -637,6 +646,28 @@ const createStyles = (palette) =>
       borderColor: palette.border,
       paddingVertical: 10,
       backgroundColor: palette.surface,
+    },
+    filterTopRow: {
+      flexDirection: "row",
+      justifyContent: "flex-end",
+      paddingHorizontal: 16,
+      marginBottom: 8,
+    },
+    searchButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.background,
+    },
+    searchButtonText: {
+      color: palette.textPrimary,
+      fontSize: 13,
+      fontWeight: "600",
     },
     categoryRow: {
       flexDirection: "row",

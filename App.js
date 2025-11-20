@@ -36,6 +36,7 @@ import ThemeScreen from "./screens/ThemeScreen";
 import AnalysisModalScreen from "./screens/AnalysisModalScreen";
 import EventReaderModal from "./screens/EventReaderModal";
 import SavedScreen from "./screens/SavedScreen";
+import SearchScreen from "./screens/SearchScreen";
 
 // 👉 You must create this file:
 //    /screens/LoginScreen.js
@@ -245,6 +246,12 @@ function AppNavigator({ user }) {
               name="Saved"
               component={SavedScreen}
               options={{ title: "Saved Items" }}
+            />
+
+            <Stack.Screen
+              name="Search"
+              component={SearchScreen}
+              options={{ title: "Search" }}
             />
 
             <Stack.Screen

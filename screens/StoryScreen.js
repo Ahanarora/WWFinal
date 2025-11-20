@@ -20,6 +20,7 @@ import RenderWithContext from "../components/RenderWithContext";
 import { formatUpdatedAt, formatDateDDMMYYYY } from "../utils/formatTime";
 import { normalizeAnalysis } from "../utils/normalizeAnalysis";
 import DottedDivider from "../components/DottedDivider";
+import CommentsSection from "../components/CommentsSection";
 import { useUserData } from "../contexts/UserDataContext";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -414,7 +415,8 @@ export default function StoryScreen({ route, navigation }) {
         <View key={s.id}>
           {renderStoryBlock(s)}
 
-          <View style={{ marginTop: 0, marginBottom: 60 }}>
+          <CommentsSection type="story" itemId={s.id} />
+          <View style={{ marginTop: 12, marginBottom: 60 }}>
             <DottedDivider />
           </View>
         </View>

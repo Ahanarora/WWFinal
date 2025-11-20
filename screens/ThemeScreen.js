@@ -20,6 +20,7 @@ import { normalizeAnalysis } from "../utils/normalizeAnalysis";
 import DottedDivider from "../components/DottedDivider";
 import { useUserData } from "../contexts/UserDataContext";
 import { Ionicons } from "@expo/vector-icons";
+import CommentsSection from "../components/CommentsSection";
 
 const PHASE_PALETTE = ["#2563EB", "#DC2626", "#059669", "#D97706", "#6D28D9"];
 const SKY_BLUE = "#38BDF8";
@@ -428,15 +429,16 @@ export default function ThemeScreen({ route, navigation }) {
         }
       }}
     >
-  {feed.map((t, i) => (
-  <View key={t.id}>
-    {renderThemeBlock(t, i === 0)}
+      {feed.map((t, i) => (
+        <View key={t.id}>
+          {renderThemeBlock(t, i === 0)}
 
-    <View style={{ marginTop: 15, marginBottom: 60 }}>
-      <DottedDivider />
-    </View>
-  </View>
-))}
+          <CommentsSection type="theme" itemId={t.id} />
+          <View style={{ marginTop: 15, marginBottom: 60 }}>
+            <DottedDivider />
+          </View>
+        </View>
+      ))}
 
 
     </ScrollView>

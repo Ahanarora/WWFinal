@@ -1,19 +1,18 @@
 import {
-  collection,
   addDoc,
-  serverTimestamp,
-  query,
-  orderBy,
-  limit,
-  startAfter,
-  getDocs,
-  updateDoc,
+  collection,
   doc,
+  getDoc,
+  getDocs,
   increment,
+  limit,
+  orderBy,
+  query,
+  serverTimestamp,
+  startAfter,
+  updateDoc,
 } from "firebase/firestore";
 import { db } from "../firebaseConfig";
-
-const PAGE_SIZE = 10;
 
 export const CommentSort = {
   NEWEST: "newest",
@@ -21,8 +20,24 @@ export const CommentSort = {
   TOP: "top",
 };
 
+export const COMMENTS_PAGE_SIZE = 12;
+export const MAX_THREAD_DEPTH = 4;
+
+const getCollectionRoot = (type) =>
+  type === "theme" ? "themes" : "stories";
+
 const getCommentsCollection = (type, itemId) =>
-  collection(db, type === "story" ? "stories" : "themes", itemId, "comments");
+  collection(db, getCollectionRoot(type), itemId, "comments");
+
+const serializeComment = (snapshot) => {
+  const data = snapshot.data();
+  return {
+    id: snapshot.id,
+    ...data,
+    createdAt: data?.createdAt?.toMillis?.() ?? null,
+    updatedAt: data?.updatedAt?.toMillis?.() ?? null,
+  };
+};
 
 export async function addComment({
   type,
@@ -32,52 +47,98 @@ export async function addComment({
   user,
 }) {
   const col = getCommentsCollection(type, itemId);
+  let depth = 0;
+
+  if (parentId) {
+    const parentSnap = await getDoc(
+      doc(db, getCollectionRoot(type), itemId, "comments", parentId)
+    );
+    const parentDepth = parentSnap.exists()
+      ? parentSnap.data()?.depth || 0
+      : 0;
+    depth = Math.min(MAX_THREAD_DEPTH, parentDepth + 1);
+  }
+
+  const displayName =
+    user?.displayName?.trim?.() ||
+    user?.email ||
+    user?.phoneNumber ||
+    "Reader";
+
   const payload = {
     text,
-    parentId,
-    authorId: user?.uid,
-    authorName: user?.email || "Reader",
+    parentId: parentId || null,
+    depth,
+    authorId: user?.uid || null,
+    authorName: displayName,
     upvotes: 0,
     downvotes: 0,
     flags: 0,
     createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   };
-  await addDoc(col, payload);
+
+  const ref = await addDoc(col, payload);
+  return ref;
 }
 
-export async function fetchComments({ type, itemId, sort = CommentSort.NEWEST, cursor = null }) {
-  let q = query(getCommentsCollection(type, itemId));
+export async function fetchComments({
+  type,
+  itemId,
+  sort = CommentSort.NEWEST,
+  cursor = null,
+}) {
+  const baseRef = getCommentsCollection(type, itemId);
+  let constraints = [];
 
   if (sort === CommentSort.OLDEST) {
-    q = query(q, orderBy("createdAt", "asc"));
+    constraints = [orderBy("createdAt", "asc")];
   } else if (sort === CommentSort.TOP) {
-    q = query(q, orderBy("upvotes", "desc"), orderBy("createdAt", "desc"));
+    constraints = [orderBy("upvotes", "desc"), orderBy("createdAt", "desc")];
   } else {
-    q = query(q, orderBy("createdAt", "desc"));
+    constraints = [orderBy("createdAt", "desc")];
   }
 
-  q = query(q, limit(PAGE_SIZE));
+  let q = query(baseRef, ...constraints, limit(COMMENTS_PAGE_SIZE));
   if (cursor) {
-    q = query(q, startAfter(cursor));
+    q = query(baseRef, ...constraints, startAfter(cursor), limit(COMMENTS_PAGE_SIZE));
   }
 
   const snapshot = await getDocs(q);
   return {
-    comments: snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
+    comments: snapshot.docs.map(serializeComment),
     lastVisible: snapshot.docs[snapshot.docs.length - 1] || null,
   };
 }
 
-export async function voteOnComment({ type, itemId, commentId, delta }) {
-  const ref = doc(db, type === "story" ? "stories" : "themes", itemId, "comments", commentId);
-  if (delta === 1) {
+export async function voteOnComment({
+  type,
+  itemId,
+  commentId,
+  delta,
+}) {
+  const ref = doc(
+    db,
+    getCollectionRoot(type),
+    itemId,
+    "comments",
+    commentId
+  );
+
+  if (delta > 0) {
     await updateDoc(ref, { upvotes: increment(1) });
-  } else if (delta === -1) {
+  } else if (delta < 0) {
     await updateDoc(ref, { downvotes: increment(1) });
   }
 }
 
 export async function flagComment({ type, itemId, commentId }) {
-  const ref = doc(db, type === "story" ? "stories" : "themes", itemId, "comments", commentId);
+  const ref = doc(
+    db,
+    getCollectionRoot(type),
+    itemId,
+    "comments",
+    commentId
+  );
   await updateDoc(ref, { flags: increment(1) });
 }

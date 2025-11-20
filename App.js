@@ -1,7 +1,7 @@
 // ----------------------------------------
-// App.js — Wait...What? News App
+// App.js — Wait...What? News App (WITH AUTH)
 // ----------------------------------------
-import React, { useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Text } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -10,6 +10,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFonts } from "expo-font";
 import { colors } from "./styles/theme";
 
+// 🔐 AUTH IMPORTS
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "./firebaseConfig";
 
 // Screens
 import HomeScreen from "./screens/HomeScreen";
@@ -17,8 +20,12 @@ import StoriesScreen from "./screens/StoriesScreen";
 import ThemesScreen from "./screens/ThemesScreen";
 import StoryScreen from "./screens/StoryScreen";
 import ThemeScreen from "./screens/ThemeScreen";
-import AnalysisModalScreen from "./screens/AnalysisModalScreen"; // ✅ NEW
+import AnalysisModalScreen from "./screens/AnalysisModalScreen";
 import EventReaderModal from "./screens/EventReaderModal";
+
+// 👉 You must create this file:
+//    /screens/LoginScreen.js
+import LoginScreen from "./screens/LoginScreen";
 
 // Tabs and Stack
 const Tab = createBottomTabNavigator();
@@ -51,34 +58,29 @@ function Tabs() {
         tabBarLabelStyle: { fontSize: 12 },
       })}
     >
-      {/* 🏠 Home */}
-      <Tab.Screen
-        name="HomeTab"
-        component={HomeScreen}
-        options={{ title: "Home" }}
-      />
-
-      {/* 📰 Stories */}
-      <Tab.Screen
-        name="StoriesTab"
-        component={StoriesScreen}
-        options={{ title: "Stories" }}
-      />
-
-      {/* 🧭 Themes */}
-      <Tab.Screen
-        name="ThemesTab"
-        component={ThemesScreen}
-        options={{ title: "Themes" }}
-      />
+      <Tab.Screen name="HomeTab" component={HomeScreen} options={{ title: "Home" }} />
+      <Tab.Screen name="StoriesTab" component={StoriesScreen} options={{ title: "Stories" }} />
+      <Tab.Screen name="ThemesTab" component={ThemesScreen} options={{ title: "Themes" }} />
     </Tab.Navigator>
   );
 }
 
 // ----------------------------------------
-// 🧭 Root Stack Navigation
+// 🧭 Root Stack Navigation + AUTH GATE
 // ----------------------------------------
 export default function App() {
+  // 🔐 Manage Auth State
+  const [user, setUser] = useState(null);
+  const [authChecking, setAuthChecking] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setAuthChecking(false);
+    });
+    return unsubscribe;
+  }, []);
+
   // Load fonts
   const [fontsLoaded] = useFonts({
     Barrio: require("./assets/fonts/Barrio-Regular.ttf"),
@@ -94,75 +96,64 @@ export default function App() {
   });
 
   const waitHeader = useMemo(() => {
-  return (
-    <Text
-      style={{
-        fontFamily: "Jacquard24",
-        fontSize: 64,
-        color: colors.textPrimary,
-      }}
-    >
-      Wait...What?
-    </Text>
-  );
-}, []);
+    return (
+      <Text
+        style={{
+          fontFamily: "Jacquard24",
+          fontSize: 64,
+          color: colors.textPrimary,
+        }}
+      >
+        Wait...What?
+      </Text>
+    );
+  }, []);
 
-
- if (!fontsLoaded) {
-  return null; // OR return a splash component
-}
-
+  if (!fontsLoaded || authChecking) return null;
 
   return (
     <NavigationContainer>
-      <Stack.Navigator>
-  <Stack.Screen
-    name="RootTabs"
-    component={Tabs}
-    options={{
-      headerTitleAlign: "center",
-      headerTitle: () => waitHeader,
-    }}
-  />
+      {/* 🔐 AUTH GATE */}
+      {!user ? (
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Login" component={LoginScreen} />
+        </Stack.Navigator>
+      ) : (
+        <Stack.Navigator>
+          <Stack.Screen
+            name="RootTabs"
+            component={Tabs}
+            options={{
+              headerTitleAlign: "center",
+              headerTitle: () => waitHeader,
+            }}
+          />
 
-  <Stack.Screen
-    name="Story"
-    component={StoryScreen}
-    options={{
-      title: "Story",
-      headerBackTitle: "Back",
-    }}
-  />
+          <Stack.Screen
+            name="Story"
+            component={StoryScreen}
+            options={{ title: "Story", headerBackTitle: "Back" }}
+          />
 
-  <Stack.Screen
-    name="Theme"
-    component={ThemeScreen}
-    options={{
-      title: "Theme",
-      headerBackTitle: "Back",
-    }}
-  />
+          <Stack.Screen
+            name="Theme"
+            component={ThemeScreen}
+            options={{ title: "Theme", headerBackTitle: "Back" }}
+          />
 
-  {/* ✅ ADD THIS */}
-  <Stack.Screen
-    name="AnalysisModal"
-    component={AnalysisModalScreen}
-    options={{
-      presentation: "modal",
-      headerShown: false,
-    }}
-  />
+          <Stack.Screen
+            name="AnalysisModal"
+            component={AnalysisModalScreen}
+            options={{ presentation: "modal", headerShown: false }}
+          />
 
-  <Stack.Screen
-  name="EventReader"
-  component={EventReaderModal}
-  options={{
-    presentation: "modal",
-    headerShown: false,
-  }}
-/>
-</Stack.Navigator>
-
+          <Stack.Screen
+            name="EventReader"
+            component={EventReaderModal}
+            options={{ presentation: "modal", headerShown: false }}
+          />
+        </Stack.Navigator>
+      )}
     </NavigationContainer>
   );
 }

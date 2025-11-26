@@ -12,6 +12,7 @@ import {
   Image,
   TouchableOpacity,
   Pressable,
+  Modal,
 } from "react-native";
 import Slider from "@react-native-community/slider";
 import { colors, fonts, spacing } from "../styles/theme";
@@ -24,7 +25,14 @@ import { useUserData } from "../contexts/UserDataContext";
 import { Ionicons } from "@expo/vector-icons";
 
 const PHASE_PALETTE = ["#2563EB", "#DC2626", "#059669", "#D97706", "#6D28D9"];
-const SKY_BLUE = "#38BDF8";
+const SKY_BLUE = "#2563EB";
+
+function getFactCheckRgb(score) {
+  if (score >= 85) return { bg: "#BBF7D0", text: "#166534" }; // green
+  if (score >= 70) return { bg: "#FEF9C3", text: "#854D0E" }; // yellow
+  if (score >= 50) return { bg: "#FFEDD5", text: "#9A3412" }; // orange
+  return { bg: "#FEE2E2", text: "#991B1B" }; // red
+}
 
 export default function StoryScreen({ route, navigation }) {
   const { story, index, allStories } = route.params || {};
@@ -42,6 +50,10 @@ export default function StoryScreen({ route, navigation }) {
     toggleFavorite,
     recordVisit,
   } = useUserData();
+  const [factCheckModal, setFactCheckModal] = useState({
+    visible: false,
+    factCheck: null,
+  });
   const isFavoriteStory = (id) => favorites?.stories?.includes(id);
   const handleFavorite = (item) => {
     if (!user) {
@@ -300,6 +312,13 @@ export default function StoryScreen({ route, navigation }) {
             const activePhase = phaseRangeLookup[e._originalIndex];
             const isPhaseEnd =
               activePhase && activePhase.endIndex === e._originalIndex;
+            const hasFactCheck =
+              !!e.factCheck &&
+              typeof e.factCheck.confidenceScore === "number" &&
+              !Number.isNaN(e.factCheck.confidenceScore);
+            const factCheckColors = hasFactCheck
+              ? getFactCheckRgb(e.factCheck.confidenceScore)
+              : null;
 
             return (
               <View key={e._originalIndex ?? i} style={styles.eventBlock}>
@@ -367,6 +386,32 @@ export default function StoryScreen({ route, navigation }) {
                         navigation={navigation}
                       />
 
+                      {hasFactCheck && (
+                        <View style={styles.factCheckContainer}>
+                          <TouchableOpacity
+                            activeOpacity={0.85}
+                            onPress={() =>
+                              setFactCheckModal({
+                                visible: true,
+                                factCheck: e.factCheck,
+                              })
+                            }
+                          >
+                            <Text
+                              style={[
+                                styles.factCheckBadge,
+                                {
+                                  backgroundColor: factCheckColors.bg,
+                                  color: factCheckColors.text,
+                                },
+                              ]}
+                            >
+                              {e.factCheck.confidenceScore}% fact-check confidence
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+
                       {Array.isArray(e.sources) && e.sources.length > 0 && (
                         <View style={styles.eventSources}>
                           <SourceLinks sources={e.sources} />
@@ -417,6 +462,52 @@ export default function StoryScreen({ route, navigation }) {
           <CommentsSection type="story" itemId={s.id} />
         </View>
       ))}
+      <Modal
+        visible={factCheckModal.visible}
+        animationType="fade"
+        transparent
+        onRequestClose={() =>
+          setFactCheckModal({ visible: false, factCheck: null })
+        }
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setFactCheckModal({ visible: false, factCheck: null })}
+        >
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Fact-check details</Text>
+            {factCheckModal.factCheck ? (
+              <>
+                <Text style={styles.modalScore}>
+                  {factCheckModal.factCheck.confidenceScore}% confidence
+                </Text>
+                {factCheckModal.factCheck.explanation ? (
+                  <Text style={styles.modalBody}>
+                    {factCheckModal.factCheck.explanation}
+                  </Text>
+                ) : null}
+                {factCheckModal.factCheck.lastCheckedAt ? (
+                  <Text style={styles.modalMeta}>
+                    Last updated:{" "}
+                    {new Date(
+                      factCheckModal.factCheck.lastCheckedAt
+                    ).toLocaleString()}
+                  </Text>
+                ) : null}
+              </>
+            ) : null}
+            <TouchableOpacity
+              style={styles.modalClose}
+              onPress={() =>
+                setFactCheckModal({ visible: false, factCheck: null })
+              }
+            >
+              <Text style={styles.modalCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </ScrollView>
   );
 }
@@ -610,6 +701,23 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
 
+  factCheckContainer: {
+    marginTop: 6,
+    paddingTop: 6,
+    borderTopWidth: 0.5,
+    borderTopColor: "#E5E7EB",
+    gap: 4,
+  },
+  factCheckBadge: {
+    fontSize: 11,
+    fontWeight: "600",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    overflow: "hidden",
+    alignSelf: "flex-start",
+  },
+
   phaseEndIndicator: {
     flexDirection: "row",
     alignItems: "center",
@@ -622,5 +730,48 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    padding: spacing.md,
+  },
+  modalCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: spacing.lg,
+    gap: 8,
+  },
+  modalTitle: {
+    fontFamily: fonts.heading,
+    fontSize: 18,
+    color: colors.textPrimary,
+  },
+  modalScore: {
+    fontFamily: fonts.heading,
+    fontSize: 16,
+    color: colors.textPrimary,
+  },
+  modalBody: {
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+  modalMeta: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: "#6B7280",
+  },
+  modalClose: {
+    alignSelf: "flex-end",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  modalCloseText: {
+    color: "#2563EB",
+    fontSize: 14,
+    fontWeight: "600",
   },
 });

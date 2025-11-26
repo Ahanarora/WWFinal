@@ -11,11 +11,20 @@ import {
   Image,
   StatusBar,
   Animated,
+  Modal,
+  TouchableOpacity,
 } from "react-native";
 import { colors, fonts, spacing } from "../styles/theme";
 import RenderWithContext from "../components/RenderWithContext";
 import SourceLinks from "../components/SourceLinks";
 import { formatDateDDMMYYYY } from "../utils/formatTime";
+
+function getFactCheckRgb(score) {
+  if (score >= 85) return { bg: "#BBF7D0", text: "#166534" };
+  if (score >= 70) return { bg: "#FEF9C3", text: "#854D0E" };
+  if (score >= 50) return { bg: "#FFEDD5", text: "#9A3412" };
+  return { bg: "#FEE2E2", text: "#991B1B" };
+}
 
 // -------------------------------
 // Reusable card for each event
@@ -24,6 +33,7 @@ const EventCard = React.memo(function EventCard({
   event,
   navigation,
   headerTitle,
+  onOpenFactCheck,
 }) {
   if (!event) return null;
 
@@ -35,9 +45,17 @@ const EventCard = React.memo(function EventCard({
     sources = [],
     imageUrl = null,
     phaseTitle = null,
+    factCheck = null,
   } = event;
 
   const formattedDate = date ? formatDateDDMMYYYY(date) : "";
+  const hasFactCheck =
+    factCheck &&
+    typeof factCheck.confidenceScore === "number" &&
+    !Number.isNaN(factCheck.confidenceScore);
+  const factCheckColors = hasFactCheck
+    ? getFactCheckRgb(factCheck.confidenceScore)
+    : null;
 
   return (
     <View style={styles.cardInner}>
@@ -77,6 +95,27 @@ const EventCard = React.memo(function EventCard({
             <SourceLinks sources={sources} />
           </View>
         )}
+
+        {hasFactCheck && (
+          <View style={styles.factCheckBlock}>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => onOpenFactCheck?.(factCheck)}
+            >
+              <Text
+                style={[
+                  styles.factCheckBadge,
+                  {
+                    backgroundColor: factCheckColors.bg,
+                    color: factCheckColors.text,
+                  },
+                ]}
+              >
+                {factCheck.confidenceScore}% fact-check confidence
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -106,6 +145,7 @@ export default function EventReaderModal({ route, navigation }) {
         sources: Array.isArray(e?.sources) ? e.sources : [],
         imageUrl: e?.imageUrl || e?.image || e?.thumbnail || null,
         phaseTitle: e?.phaseTitle || null,
+        factCheck: e?.factCheck || null,
       }));
   }, [rawEvents]);
 
@@ -115,6 +155,10 @@ export default function EventReaderModal({ route, navigation }) {
 
   const [isTransitioning, setIsTransitioning] = useState(false);
   const anim = useRef(new Animated.Value(1)).current;
+  const [factCheckModal, setFactCheckModal] = useState({
+    visible: false,
+    factCheck: null,
+  });
 
   if (!safeEvents || safeEvents.length === 0) {
     return (
@@ -224,9 +268,59 @@ export default function EventReaderModal({ route, navigation }) {
             event={currentEvent}
             navigation={navigation}
             headerTitle={headerTitle}
+            onOpenFactCheck={(fc) =>
+              setFactCheckModal({ visible: true, factCheck: fc })
+            }
           />
         </Animated.View>
       </View>
+
+      <Modal
+        visible={factCheckModal.visible}
+        animationType="fade"
+        transparent
+        onRequestClose={() =>
+          setFactCheckModal({ visible: false, factCheck: null })
+        }
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setFactCheckModal({ visible: false, factCheck: null })}
+        >
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Fact-check details</Text>
+            {factCheckModal.factCheck ? (
+              <>
+                <Text style={styles.modalScore}>
+                  {factCheckModal.factCheck.confidenceScore}% confidence
+                </Text>
+                {factCheckModal.factCheck.explanation ? (
+                  <Text style={styles.modalBody}>
+                    {factCheckModal.factCheck.explanation}
+                  </Text>
+                ) : null}
+                {factCheckModal.factCheck.lastCheckedAt ? (
+                  <Text style={styles.modalMeta}>
+                    Last updated:{" "}
+                    {new Date(
+                      factCheckModal.factCheck.lastCheckedAt
+                    ).toLocaleString()}
+                  </Text>
+                ) : null}
+              </>
+            ) : null}
+            <TouchableOpacity
+              style={styles.modalClose}
+              onPress={() =>
+                setFactCheckModal({ visible: false, factCheck: null })
+              }
+            >
+              <Text style={styles.modalCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -330,5 +424,64 @@ const styles = StyleSheet.create({
 
   sources: {
     marginTop: 8,
+  },
+
+  factCheckBlock: {
+    marginTop: spacing.sm,
+    paddingTop: spacing.xs,
+    borderTopWidth: 0.5,
+    borderTopColor: "#E5E7EB",
+    gap: 6,
+  },
+  factCheckBadge: {
+    fontSize: 12,
+    fontWeight: "700",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    alignSelf: "flex-start",
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    padding: spacing.md,
+  },
+  modalCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: spacing.lg,
+    gap: 8,
+  },
+  modalTitle: {
+    fontFamily: fonts.heading,
+    fontSize: 18,
+    color: colors.textPrimary,
+  },
+  modalScore: {
+    fontFamily: fonts.heading,
+    fontSize: 16,
+    color: colors.textPrimary,
+  },
+  modalBody: {
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+  modalMeta: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: "#6B7280",
+  },
+  modalClose: {
+    alignSelf: "flex-end",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  modalCloseText: {
+    color: "#2563EB",
+    fontSize: 14,
+    fontWeight: "600",
   },
 });

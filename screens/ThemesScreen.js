@@ -23,6 +23,43 @@ import { getLatestHeadlines } from "../utils/getLatestHeadlines";
 import { colors } from "../styles/theme";
 import { Ionicons } from "@expo/vector-icons";
 
+const CATEGORIES = [
+  "All",
+  "POLITICS",
+  "BUSINESS & ECONOMY",
+  "WORLD",
+  "INDIA",
+];
+
+const SUBCATEGORY_MAP = {
+  POLITICS: [
+    "Elections & Power Transitions",
+    "Government Policies & Bills",
+    "Public Institutions & Judiciary",
+    "Geopolitics & Diplomacy",
+  ],
+  "BUSINESS & ECONOMY": [
+    "Macroeconomy",
+    "Industries",
+    "Markets & Finance",
+    "Trade & Tariffs",
+    "Corporate Developments",
+  ],
+  WORLD: [
+    "International Conflicts",
+    "Global Governance",
+    "Migration & Humanitarian Crises",
+    "Elections Worldwide",
+    "Science & Tech",
+    "Environment",
+  ],
+  INDIA: [
+    "Social Issues",
+    "Infrastructure & Development",
+    "Science, Tech and Environment",
+  ],
+};
+
 
 /**
  * ⭐ Safe timestamp normalizer for sorting.
@@ -60,6 +97,8 @@ export default function ThemesScreen({ navigation }) {
 
   const [sortMode, setSortMode] = useState("relevance");
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [activeCategory, setActiveCategory] = useState("All");
+  const [activeSubcategory, setActiveSubcategory] = useState("All");
 
   // ----------------------------------
   // FETCH THEMES
@@ -81,10 +120,39 @@ export default function ThemesScreen({ navigation }) {
   }, []);
 
   // ----------------------------------
-  // SORTED THEMES
+  // FILTER + SORTED THEMES
   // ----------------------------------
+  const matchesCategory = (item, category) => {
+    if (category === "All") return true;
+    const allCats = Array.isArray(item.allCategories)
+      ? item.allCategories
+      : item.category
+      ? [item.category]
+      : [];
+    return allCats.includes(category);
+  };
+
+  const matchesSubcategory = (item, subcat) => {
+    if (subcat === "All") return true;
+    const primary = item.subcategory;
+    const secondary = Array.isArray(item.secondarySubcategories)
+      ? item.secondarySubcategories
+      : [];
+    return primary === subcat || secondary.includes(subcat);
+  };
+
+  const filteredThemes = useMemo(
+    () =>
+      themes.filter(
+        (t) =>
+          matchesCategory(t, activeCategory) &&
+          matchesSubcategory(t, activeSubcategory)
+      ),
+    [themes, activeCategory, activeSubcategory]
+  );
+
   const sortedThemes = useMemo(() => {
-    const list = [...themes];
+    const list = [...filteredThemes];
 
     // 🔥 Recently Updated → updatedAt only
     if (sortMode === "updated") {
@@ -102,7 +170,7 @@ export default function ThemesScreen({ navigation }) {
 
     // Default relevance
     return list.sort((a, b) => scoreContent(b) - scoreContent(a));
-  }, [themes, sortMode]);
+  }, [filteredThemes, sortMode]);
 
   // ----------------------------------
   // LOADING STATES
@@ -209,6 +277,74 @@ export default function ThemesScreen({ navigation }) {
   // ----------------------------------
   return (
     <View style={styles.container}>
+      {/* CATEGORY FILTER */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.categoryRow}
+      >
+        {CATEGORIES.map((cat) => {
+          const active = cat === activeCategory;
+          return (
+            <TouchableOpacity
+              key={cat}
+              onPress={() => {
+                setActiveCategory(cat);
+                setActiveSubcategory("All");
+              }}
+              style={[
+                styles.categoryPill,
+                active && styles.categoryPillActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.categoryText,
+                  active && styles.categoryTextActive,
+                ]}
+              >
+                {cat}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      {/* SUBCATEGORY FILTER */}
+      {activeCategory !== "All" && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.subcategoryRow}
+        >
+          <TouchableOpacity onPress={() => setActiveSubcategory("All")}>
+            <Text
+              style={[
+                styles.subcategoryText,
+                activeSubcategory === "All" && styles.subcategoryTextActive,
+              ]}
+            >
+              ALL
+            </Text>
+          </TouchableOpacity>
+          {(SUBCATEGORY_MAP[activeCategory] || []).map((sub) => (
+            <TouchableOpacity
+              key={sub}
+              onPress={() => setActiveSubcategory(sub)}
+            >
+              <Text
+                style={[
+                  styles.subcategoryText,
+                  activeSubcategory === sub && styles.subcategoryTextActive,
+                ]}
+              >
+                {sub}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
+
       {/* SORT DROPDOWN */}
       {/* SORT BUTTON WITH ARROW */}
 <TouchableOpacity
@@ -301,6 +437,52 @@ const styles = StyleSheet.create({
   dropdownButtonText: {
     fontSize: 14,
     color: "#000",
+  },
+  categoryRow: {
+    flexDirection: "row",
+    gap: 10,
+    paddingHorizontal: 4,
+    paddingVertical: 6,
+    marginBottom: 6,
+  },
+  categoryPill: {
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: "#fff",
+  },
+  categoryPillActive: {
+    backgroundColor: "#2563EB",
+    borderColor: "#2563EB",
+  },
+  categoryText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  categoryTextActive: {
+    color: "#fff",
+    fontWeight: "600",
+  },
+  subcategoryRow: {
+    flexDirection: "row",
+    gap: 14,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+    backgroundColor: "#f9fafb",
+    marginBottom: 8,
+  },
+  subcategoryText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    textDecorationLine: "underline",
+  },
+  subcategoryTextActive: {
+    color: "#2563EB",
+    fontWeight: "700",
   },
 
   modalBackdrop: {

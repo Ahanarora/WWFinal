@@ -12,6 +12,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
+  ScrollView,
   Modal,
 } from "react-native";
 import { collection, getDocs } from "firebase/firestore";
@@ -23,6 +24,43 @@ import { getLatestHeadlines } from "../utils/getLatestHeadlines";
 import { getThemeColors } from "../styles/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useUserData } from "../contexts/UserDataContext";
+
+const CATEGORIES = [
+  "All",
+  "POLITICS",
+  "BUSINESS & ECONOMY",
+  "WORLD",
+  "INDIA",
+];
+
+const SUBCATEGORY_MAP = {
+  POLITICS: [
+    "Elections & Power Transitions",
+    "Government Policies & Bills",
+    "Public Institutions & Judiciary",
+    "Geopolitics & Diplomacy",
+  ],
+  "BUSINESS & ECONOMY": [
+    "Macroeconomy",
+    "Industries",
+    "Markets & Finance",
+    "Trade & Tariffs",
+    "Corporate Developments",
+  ],
+  WORLD: [
+    "International Conflicts",
+    "Global Governance",
+    "Migration & Humanitarian Crises",
+    "Elections Worldwide",
+    "Science & Tech",
+    "Environment",
+  ],
+  INDIA: [
+    "Social Issues",
+    "Infrastructure & Development",
+    "Science, Tech and Environment",
+  ],
+};
 
 
 /**
@@ -65,6 +103,8 @@ export default function StoriesScreen({ navigation }) {
 
   // NEW: sort mode
   const [sortMode, setSortMode] = useState("relevance");
+  const [activeCategory, setActiveCategory] = useState("All");
+  const [activeSubcategory, setActiveSubcategory] = useState("All");
 
   // Dropdown modal
   const [showSortMenu, setShowSortMenu] = useState(false);
@@ -96,10 +136,39 @@ export default function StoriesScreen({ navigation }) {
   }, []);
 
   // -----------------------------
-  // SORTED STORIES
+  // FILTER + SORTED STORIES
   // -----------------------------
+  const matchesCategory = (item, category) => {
+    if (category === "All") return true;
+    const allCats = Array.isArray(item.allCategories)
+      ? item.allCategories
+      : item.category
+      ? [item.category]
+      : [];
+    return allCats.includes(category);
+  };
+
+  const matchesSubcategory = (item, subcat) => {
+    if (subcat === "All") return true;
+    const primary = item.subcategory;
+    const secondary = Array.isArray(item.secondarySubcategories)
+      ? item.secondarySubcategories
+      : [];
+    return primary === subcat || secondary.includes(subcat);
+  };
+
+  const filteredStories = useMemo(
+    () =>
+      stories.filter(
+        (s) =>
+          matchesCategory(s, activeCategory) &&
+          matchesSubcategory(s, activeSubcategory)
+      ),
+    [stories, activeCategory, activeSubcategory]
+  );
+
   const sortedStories = useMemo(() => {
-    const list = [...stories];
+    const list = [...filteredStories];
 
     // 🔥 Recently Updated — uses updatedAt
     if (sortMode === "updated") {
@@ -117,7 +186,7 @@ export default function StoriesScreen({ navigation }) {
 
     // 🔥 Relevance (velocity + recency)
     return list.sort((a, b) => scoreContent(b) - scoreContent(a));
-  }, [stories, sortMode]);
+  }, [filteredStories, sortMode]);
 
   // -----------------------------
   // RENDER STORY CARD
@@ -259,6 +328,73 @@ export default function StoriesScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Stories</Text>
+      {/* CATEGORY FILTER */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.categoryRow}
+      >
+        {CATEGORIES.map((cat) => {
+          const active = cat === activeCategory;
+          return (
+            <TouchableOpacity
+              key={cat}
+              onPress={() => {
+                setActiveCategory(cat);
+                setActiveSubcategory("All");
+              }}
+              style={[
+                styles.categoryPill,
+                active && styles.categoryPillActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.categoryText,
+                  active && styles.categoryTextActive,
+                ]}
+              >
+                {cat}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      {/* SUBCATEGORY FILTER */}
+      {activeCategory !== "All" && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.subcategoryRow}
+        >
+          <TouchableOpacity onPress={() => setActiveSubcategory("All")}>
+            <Text
+              style={[
+                styles.subcategoryText,
+                activeSubcategory === "All" && styles.subcategoryTextActive,
+              ]}
+            >
+              ALL
+            </Text>
+          </TouchableOpacity>
+          {(SUBCATEGORY_MAP[activeCategory] || []).map((sub) => (
+            <TouchableOpacity
+              key={sub}
+              onPress={() => setActiveSubcategory(sub)}
+            >
+              <Text
+                style={[
+                  styles.subcategoryText,
+                  activeSubcategory === sub && styles.subcategoryTextActive,
+                ]}
+              >
+                {sub}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
 
       {/* ---------- SORT DROPDOWN ---------- */}
       {/* SORT BUTTON WITH ARROW */}
@@ -366,6 +502,52 @@ const createStyles = (palette) =>
     dropdownButtonText: {
       fontSize: 14,
       color: palette.textPrimary,
+    },
+    categoryRow: {
+      flexDirection: "row",
+      gap: 10,
+      paddingHorizontal: 4,
+      paddingVertical: 6,
+      marginBottom: 6,
+    },
+    categoryPill: {
+      borderWidth: 1,
+      borderColor: palette.border,
+      borderRadius: 999,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      backgroundColor: palette.surface,
+    },
+    categoryPillActive: {
+      backgroundColor: palette.accent,
+      borderColor: palette.accent,
+    },
+    categoryText: {
+      fontSize: 13,
+      color: palette.textSecondary,
+    },
+    categoryTextActive: {
+      color: "#fff",
+      fontWeight: "600",
+    },
+    subcategoryRow: {
+      flexDirection: "row",
+      gap: 14,
+      paddingHorizontal: 8,
+      paddingVertical: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: palette.border,
+      backgroundColor: "#f9fafb",
+      marginBottom: 8,
+    },
+    subcategoryText: {
+      fontSize: 13,
+      color: palette.textSecondary,
+      textDecorationLine: "underline",
+    },
+    subcategoryTextActive: {
+      color: palette.accent,
+      fontWeight: "700",
     },
     modalBackdrop: {
       flex: 1,

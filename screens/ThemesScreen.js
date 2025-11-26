@@ -179,7 +179,6 @@ export default function ThemesScreen({ navigation }) {
         )}
 
         <View style={styles.content}>
-          <Text style={styles.category}>{theme.category || "General"}</Text>
           <Text style={styles.title}>{theme.title}</Text>
           <Text style={styles.updated}>{formatUpdatedAt(theme.updatedAt)}</Text>
 
@@ -361,11 +360,6 @@ const styles = StyleSheet.create({
 
   content: { padding: 20, gap: 8 },
 
-  category: {
-    fontSize: 13,
-    color: colors.accent,
-    textTransform: "uppercase",
-  },
   title: { fontSize: 20, fontWeight: "700", color: colors.textPrimary },
   updated: { fontSize: 13, color: colors.muted },
 

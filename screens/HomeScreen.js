@@ -483,12 +483,6 @@ export default function HomeScreen({ navigation }) {
                 onPress={() => handleFavoritePress(item)}
               />
             </View>
-            <Text style={styles.categoryLabel}>
-              {item.category?.toUpperCase() || "GENERAL"}
-            </Text>
-            {item.subcategory ? (
-              <Text style={styles.subcategoryLabel}>{item.subcategory}</Text>
-            ) : null}
             <Text style={styles.title}>{item.title}</Text>
             {renderUpdateBadge(updatesCount(item))}
             <Text style={styles.updatedText}>{formatUpdatedAt(item.updatedAt)}</Text>
@@ -544,12 +538,6 @@ export default function HomeScreen({ navigation }) {
               onPress={() => handleFavoritePress(item)}
             />
           </View>
-          <Text style={styles.categoryLabel}>
-            {item.category?.toUpperCase() || "GENERAL"}
-          </Text>
-          {item.subcategory ? (
-            <Text style={styles.subcategoryLabel}>{item.subcategory}</Text>
-          ) : null}
           <Text style={styles.title}>{item.title}</Text>
           {renderUpdateBadge(updatesCount(item))}
           <Text style={styles.updatedText}>{formatUpdatedAt(item.updatedAt)}</Text>

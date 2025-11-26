@@ -212,7 +212,6 @@ export default function StoriesScreen({ navigation }) {
         )}
 
         <View style={styles.cardContent}>
-          <Text style={styles.category}>{item.category || "Uncategorized"}</Text>
           <View style={styles.cardHeaderRow}>
             <Text style={styles.title}>{item.title}</Text>
             <FavoriteButton
@@ -417,12 +416,6 @@ const createStyles = (palette) =>
       fontSize: 18,
       fontWeight: "600",
       color: palette.textPrimary,
-    },
-    category: {
-      fontSize: 13,
-      color: palette.accent,
-      textTransform: "uppercase",
-      letterSpacing: 1,
     },
     updated: {
       fontSize: 13,

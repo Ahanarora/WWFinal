@@ -58,27 +58,27 @@ const getCreatedAtMs = (item) => {
 // Categories for top filter (predefined)
 const CATEGORIES = [
   "All",
-  "POLITICS",
-  "BUSINESS & ECONOMY",
-  "WORLD",
-  "INDIA",
+  "Politics",
+  "Business & Economy",
+  "World",
+  "India",
 ];
 
 const SUBCATEGORY_MAP = {
-  POLITICS: [
+  Politics: [
     "Elections & Power Transitions",
     "Government Policies & Bills",
     "Public Institutions & Judiciary",
     "Geopolitics & Diplomacy",
   ],
-  "BUSINESS & ECONOMY": [
+  "Business & Economy": [
     "Macroeconomy",
     "Industries",
     "Markets & Finance",
     "Trade & Tariffs",
     "Corporate Developments",
   ],
-  WORLD: [
+  World: [
     "International Conflicts",
     "Global Governance",
     "Migration & Humanitarian Crises",
@@ -86,7 +86,7 @@ const SUBCATEGORY_MAP = {
     "Science & Tech",
     "Environment",
   ],
-  INDIA: [
+  India: [
     "Social Issues",
     "Infrastructure & Development",
     "Science, Tech and Environment",
@@ -147,7 +147,8 @@ export default function HomeScreen({ navigation }) {
       : item.category
       ? [item.category]
       : [];
-    return allCats.includes(category);
+    const target = category.toLowerCase();
+    return allCats.some((c) => (c || "").toLowerCase() === target);
   };
 
   const matchesSubcategory = (item, subcat) => {

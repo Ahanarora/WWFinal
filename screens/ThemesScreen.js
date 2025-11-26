@@ -25,39 +25,18 @@ import { Ionicons } from "@expo/vector-icons";
 
 const CATEGORIES = [
   "All",
-  "POLITICS",
-  "BUSINESS & ECONOMY",
-  "WORLD",
-  "INDIA",
+  "Politics",
+  "Business & Economy",
+  "World",
+  "India",
 ];
 
-const SUBCATEGORY_MAP = {
-  POLITICS: [
-    "Elections & Power Transitions",
-    "Government Policies & Bills",
-    "Public Institutions & Judiciary",
-    "Geopolitics & Diplomacy",
-  ],
-  "BUSINESS & ECONOMY": [
-    "Macroeconomy",
-    "Industries",
-    "Markets & Finance",
-    "Trade & Tariffs",
-    "Corporate Developments",
-  ],
-  WORLD: [
-    "International Conflicts",
-    "Global Governance",
-    "Migration & Humanitarian Crises",
-    "Elections Worldwide",
-    "Science & Tech",
-    "Environment",
-  ],
-  INDIA: [
-    "Social Issues",
-    "Infrastructure & Development",
-    "Science, Tech and Environment",
-  ],
+const CATEGORY_LABELS = {
+  All: "All",
+  Politics: "Politics",
+  "Business & Economy": "Business & Economy",
+  World: "World",
+  India: "India",
 };
 
 
@@ -98,7 +77,6 @@ export default function ThemesScreen({ navigation }) {
   const [sortMode, setSortMode] = useState("relevance");
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [activeCategory, setActiveCategory] = useState("All");
-  const [activeSubcategory, setActiveSubcategory] = useState("All");
 
   // ----------------------------------
   // FETCH THEMES
@@ -129,26 +107,13 @@ export default function ThemesScreen({ navigation }) {
       : item.category
       ? [item.category]
       : [];
-    return allCats.includes(category);
-  };
-
-  const matchesSubcategory = (item, subcat) => {
-    if (subcat === "All") return true;
-    const primary = item.subcategory;
-    const secondary = Array.isArray(item.secondarySubcategories)
-      ? item.secondarySubcategories
-      : [];
-    return primary === subcat || secondary.includes(subcat);
+    const target = category.toLowerCase();
+    return allCats.some((c) => (c || "").toLowerCase() === target);
   };
 
   const filteredThemes = useMemo(
-    () =>
-      themes.filter(
-        (t) =>
-          matchesCategory(t, activeCategory) &&
-          matchesSubcategory(t, activeSubcategory)
-      ),
-    [themes, activeCategory, activeSubcategory]
+    () => themes.filter((t) => matchesCategory(t, activeCategory)),
+    [themes, activeCategory]
   );
 
   const sortedThemes = useMemo(() => {
@@ -277,103 +242,65 @@ export default function ThemesScreen({ navigation }) {
   // ----------------------------------
   return (
     <View style={styles.container}>
-      {/* CATEGORY FILTER */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoryRow}
-      >
-        {CATEGORIES.map((cat) => {
-          const active = cat === activeCategory;
-          return (
-            <TouchableOpacity
-              key={cat}
-              onPress={() => {
-                setActiveCategory(cat);
-                setActiveSubcategory("All");
-              }}
-              style={[
-                styles.categoryPill,
-                active && styles.categoryPillActive,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.categoryText,
-                  active && styles.categoryTextActive,
-                ]}
-              >
-                {cat}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-
-      {/* SUBCATEGORY FILTER */}
-      {activeCategory !== "All" && (
+      {/* FILTER PANE (match Stories/Home) */}
+      <View style={styles.filterPane}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.subcategoryRow}
+          contentContainerStyle={styles.categoryRow}
         >
-          <TouchableOpacity onPress={() => setActiveSubcategory("All")}>
-            <Text
-              style={[
-                styles.subcategoryText,
-                activeSubcategory === "All" && styles.subcategoryTextActive,
-              ]}
-            >
-              ALL
-            </Text>
-          </TouchableOpacity>
-          {(SUBCATEGORY_MAP[activeCategory] || []).map((sub) => (
-            <TouchableOpacity
-              key={sub}
-              onPress={() => setActiveSubcategory(sub)}
-            >
-              <Text
+          {CATEGORIES.map((cat) => {
+            const active = cat === activeCategory;
+            return (
+              <TouchableOpacity
+                key={cat}
+                onPress={() => setActiveCategory(cat)}
                 style={[
-                  styles.subcategoryText,
-                  activeSubcategory === sub && styles.subcategoryTextActive,
+                  styles.categoryPill,
+                  active && styles.categoryPillActive,
                 ]}
               >
-                {sub}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <Text
+                  style={[
+                    styles.categoryText,
+                    active && styles.categoryTextActive,
+                  ]}
+                >
+                  {CATEGORY_LABELS[cat] || cat}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
-      )}
 
-      {/* SORT DROPDOWN */}
-      {/* SORT BUTTON WITH ARROW */}
-<TouchableOpacity
-  onPress={() => setShowSortMenu(true)}
-  style={[
-    styles.dropdownButton,
-    {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-    },
-  ]}
->
-  <Text style={styles.dropdownButtonText}>
-    Sort:{" "}
-    {sortMode === "relevance"
-      ? "Relevance"
-      : sortMode === "updated"
-      ? "Recently Updated"
-      : "Recently Published"}
-  </Text>
+        <TouchableOpacity
+          onPress={() => setShowSortMenu(true)}
+          style={[
+            styles.dropdownButton,
+            {
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            },
+          ]}
+        >
+          <Text style={styles.dropdownButtonText}>
+            Sort:{" "}
+            {sortMode === "relevance"
+              ? "Relevance"
+              : sortMode === "updated"
+              ? "Recently Updated"
+              : "Recently Published"}
+          </Text>
 
-  <Ionicons
-    name="chevron-down-outline"
-    size={18}
-    color="#000"
-    style={{ marginLeft: 8 }}
-  />
-</TouchableOpacity>
+          <Ionicons
+            name="chevron-down-outline"
+            size={18}
+            color="#000"
+            style={{ marginLeft: 8 }}
+          />
+        </TouchableOpacity>
+      </View>
 
 
       {/* Modal */}
@@ -431,25 +358,34 @@ const styles = StyleSheet.create({
   dropdownButton: {
     paddingVertical: 10,
     paddingHorizontal: 14,
-    backgroundColor: "#f2f2f2",
+    backgroundColor: colors.surface,
     borderRadius: 8,
+    marginTop: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   dropdownButtonText: {
     fontSize: 14,
     color: "#000",
   },
+  filterWrapper: {
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    paddingVertical: 10,
+  },
   categoryRow: {
     flexDirection: "row",
     gap: 10,
-    paddingHorizontal: 4,
-    paddingVertical: 6,
-    marginBottom: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 0,
   },
   categoryPill: {
     borderWidth: 1,
     borderColor: "#E5E7EB",
     borderRadius: 999,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 6,
     backgroundColor: "#fff",
   },
@@ -460,29 +396,11 @@ const styles = StyleSheet.create({
   categoryText: {
     fontSize: 13,
     color: colors.textSecondary,
+    textTransform: "none",
   },
   categoryTextActive: {
     color: "#fff",
     fontWeight: "600",
-  },
-  subcategoryRow: {
-    flexDirection: "row",
-    gap: 14,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
-    backgroundColor: "#f9fafb",
-    marginBottom: 8,
-  },
-  subcategoryText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    textDecorationLine: "underline",
-  },
-  subcategoryTextActive: {
-    color: "#2563EB",
-    fontWeight: "700",
   },
 
   modalBackdrop: {

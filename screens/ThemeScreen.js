@@ -25,6 +25,8 @@ import { useUserData } from "../contexts/UserDataContext";
 import { Ionicons } from "@expo/vector-icons";
 import CommentsSection from "../components/CommentsSection";
 import { getStorySearchCache } from "../utils/storyCache";
+import ShareButton from "../components/ShareButton";
+import { shareItem } from "../utils/share";
 
 const PHASE_PALETTE = ["#2563EB", "#DC2626", "#059669", "#D97706", "#6D28D9"];
 const SKY_BLUE = "#2563EB";
@@ -226,7 +228,20 @@ export default function ThemeScreen({ route, navigation }) {
         )}
 
         {/* TITLE / META */}
-        <Text style={styles.title}>{item.title || "Untitled Theme"}</Text>
+        <View style={styles.themeHeaderRow}>
+          <Text style={styles.title}>{item.title || "Untitled Theme"}</Text>
+          <View style={styles.themeActions}>
+            <ShareButton
+              onPress={() =>
+                shareItem({
+                  type: "theme",
+                  id: item.id,
+                  title: item.title,
+                })
+              }
+            />
+          </View>
+        </View>
         <Text style={styles.updated}>{formatUpdatedAt(item.updatedAt)}</Text>
         <Text style={styles.category}>{item.category || "Uncategorized"}</Text>
         {item.subcategory ? (
@@ -569,6 +584,17 @@ const styles = StyleSheet.create({
     fontSize: 26,
     color: colors.textPrimary,
     marginBottom: spacing.sm,
+  },
+  themeHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.md,
+  },
+  themeActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
   },
 
   category: {

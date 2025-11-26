@@ -20,6 +20,8 @@ import {
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
+import * as Linking from "expo-linking";
+
 import { useFonts } from "expo-font";
 import { colors, getThemeColors } from "./styles/theme";
 
@@ -50,6 +52,29 @@ import {
 // Tabs and Stack
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
+
+const prefix = Linking.createURL("/");
+const linking = {
+  prefixes: [prefix, "wwfinal://"],
+  config: {
+    screens: {
+      Login: "login",
+      RootTabs: {
+        screens: {
+          HomeTab: "home",
+          StoriesTab: "stories",
+          ThemesTab: "themes",
+        },
+      },
+      Story: "story/:id",
+      Theme: "theme/:id",
+      Saved: "saved",
+      Search: "search",
+      AnalysisModal: "analysis",
+      EventReader: "event",
+    },
+  },
+};
 
 // ----------------------------------------
 // 🧭 Tab Navigation
@@ -233,6 +258,7 @@ function AppNavigator({ user }) {
       <NavigationContainer
         ref={navigationRef}
         theme={darkMode ? DarkNavTheme : LightNavTheme}
+        linking={linking}
       >
         {!user ? (
           <Stack.Navigator screenOptions={{ headerShown: false }}>

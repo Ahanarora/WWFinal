@@ -27,6 +27,8 @@ import CommentsSection from "../components/CommentsSection";
 import { useUserData } from "../contexts/UserDataContext";
 import { Ionicons } from "@expo/vector-icons";
 import { getStorySearchCache } from "../utils/storyCache";
+import ShareButton from "../components/ShareButton";
+import { shareItem } from "../utils/share";
 
 const PHASE_PALETTE = ["#2563EB", "#DC2626", "#059669", "#D97706", "#6D28D9"];
 const SKY_BLUE = "#2563EB";
@@ -216,13 +218,24 @@ export default function StoryScreen({ route, navigation }) {
         {/* TITLE */}
         <View style={styles.storyHeaderRow}>
           <Text style={styles.title}>{item.title || "Untitled Story"}</Text>
-          <TouchableOpacity onPress={() => handleFavorite(item)}>
-            <Ionicons
-              name={isFavoriteStory(item.id) ? "bookmark" : "bookmark-outline"}
-              size={22}
-              color={isFavoriteStory(item.id) ? "#2563EB" : colors.muted}
+          <View style={styles.storyActions}>
+            <ShareButton
+              onPress={() =>
+                shareItem({
+                  type: "story",
+                  id: item.id,
+                  title: item.title,
+                })
+              }
             />
-          </TouchableOpacity>
+            <TouchableOpacity onPress={() => handleFavorite(item)}>
+              <Ionicons
+                name={isFavoriteStory(item.id) ? "bookmark" : "bookmark-outline"}
+                size={22}
+                color={isFavoriteStory(item.id) ? "#2563EB" : colors.muted}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
         <Text style={styles.updated}>{formatUpdatedAt(item.updatedAt)}</Text>
         <Text style={styles.category}>{item.category || "Uncategorized"}</Text>
@@ -558,6 +571,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: spacing.md,
+  },
+  storyActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
   },
 
   category: {

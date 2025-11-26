@@ -26,6 +26,7 @@ import { normalizeAnalysis } from "../utils/normalizeAnalysis";
 import CommentsSection from "../components/CommentsSection";
 import { useUserData } from "../contexts/UserDataContext";
 import { Ionicons } from "@expo/vector-icons";
+import { getStorySearchCache } from "../utils/storyCache";
 
 const PHASE_PALETTE = ["#2563EB", "#DC2626", "#059669", "#D97706", "#6D28D9"];
 const SKY_BLUE = "#2563EB";
@@ -225,6 +226,18 @@ export default function StoryScreen({ route, navigation }) {
         </View>
         <Text style={styles.updated}>{formatUpdatedAt(item.updatedAt)}</Text>
         <Text style={styles.category}>{item.category || "Uncategorized"}</Text>
+        {item.subcategory ? (
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate("Search", {
+                stories: getStorySearchCache(),
+                initialQuery: item.subcategory,
+              })
+            }
+          >
+            <Text style={styles.subcategory}>{item.subcategory}</Text>
+          </TouchableOpacity>
+        ) : null}
 
         {/* OVERVIEW */}
         {item.overview ? (
@@ -552,6 +565,12 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: spacing.sm,
     letterSpacing: 1,
+  },
+  subcategory: {
+    fontFamily: fonts.body,
+    color: "#2563EB",
+    marginBottom: spacing.sm,
+    textDecorationLine: "underline",
   },
 
   updated: {

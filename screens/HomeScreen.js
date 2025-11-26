@@ -55,25 +55,50 @@ const getCreatedAtMs = (item) => {
   return isNaN(d) ? 0 : d.getTime();
 };
 
-// Categories for top filter
+// Categories for top filter (predefined)
 const CATEGORIES = [
   "All",
-  "Politics",
-  "Economy",
-  "Environment",
-  "Science & Tech",
-  "Health",
-  "World",
-  "Culture",
-  "Sports",
-  "Other",
+  "POLITICS",
+  "BUSINESS & ECONOMY",
+  "WORLD",
+  "INDIA",
 ];
+
+const SUBCATEGORY_MAP = {
+  POLITICS: [
+    "Elections & Power Transitions",
+    "Government Policies & Bills",
+    "Public Institutions & Judiciary",
+    "Geopolitics & Diplomacy",
+  ],
+  "BUSINESS & ECONOMY": [
+    "Macroeconomy",
+    "Industries",
+    "Markets & Finance",
+    "Trade & Tariffs",
+    "Corporate Developments",
+  ],
+  WORLD: [
+    "International Conflicts",
+    "Global Governance",
+    "Migration & Humanitarian Crises",
+    "Elections Worldwide",
+    "Science & Tech",
+    "Environment",
+  ],
+  INDIA: [
+    "Social Issues",
+    "Infrastructure & Development",
+    "Science, Tech and Environment",
+  ],
+};
 
 export default function HomeScreen({ navigation }) {
   const [themes, setThemes] = useState([]);
   const [stories, setStories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState("All");
+  const [activeSubcategory, setActiveSubcategory] = useState("All");
 
   const [sortMode, setSortMode] = useState("relevance");
   const [showSortMenu, setShowSortMenu] = useState(false);
@@ -115,15 +140,41 @@ export default function HomeScreen({ navigation }) {
   // -------------------------------
   // FILTER BY CATEGORY
   // -------------------------------
+  const matchesCategory = (item, category) => {
+    if (category === "All") return true;
+    const allCats = Array.isArray(item.allCategories)
+      ? item.allCategories
+      : item.category
+      ? [item.category]
+      : [];
+    return allCats.includes(category);
+  };
+
+  const matchesSubcategory = (item, subcat) => {
+    if (subcat === "All") return true;
+    const primary = item.subcategory;
+    const secondary =
+      Array.isArray(item.secondarySubcategories) && item.secondarySubcategories.length
+        ? item.secondarySubcategories
+        : [];
+    return primary === subcat || secondary.includes(subcat);
+  };
+
   const filteredStories = useMemo(() => {
-    if (activeCategory === "All") return stories;
-    return stories.filter((s) => s.category === activeCategory);
-  }, [stories, activeCategory]);
+    return stories.filter(
+      (s) =>
+        matchesCategory(s, activeCategory) &&
+        matchesSubcategory(s, activeSubcategory)
+    );
+  }, [stories, activeCategory, activeSubcategory]);
 
   const filteredThemes = useMemo(() => {
-    if (activeCategory === "All") return themes;
-    return themes.filter((t) => t.category === activeCategory);
-  }, [themes, activeCategory]);
+    return themes.filter(
+      (t) =>
+        matchesCategory(t, activeCategory) &&
+        matchesSubcategory(t, activeSubcategory)
+    );
+  }, [themes, activeCategory, activeSubcategory]);
 
   // -------------------------------
   // FEATURED ITEMS
@@ -153,6 +204,7 @@ export default function HomeScreen({ navigation }) {
   }, [filteredStories, filteredThemes]);
 
   const featuredItems = useMemo(() => {
+    if (activeSubcategory !== "All") return [];
     const pinned = combinedItems.filter((item) =>
       isPinnedForCategory(item, activeCategory)
     );
@@ -165,7 +217,7 @@ export default function HomeScreen({ navigation }) {
       .sort((a, b) => scoreContent(b) - scoreContent(a));
 
     return [...pinned, ...auto].slice(0, TOP_N);
-  }, [combinedItems, activeCategory]);
+  }, [combinedItems, activeCategory, activeSubcategory]);
 
   // -------------------------------
   // REGULAR COMBINED FEED SORTING
@@ -434,6 +486,9 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.categoryLabel}>
               {item.category?.toUpperCase() || "GENERAL"}
             </Text>
+            {item.subcategory ? (
+              <Text style={styles.subcategoryLabel}>{item.subcategory}</Text>
+            ) : null}
             <Text style={styles.title}>{item.title}</Text>
             {renderUpdateBadge(updatesCount(item))}
             <Text style={styles.updatedText}>{formatUpdatedAt(item.updatedAt)}</Text>
@@ -492,6 +547,9 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.categoryLabel}>
             {item.category?.toUpperCase() || "GENERAL"}
           </Text>
+          {item.subcategory ? (
+            <Text style={styles.subcategoryLabel}>{item.subcategory}</Text>
+          ) : null}
           <Text style={styles.title}>{item.title}</Text>
           {renderUpdateBadge(updatesCount(item))}
           <Text style={styles.updatedText}>{formatUpdatedAt(item.updatedAt)}</Text>
@@ -525,18 +583,21 @@ return (
       ListHeaderComponent={
         <>
       {/* CATEGORY PILLS */}
-      <View style={styles.filterWrapper}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryRow}
-        >
+          <View style={styles.filterWrapper}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoryRow}
+            >
               {CATEGORIES.map((cat) => {
                 const active = cat === activeCategory;
                 return (
                   <TouchableOpacity
                     key={cat}
-                    onPress={() => setActiveCategory(cat)}
+                    onPress={() => {
+                      setActiveCategory(cat);
+                      setActiveSubcategory("All");
+                    }}
                     style={[
                       styles.categoryPill,
                       active && styles.categoryPillActive,
@@ -555,6 +616,45 @@ return (
               })}
             </ScrollView>
           </View>
+
+          {/* SUBCATEGORY ROW */}
+          {activeCategory !== "All" && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.subcategoryRow}
+            >
+              <TouchableOpacity
+                onPress={() => setActiveSubcategory("All")}
+                style={styles.subcategoryTextWrap}
+              >
+                <Text
+                  style={[
+                    styles.subcategoryText,
+                    activeSubcategory === "All" && styles.subcategoryTextActive,
+                  ]}
+                >
+                  ALL
+                </Text>
+              </TouchableOpacity>
+              {(SUBCATEGORY_MAP[activeCategory] || []).map((sub) => (
+                <TouchableOpacity
+                  key={sub}
+                  onPress={() => setActiveSubcategory(sub)}
+                  style={styles.subcategoryTextWrap}
+                >
+                  <Text
+                    style={[
+                      styles.subcategoryText,
+                      activeSubcategory === sub && styles.subcategoryTextActive,
+                    ]}
+                  >
+                    {sub}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
 
           {/* FEATURED SECTION */}
           {featuredItems.length > 0 && (
@@ -678,6 +778,24 @@ const createStyles = (palette) =>
     },
     categoryText: { fontSize: 13, color: palette.textSecondary },
     categoryTextActive: { color: "#fff", fontWeight: "600" },
+    subcategoryRow: {
+      flexDirection: "row",
+      gap: 14,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+    },
+    subcategoryTextWrap: {
+      justifyContent: "center",
+    },
+    subcategoryText: {
+      fontSize: 13,
+      color: palette.textSecondary,
+      textDecorationLine: "underline",
+    },
+    subcategoryTextActive: {
+      color: palette.accent,
+      fontWeight: "600",
+    },
     featuredSection: {
       paddingHorizontal: 16,
       paddingTop: 16,
@@ -835,6 +953,11 @@ const createStyles = (palette) =>
       fontSize: 12,
       color: palette.textSecondary,
       letterSpacing: 1,
+      marginBottom: 4,
+    },
+    subcategoryLabel: {
+      fontSize: 13,
+      color: palette.accent,
       marginBottom: 4,
     },
     title: {

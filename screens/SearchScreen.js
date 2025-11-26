@@ -29,7 +29,8 @@ const collectTimelineText = (timeline) => {
 
 export default function SearchScreen({ route, navigation }) {
   const stories = route.params?.stories || getStorySearchCache() || [];
-  const [query, setQuery] = useState("");
+  const initialQuery = route.params?.initialQuery || "";
+  const [query, setQuery] = useState(initialQuery);
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [results, setResults] = useState([]);
 

@@ -17,7 +17,7 @@ import {
 import { colors, fonts, spacing } from "../styles/theme";
 import RenderWithContext from "../components/RenderWithContext";
 import SourceLinks from "../components/SourceLinks";
-import { formatDateDDMMYYYY } from "../utils/formatTime";
+import { formatDateLongOrdinal } from "../utils/formatTime";
 
 function getFactCheckRgb(score) {
   if (score >= 85) return { bg: "#BBF7D0", text: "#166534" };
@@ -48,7 +48,7 @@ const EventCard = React.memo(function EventCard({
     factCheck = null,
   } = event;
 
-  const formattedDate = date ? formatDateDDMMYYYY(date) : "";
+  const formattedDate = date ? formatDateLongOrdinal(date) : "";
   const hasFactCheck =
     factCheck &&
     typeof factCheck.confidenceScore === "number" &&

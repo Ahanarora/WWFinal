@@ -18,7 +18,10 @@ import Slider from "@react-native-community/slider";
 import { colors, fonts, spacing } from "../styles/theme";
 import SourceLinks from "../components/SourceLinks";
 import RenderWithContext from "../components/RenderWithContext";
-import { formatUpdatedAt, formatDateDDMMYYYY } from "../utils/formatTime";
+import {
+  formatUpdatedAt,
+  formatDateLongOrdinal,
+} from "../utils/formatTime";
 import { normalizeAnalysis } from "../utils/normalizeAnalysis";
 import CommentsSection from "../components/CommentsSection";
 import { useUserData } from "../contexts/UserDataContext";
@@ -375,7 +378,7 @@ export default function StoryScreen({ route, navigation }) {
 
                     <View style={styles.eventContent}>
                       <Text style={styles.eventDate}>
-                        {formatDateDDMMYYYY(e.date)}
+                        {formatDateLongOrdinal(e.date)}
                       </Text>
 
                       <Text style={styles.eventTitle}>{e.event}</Text>
@@ -685,8 +688,9 @@ const styles = StyleSheet.create({
   eventDate: {
     fontFamily: fonts.body,
     fontSize: 13,
-    color: SKY_BLUE,
-    fontWeight: "700",
+    color: colors.textPrimary,
+    fontWeight: "500",
+    fontStyle: "italic",
     marginBottom: 4,
   },
 

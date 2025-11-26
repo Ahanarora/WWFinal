@@ -54,3 +54,38 @@ export function formatDateDDMMYYYY(dateInput) {
 
   return `${day}/${month}/${year}`;
 }
+
+const ORDINALS = ["th", "st", "nd", "rd"];
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+const getOrdinal = (day) => {
+  const v = day % 100;
+  const suffix = ORDINALS[(v - 20) % 10] || ORDINALS[v] || ORDINALS[0];
+  return `${day}${suffix}`;
+};
+
+export function formatDateLongOrdinal(dateInput) {
+  if (!dateInput) return "";
+
+  const date = new Date(dateInput);
+  if (isNaN(date.getTime())) return dateInput;
+
+  const dayNum = date.getDate();
+  const monthName = MONTH_NAMES[date.getMonth()];
+  const year = date.getFullYear();
+
+  return `${getOrdinal(dayNum)} ${monthName} ${year}`;
+}

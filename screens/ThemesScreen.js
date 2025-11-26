@@ -355,6 +355,20 @@ export default function ThemesScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { padding: 16, backgroundColor: colors.background, flex: 1 },
 
+  filterPane: {
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+
   dropdownButton: {
     paddingVertical: 10,
     paddingHorizontal: 14,
@@ -380,6 +394,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 16,
     paddingVertical: 0,
+    marginBottom: 12,
   },
   categoryPill: {
     borderWidth: 1,
@@ -520,3 +535,4 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
 });
+

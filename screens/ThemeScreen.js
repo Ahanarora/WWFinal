@@ -243,19 +243,18 @@ export default function ThemeScreen({ route, navigation }) {
           </View>
         </View>
         <Text style={styles.updated}>{formatUpdatedAt(item.updatedAt)}</Text>
-        <Text style={styles.category}>{item.category || "Uncategorized"}</Text>
-        {item.subcategory ? (
-          <TouchableOpacity
-            onPress={() =>
-              navigation.navigate("Search", {
-                stories: getStorySearchCache(),
-                initialQuery: item.subcategory,
-              })
-            }
-          >
-            <Text style={styles.subcategory}>{item.subcategory}</Text>
-          </TouchableOpacity>
-        ) : null}
+        <TouchableOpacity
+          onPress={() =>
+            item.category &&
+            navigation.navigate("Search", {
+              stories: getStorySearchCache(),
+              initialQuery: item.category,
+            })
+          }
+          disabled={!item.category}
+        >
+          <Text style={styles.category}>{item.category || "Uncategorized"}</Text>
+        </TouchableOpacity>
 
         {/* OVERVIEW */}
         {item.overview ? (
@@ -323,7 +322,7 @@ export default function ThemeScreen({ route, navigation }) {
                   })
                 }
               >
-                <Text style={styles.analysisButtonText}>Future Qs</Text>
+                <Text style={styles.analysisButtonText}>Questions for future</Text>
               </TouchableOpacity>
             )}
           </View>

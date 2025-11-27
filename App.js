@@ -40,6 +40,8 @@ import EventReaderModal from "./screens/EventReaderModal";
 import SavedScreen from "./screens/SavedScreen";
 import SearchScreen from "./screens/SearchScreen";
 import { getStorySearchCache } from "./utils/storyCache";
+import WhatIsWaitWhatScreen from "./screens/WhatIsWaitWhatScreen";
+import ContactUsScreen from "./screens/ContactUsScreen";
 
 // 👉 You must create this file:
 //    /screens/LoginScreen.js
@@ -72,6 +74,8 @@ const linking = {
       Search: "search",
       AnalysisModal: "analysis",
       EventReader: "event",
+      WhatIsWaitWhat: "about",
+      ContactUs: "contact",
     },
   },
 };
@@ -140,6 +144,8 @@ function MenuSheet({
   visible,
   onClose,
   onOpenSaved,
+  onOpenAbout,
+  onOpenContact,
   darkMode,
   onToggleDarkMode,
   onLogout,
@@ -170,6 +176,24 @@ function MenuSheet({
           <TouchableOpacity style={styles.menuOption} onPress={onOpenSaved}>
             <Ionicons name="bookmark" size={18} style={styles.menuOptionIcon} />
             <Text style={styles.menuOptionText}>Saved</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuOption} onPress={onOpenAbout}>
+            <Ionicons
+              name="information-circle-outline"
+              size={18}
+              style={styles.menuOptionIcon}
+            />
+            <Text style={styles.menuOptionText}>What is Wait...What?</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuOption} onPress={onOpenContact}>
+            <Ionicons
+              name="mail-outline"
+              size={18}
+              style={styles.menuOptionIcon}
+            />
+            <Text style={styles.menuOptionText}>Contact Us</Text>
           </TouchableOpacity>
 
           <View style={[styles.menuOption, styles.menuToggleRow]}>
@@ -248,6 +272,16 @@ function AppNavigator({ user }) {
     navigationRef.current?.navigate("Saved");
   };
 
+  const handleOpenAbout = () => {
+    closeMenu();
+    navigationRef.current?.navigate("WhatIsWaitWhat");
+  };
+
+  const handleOpenContact = () => {
+    closeMenu();
+    navigationRef.current?.navigate("ContactUs");
+  };
+
   const handleLogout = () => {
     auth.signOut();
     setMenuVisible(false);
@@ -304,6 +338,18 @@ function AppNavigator({ user }) {
             />
 
             <Stack.Screen
+              name="WhatIsWaitWhat"
+              component={WhatIsWaitWhatScreen}
+              options={{ title: "What is Wait...What?" }}
+            />
+
+            <Stack.Screen
+              name="ContactUs"
+              component={ContactUsScreen}
+              options={{ title: "Contact Us" }}
+            />
+
+            <Stack.Screen
               name="Search"
               component={SearchScreen}
             />
@@ -327,6 +373,8 @@ function AppNavigator({ user }) {
         visible={menuVisible}
         onClose={closeMenu}
         onOpenSaved={handleOpenSaved}
+        onOpenAbout={handleOpenAbout}
+        onOpenContact={handleOpenContact}
         darkMode={darkMode}
         onToggleDarkMode={toggleDarkMode}
           user={user}

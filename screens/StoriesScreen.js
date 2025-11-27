@@ -507,12 +507,6 @@ const createStyles = (palette) =>
       fontSize: 14,
       color: palette.textPrimary,
     },
-    filterWrapper: {
-      backgroundColor: palette.surface,
-      borderBottomWidth: 1,
-      borderBottomColor: palette.border,
-      paddingVertical: 10,
-    },
     categoryRow: {
       flexDirection: "row",
       gap: 10,
@@ -540,11 +534,6 @@ const createStyles = (palette) =>
     categoryTextActive: {
       color: "#fff",
       fontWeight: "600",
-    },
-    subcategoryWrapper: {
-      backgroundColor: palette.surface,
-      borderBottomWidth: 1,
-      borderBottomColor: palette.border,
     },
     subcategoryRow: {
       flexDirection: "row",
@@ -710,4 +699,3 @@ const createStyles = (palette) =>
     loadingText: { marginTop: 8, color: palette.textSecondary },
     emptyText: { fontSize: 16, color: palette.textSecondary },
   });
-

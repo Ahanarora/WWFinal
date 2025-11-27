@@ -31,7 +31,6 @@ import ShareButton from "../components/ShareButton";
 import { shareItem } from "../utils/share";
 
 const PHASE_PALETTE = ["#2563EB", "#DC2626", "#059669", "#D97706", "#6D28D9"];
-const SKY_BLUE = "#2563EB";
 
 function getFactCheckRgb(score) {
   if (score >= 85) return { bg: "#BBF7D0", text: "#166534" }; // green
@@ -547,7 +546,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    padding: spacing.md,
+    padding: 2,
   },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   error: { color: "red" },

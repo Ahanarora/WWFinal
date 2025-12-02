@@ -1,7 +1,7 @@
 // ----------------------------------------
 // screens/HomeScreen.js
 // Category → Featured Stories → Featured Themes → Regular Combined Feed
-// Using WWHomeCard + WWCompactCard
+// Using WWHomeCard + WWCompactCard + docId
 // ----------------------------------------
 
 import React, { useEffect, useState, useMemo } from "react";
@@ -112,20 +112,20 @@ export default function HomeScreen({ navigation }) {
         const storySnap = await getDocs(collection(db, "stories"));
 
         const themeData = themeSnap.docs.map((d) => ({
-          id: d.id,
+          docId: d.id,     // 🔑 Firestore document ID
           type: "theme",
           ...d.data(),
         }));
 
         const storyData = storySnap.docs.map((d) => ({
-          id: d.id,
+          docId: d.id,     // 🔑 Firestore document ID
           type: "story",
           ...d.data(),
         }));
 
         setThemes(themeData);
         setStories(storyData);
-        setStorySearchCache(storyData); // used by search screen / cache
+        setStorySearchCache(storyData);
       } catch (err) {
         console.error("Error loading home data:", err);
       } finally {
@@ -204,16 +204,17 @@ export default function HomeScreen({ navigation }) {
   );
 
   const featuredItems = useMemo(() => {
-    // No featured when subcategory is active:
     if (activeSubcategory !== "All") return [];
 
     const pinned = combinedItems.filter((item) =>
       isPinnedForCategory(item, activeCategory)
     );
-    const pinnedKeys = new Set(pinned.map((item) => `${item.type}-${item.id}`));
+    const pinnedKeys = new Set(
+      pinned.map((item) => `${item.type}-${item.docId || item.id}`)
+    );
 
     const auto = combinedItems
-      .filter((item) => !pinnedKeys.has(`${item.type}-${item.id}`))
+      .filter((item) => !pinnedKeys.has(`${item.type}-${item.docId || item.id}`))
       .sort((a, b) => scoreContent(b) - scoreContent(a));
 
     return [...pinned, ...auto].slice(0, TOP_N);
@@ -224,11 +225,11 @@ export default function HomeScreen({ navigation }) {
   // -------------------------------
   const regularCombined = useMemo(() => {
     const featuredKeys = new Set(
-      featuredItems.map((item) => `${item.type}-${item.id}`)
+      featuredItems.map((item) => `${item.type}-${item.docId || item.id}`)
     );
 
     const remaining = combinedItems.filter(
-      (item) => !featuredKeys.has(`${item.type}-${item.id}`)
+      (item) => !featuredKeys.has(`${item.type}-${item.docId || item.id}`)
     );
 
     if (sortMode === "updated") {
@@ -241,7 +242,6 @@ export default function HomeScreen({ navigation }) {
       );
     }
 
-    // default: relevance
     return [...remaining].sort((a, b) => scoreContent(b) - scoreContent(a));
   }, [combinedItems, featuredItems, sortMode]);
 
@@ -262,7 +262,7 @@ export default function HomeScreen({ navigation }) {
   // -------------------------------
   const renderFeaturedCard = (item) => (
     <View
-      key={`${item.type}-${item.id}`}
+      key={`${item.type}-${item.docId || item.id}`}
       style={styles.featuredCardWrapper}
     >
       <WWHomeCard item={item} navigation={navigation} />
@@ -270,12 +270,10 @@ export default function HomeScreen({ navigation }) {
   );
 
   const renderRegularItem = ({ item }) => {
-    // Compact items in main feed only
     if (item.isCompactCard) {
       return <WWCompactCard item={item} navigation={navigation} />;
     }
 
-    // Full card
     return <WWHomeCard item={item} navigation={navigation} />;
   };
 
@@ -286,7 +284,7 @@ export default function HomeScreen({ navigation }) {
     <View style={styles.container}>
       <FlatList
         data={regularCombined}
-        keyExtractor={(item) => `${item.type}-${item.id}`}
+        keyExtractor={(item) => `${item.type}-${item.docId || item.id}`}
         renderItem={renderRegularItem}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         contentContainerStyle={{ paddingBottom: 24 }}

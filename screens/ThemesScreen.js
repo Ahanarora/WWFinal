@@ -1,6 +1,6 @@
 // ----------------------------------------
 // screens/ThemesScreen.js
-// Updated: Uses WWThemeCard + WWCompactCard
+// Updated: Uses WWThemeCard + WWCompactCard + docId
 // ----------------------------------------
 
 import React, { useEffect, useState, useMemo } from "react";
@@ -26,13 +26,7 @@ import WWCompactCard from "../components/WWCompactCard";
 // -------------------------------
 // CATEGORY FILTERS
 // -------------------------------
-const CATEGORIES = [
-  "All",
-  "Politics",
-  "Business & Economy",
-  "World",
-  "India",
-];
+const CATEGORIES = ["All", "Politics", "Business & Economy", "World", "India"];
 
 const CATEGORY_LABELS = {
   All: "All",
@@ -87,9 +81,9 @@ export default function ThemesScreen({ navigation }) {
       try {
         const snapshot = await getDocs(collection(db, "themes"));
         const data = snapshot.docs.map((doc) => ({
-          id: doc.id,
+          docId: doc.id,    // 🔑 Firestore document ID
           type: "theme",
-          ...doc.data(),
+          ...doc.data(),    // includes any internal id field
         }));
         setThemes(data);
       } catch (err) {
@@ -141,12 +135,10 @@ export default function ThemesScreen({ navigation }) {
   // RENDER THEME CARD
   // -------------------------------
   const renderThemeCard = ({ item }) => {
-    // compact card
     if (item.isCompactCard) {
       return <WWCompactCard item={item} navigation={navigation} />;
     }
 
-    // full card
     return <WWThemeCard item={item} navigation={navigation} />;
   };
 
@@ -271,7 +263,7 @@ export default function ThemesScreen({ navigation }) {
       {/* THEMES LIST */}
       <FlatList
         data={sortedThemes}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.docId || item.id}
         renderItem={renderThemeCard}
         contentContainerStyle={{ paddingBottom: 24 }}
       />

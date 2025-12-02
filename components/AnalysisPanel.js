@@ -1,4 +1,5 @@
-// components/AnalysisPanel.js — collapsible analysis sections
+//components/AnalysisPanel.js//
+
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, LayoutAnimation, Platform, UIManager } from 'react-native';
 

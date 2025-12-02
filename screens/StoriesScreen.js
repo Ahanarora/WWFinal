@@ -1,6 +1,6 @@
 // ----------------------------------------
 // screens/StoriesScreen.js
-// Updated: Uses WWStoryCard + WWCompactCard
+// Updated: Uses WWStoryCard + WWCompactCard + docId
 // ----------------------------------------
 
 import React, { useEffect, useState, useMemo } from "react";
@@ -27,13 +27,7 @@ import WWCompactCard from "../components/WWCompactCard";
 // -----------------------------
 // CATEGORIES
 // -----------------------------
-const CATEGORIES = [
-  "All",
-  "Politics",
-  "Business & Economy",
-  "World",
-  "India",
-];
+const CATEGORIES = ["All", "Politics", "Business & Economy", "World", "India"];
 
 const CATEGORY_LABELS = {
   All: "All",
@@ -122,9 +116,9 @@ export default function StoriesScreen({ navigation }) {
       try {
         const snap = await getDocs(collection(db, "stories"));
         const data = snap.docs.map((d) => ({
-          id: d.id,
+          docId: d.id,      // 🔑 Firestore document ID
           type: "story",
-          ...d.data(),
+          ...d.data(),      // includes old internal id field if present
         }));
         setStories(data);
       } catch (err) {
@@ -157,10 +151,9 @@ export default function StoriesScreen({ navigation }) {
     if (sub === "All") return true;
 
     const primary = item.subcategory;
-    const secondary =
-      Array.isArray(item.secondarySubcategories)
-        ? item.secondarySubcategories
-        : [];
+    const secondary = Array.isArray(item.secondarySubcategories)
+      ? item.secondarySubcategories
+      : [];
 
     return primary === sub || secondary.includes(sub);
   };
@@ -357,7 +350,7 @@ export default function StoriesScreen({ navigation }) {
       {/* Story list */}
       <FlatList
         data={sortedStories}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.docId || item.id}
         renderItem={renderStoryCard}
         contentContainerStyle={{ paddingBottom: 24 }}
       />

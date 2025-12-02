@@ -1,3 +1,4 @@
+// utils/storyCache.js — in-memory cache for story search
 let cachedStories = [];
 
 export function setStorySearchCache(stories) {

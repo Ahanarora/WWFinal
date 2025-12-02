@@ -1,3 +1,5 @@
+//utils/getLatestHeadlines.js
+
 import { formatDateDDMMYYYY } from "./formatTime";
 
 export function getLatestHeadlines(timeline = [], limit = 2) {

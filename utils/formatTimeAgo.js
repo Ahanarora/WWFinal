@@ -1,3 +1,5 @@
+//utils/formatTimeAgo.js
+
 export function timeAgo(timestamp) {
   if (!timestamp) return "Unknown";
 

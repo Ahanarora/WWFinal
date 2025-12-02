@@ -1,4 +1,4 @@
-import React from 'react';
+//components/TimCard.js//
 import { View, Text, StyleSheet } from 'react-native';
 
 export default function TimelineCard({ date, event, description }) {

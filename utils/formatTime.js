@@ -1,3 +1,4 @@
+//utils/formatTime.js
 export function formatUpdatedAt(updatedAt) {
   if (!updatedAt) return "";
 

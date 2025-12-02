@@ -1,4 +1,4 @@
-import React from 'react';
+//components/NewsCard.js//
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
 export default function NewsCard({ title, overview, onPress }) {

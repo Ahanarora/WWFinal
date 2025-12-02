@@ -1,3 +1,5 @@
+//utils/share.js
+
 import { Share } from "react-native";
 
 export async function shareItem({ type, id, title }) {

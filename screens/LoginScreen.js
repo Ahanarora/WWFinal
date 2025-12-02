@@ -1,5 +1,5 @@
 // ----------------------------------------
-// LoginScreen.js — Wait...What? (With Skip Login)
+// screens/LoginScreen.js — Wait...What? (With Skip Login)
 // ----------------------------------------
 import React, { useState } from "react";
 import {

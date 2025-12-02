@@ -1,3 +1,5 @@
+//styles/theme.js//
+
 export const lightColors = {
   background: "#F7F7F8",
   surface: "#FFFFFF",

@@ -1,3 +1,5 @@
+//screens/ContactUsScreen.js//
+
 import React from "react";
 import { ScrollView, View, Text, StyleSheet, TouchableOpacity, Linking } from "react-native";
 import { colors, fonts, spacing } from "../styles/theme";

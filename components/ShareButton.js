@@ -1,4 +1,4 @@
-import React from "react";
+//components/ShareButton.js//
 import { TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 

@@ -1,3 +1,5 @@
+//screens/WhatIsWaitWhatScreen.js//
+
 import React from "react";
 import { ScrollView, View, Text, StyleSheet } from "react-native";
 import { colors, fonts, spacing } from "../styles/theme";

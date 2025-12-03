@@ -191,12 +191,12 @@ const createStyles = (palette) =>
 
     categoryRow: {
       flexDirection: "row",
-      paddingHorizontal: 0,
+      paddingHorizontal: 18,
       alignItems: "center",
     },
     categoryButton: {
       paddingVertical: 4,
-      paddingHorizontal: 6,
+      paddingHorizontal: 16,
       position: "relative",
     },
     categoryText: {
@@ -238,12 +238,12 @@ const createStyles = (palette) =>
       fontWeight: "600",
     },
     separator: {
-      width: 1,
+      width: 2,
       height: 14,
       backgroundColor: palette.border,
-      marginHorizontal: 8,
+      marginHorizontal: 18,
       alignSelf: "center",
-      opacity: 0.5,
+      opacity: 0.9,
     },
     divider: {
       height: 1,

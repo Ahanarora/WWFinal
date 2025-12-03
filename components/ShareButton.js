@@ -6,14 +6,14 @@ import { colors } from "../styles/theme";
 export default function ShareButton({ onPress }) {
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
-      <Ionicons name="share-social-outline" size={22} color={colors.muted} />
+      <Ionicons name="share-social-outline" size={24} color={colors.muted} />
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 6,
-    borderRadius: 8,
+    padding: 10,
+    borderRadius: 12,
   },
 });

@@ -94,7 +94,7 @@ export default function WWStoryCard({ item, navigation, onPress }) {
         >
           <Ionicons
             name={isFav ? "bookmark" : "bookmark-outline"}
-            size={20}
+            size={22}
             color={isFav ? palette.accent : palette.muted}
           />
         </TouchableOpacity>

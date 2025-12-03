@@ -253,11 +253,14 @@ export default function StoryScreen({ route, navigation }) {
                 })
               }
             />
-            <TouchableOpacity onPress={() => handleFavorite(item)}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => handleFavorite(item)}
+            >
               <Ionicons
                 name={isFavoriteStory(item.id) ? "bookmark" : "bookmark-outline"}
-                size={22}
-                color={isFavoriteStory(item.id) ? colors.accent : colors.muted}
+                size={24}
+                color={isFavoriteStory(item.id) ? "#FACC15" : colors.muted}
               />
             </TouchableOpacity>
           </View>
@@ -604,7 +607,11 @@ const styles = StyleSheet.create({
   storyActions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.xs,
+    gap: spacing.sm,
+  },
+  actionButton: {
+    padding: 10,
+    borderRadius: 14,
   },
 
   category: {

@@ -265,6 +265,16 @@ export default function ThemeScreen({ route, navigation }) {
                 })
               }
             />
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => handleFavorite(item)}
+            >
+              <Ionicons
+                name={isFavorite(item.id) ? "bookmark" : "bookmark-outline"}
+                size={24}
+                color={isFavorite(item.id) ? "#FACC15" : colors.muted}
+              />
+            </TouchableOpacity>
           </View>
         </View>
         <Text style={styles.updated}>{formatUpdatedAt(item.updatedAt)}</Text>
@@ -286,13 +296,6 @@ export default function ThemeScreen({ route, navigation }) {
           <View style={styles.overviewBlock}>
             <View style={styles.cardHeaderRow}>
               <Text style={styles.overviewHeading}>Overview</Text>
-              <TouchableOpacity onPress={() => handleFavorite(item)}>
-                <Ionicons
-                  name={isFavorite(item.id) ? "bookmark" : "bookmark-outline"}
-                  size={20}
-                  color={isFavorite(item.id) ? colors.accent : colors.muted}
-                />
-              </TouchableOpacity>
             </View>
             <RenderWithContext
               text={item.overview}
@@ -623,7 +626,11 @@ const styles = StyleSheet.create({
   themeActions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.xs,
+    gap: spacing.sm,
+  },
+  actionButton: {
+    padding: 10,
+    borderRadius: 14,
   },
 
   category: {

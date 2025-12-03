@@ -78,7 +78,7 @@ export default function WWCompactCard({ item, navigation, onPress }) {
       >
         <Ionicons
           name={isFav ? "bookmark" : "bookmark-outline"}
-          size={18}
+          size={20}
           color={isFav ? palette.accent : palette.muted}
         />
       </TouchableOpacity>

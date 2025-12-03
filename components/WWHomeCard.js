@@ -148,14 +148,14 @@ const createStyles = (palette) =>
       top: 10,
       right: 10,
       paddingHorizontal: 8,
-      paddingVertical: 4,
+      paddingVertical: 3,
       backgroundColor: "#00000088",
       borderRadius: 8,
     },
     typeBadgeText: {
       color: "#fff",
-      fontSize: 11,
-      fontWeight: "600",
+      fontSize: 10,
+      fontWeight: "400",
     },
 
     body: {

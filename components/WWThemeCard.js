@@ -138,8 +138,8 @@ const createStyles = (palette) =>
     },
     typeBadgeText: {
       color: "#fff",
-      fontSize: 11,
-      fontWeight: "600",
+      fontSize: 10,
+      fontWeight: "400",
     },
 
     body: { padding: 16, gap: 6 },

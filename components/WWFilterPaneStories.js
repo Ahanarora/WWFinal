@@ -47,29 +47,31 @@ export default function WWFilterPaneStories({
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoryRow}
         >
-          {categories.map((cat) => {
+          {categories.map((cat, idx) => {
             const active = cat === activeCategory;
             return (
-              <TouchableOpacity
-                key={cat}
-                onPress={() => {
-                  onCategoryChange(cat);
-                  onSubcategoryChange("All");
-                }}
-                style={[
-                  styles.categoryPill,
-                  active && styles.categoryPillActive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.categoryText,
-                    active && styles.categoryTextActive,
-                  ]}
+              <React.Fragment key={cat}>
+                <TouchableOpacity
+                  onPress={() => {
+                    onCategoryChange(cat);
+                    onSubcategoryChange("All");
+                  }}
+                  style={styles.categoryButton}
                 >
-                  {cat}
-                </Text>
-              </TouchableOpacity>
+                  {active && <View style={styles.marker} />}
+                  <Text
+                    style={[
+                      styles.categoryText,
+                      active && styles.categoryTextActive,
+                    ]}
+                  >
+                    {cat}
+                  </Text>
+                </TouchableOpacity>
+                {idx < categories.length - 1 && (
+                  <View style={styles.separator} />
+                )}
+              </React.Fragment>
             );
           })}
         </ScrollView>
@@ -92,6 +94,7 @@ export default function WWFilterPaneStories({
       {/* ---------------------------- */}
       {/* SUBCATEGORY ROW             */}
       {/* ---------------------------- */}
+      {activeCategory !== "All" && <View style={styles.divider} />}
       {activeCategory !== "All" && (
         <ScrollView
           horizontal
@@ -99,32 +102,26 @@ export default function WWFilterPaneStories({
           contentContainerStyle={styles.subcategoryRow}
         >
           {/* ALL subcategory */}
-          <TouchableOpacity onPress={() => onSubcategoryChange("All")}>
-            <Text
-              style={[
-                styles.subcategoryText,
-                activeSubcategory === "All" && styles.subcategoryTextActive,
-              ]}
-            >
-              ALL
-            </Text>
-          </TouchableOpacity>
-
-          {SUBCATS.map((sub) => (
-            <TouchableOpacity
-              key={sub}
-              onPress={() => onSubcategoryChange(sub)}
-            >
-              <Text
-                style={[
-                  styles.subcategoryText,
-                  activeSubcategory === sub && styles.subcategoryTextActive,
-                ]}
-              >
-                {sub}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {[{ label: "ALL", value: "All" }, ...SUBCATS.map((s) => ({ label: s, value: s }))].map(
+            (sub, idx, arr) => {
+              const active = activeSubcategory === sub.value;
+              return (
+                <React.Fragment key={sub.value}>
+                  <TouchableOpacity onPress={() => onSubcategoryChange(sub.value)}>
+                    <Text
+                      style={[
+                        styles.subcategoryText,
+                        active && styles.subcategoryTextActive,
+                      ]}
+                    >
+                      {sub.label}
+                    </Text>
+                  </TouchableOpacity>
+                  {idx < arr.length - 1 && <View style={styles.separator} />}
+                </React.Fragment>
+              );
+            }
+          )}
         </ScrollView>
       )}
 
@@ -195,43 +192,63 @@ const createStyles = (palette) =>
     categoryRow: {
       flexDirection: "row",
       paddingHorizontal: 0,
+      alignItems: "center",
     },
-
-    categoryPill: {
-      borderWidth: 1,
-      borderColor: palette.border,
-      borderRadius: 999,
-      paddingVertical: 6,
-      paddingHorizontal: 14,
-      backgroundColor: palette.surface,
-      marginRight: 10,      // replaces gap
-    },
-    categoryPillActive: {
-      backgroundColor: palette.accent,
-      borderColor: palette.accent,
+    categoryButton: {
+      paddingVertical: 4,
+      paddingHorizontal: 6,
+      position: "relative",
     },
     categoryText: {
       fontSize: 13,
       color: palette.textSecondary,
+      fontWeight: "700",
+      fontStyle: "italic",
     },
     categoryTextActive: {
-      color: "#fff",
-      fontWeight: "600",
+      color: palette.textPrimary,
+    },
+    marker: {
+      position: "absolute",
+      top: -2,
+      bottom: -2,
+      left: -6,
+      right: -6,
+      backgroundColor: palette.accent,
+      opacity: 0.7,
+      transform: [{ skewX: "-15deg" }],
+      borderRadius: 6,
+      zIndex: -1,
     },
 
     subcategoryRow: {
       flexDirection: "row",
       paddingHorizontal: 16,
       paddingVertical: 8,
+      alignItems: "center",
     },
     subcategoryText: {
       fontSize: 13,
       color: palette.textSecondary,
-      marginRight: 14,     // replaces gap
+      fontWeight: "400",
+      fontStyle: "italic",
     },
     subcategoryTextActive: {
-      color: palette.accent,
-      fontWeight: "600",
+      color: palette.textPrimary,
+    },
+    separator: {
+      width: 1,
+      height: 14,
+      backgroundColor: palette.border,
+      marginHorizontal: 8,
+      alignSelf: "center",
+      opacity: 0.5,
+    },
+    divider: {
+      height: 1,
+      backgroundColor: palette.border,
+      marginHorizontal: 16,
+      opacity: 0.4,
     },
 
     dropdownButton: {

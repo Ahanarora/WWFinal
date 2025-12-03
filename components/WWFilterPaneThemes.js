@@ -40,26 +40,28 @@ export default function WWFilterPaneThemes({
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoryRow}
         >
-          {categories.map((cat) => {
+          {categories.map((cat, idx) => {
             const active = cat === activeCategory;
             return (
-              <TouchableOpacity
-                key={cat}
-                onPress={() => onCategoryChange(cat)}
-                style={[
-                  styles.categoryPill,
-                  active && styles.categoryPillActive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.categoryText,
-                    active && styles.categoryTextActive,
-                  ]}
+              <React.Fragment key={cat}>
+                <TouchableOpacity
+                  onPress={() => onCategoryChange(cat)}
+                  style={styles.categoryButton}
                 >
-                  {cat}
-                </Text>
-              </TouchableOpacity>
+                  {active && <View style={styles.marker} />}
+                  <Text
+                    style={[
+                      styles.categoryText,
+                      active && styles.categoryTextActive,
+                    ]}
+                  >
+                    {cat}
+                  </Text>
+                </TouchableOpacity>
+                {idx < categories.length - 1 && (
+                  <View style={styles.separator} />
+                )}
+              </React.Fragment>
             );
           })}
         </ScrollView>
@@ -82,6 +84,7 @@ export default function WWFilterPaneThemes({
       {/* ---------------------------- */}
       {/* SORT MODAL                  */}
       {/* ---------------------------- */}
+      <View style={styles.divider} />
       <Modal
         visible={showSortMenu}
         animationType="fade"
@@ -146,29 +149,43 @@ const createStyles = (palette) =>
 
     categoryRow: {
       flexDirection: "row",
-      gap: 10,
       paddingHorizontal: 0,
+      alignItems: "center",
     },
 
-    categoryPill: {
-      borderWidth: 1,
-      borderColor: palette.border,
-      borderRadius: 999,
-      paddingVertical: 6,
-      paddingHorizontal: 14,
-      backgroundColor: palette.surface,
-    },
-    categoryPillActive: {
-      backgroundColor: palette.accent,
-      borderColor: palette.accent,
+    categoryButton: {
+      paddingVertical: 4,
+      paddingHorizontal: 6,
+      position: "relative",
     },
     categoryText: {
       fontSize: 13,
       color: palette.textSecondary,
+      fontWeight: "700",
+      fontStyle: "italic",
     },
     categoryTextActive: {
-      color: "#fff",
-      fontWeight: "600",
+      color: palette.textPrimary,
+    },
+    marker: {
+      position: "absolute",
+      top: -2,
+      bottom: -2,
+      left: -6,
+      right: -6,
+      backgroundColor: palette.accent,
+      opacity: 0.7,
+      transform: [{ skewX: "-15deg" }],
+      borderRadius: 6,
+      zIndex: -1,
+    },
+    separator: {
+      width: 1,
+      height: 14,
+      backgroundColor: palette.border,
+      marginHorizontal: 8,
+      alignSelf: "center",
+      opacity: 0.5,
     },
 
     dropdownButton: {
@@ -205,5 +222,11 @@ const createStyles = (palette) =>
     selectedOptionText: {
       fontWeight: "bold",
       color: palette.accent,
+    },
+    divider: {
+      height: 1,
+      backgroundColor: palette.border,
+      marginHorizontal: 16,
+      opacity: 0.4,
     },
   });

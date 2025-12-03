@@ -84,6 +84,6 @@ const styles = StyleSheet.create({
   ctaText: {
     fontFamily: fonts.heading,
     fontSize: 15,
-    color: "#2563EB",
+    color: colors.textPrimary,
   },
 });

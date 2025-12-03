@@ -32,7 +32,7 @@ const DEFAULT_PALETTE = {
   border: "#E5E7EB",
   textPrimary: "#0F172A",
   textSecondary: "#6B7280",
-  accent: "#2563EB",
+  accent: "#DC2626",
   muted: "#94A3B8",
   danger: "#DC2626",
 };

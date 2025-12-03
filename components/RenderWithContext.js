@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     color: "#222",
   },
   link: {
-    color: "#2563EB",
+    color: "#DC2626",
     textDecorationLine: "underline",
   },
   highlight: {
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
     color: "#444",
   },
   close: {
-    color: "#2563EB",
+    color: "#DC2626",
     fontWeight: "600",
     marginTop: 10,
     textAlign: "right",

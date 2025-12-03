@@ -1,11 +1,12 @@
 //components/ShareButton.js//
 import { TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { colors } from "../styles/theme";
 
 export default function ShareButton({ onPress }) {
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
-      <Ionicons name="share-outline" size={22} color="#4B5563" />
+      <Ionicons name="share-social-outline" size={22} color={colors.muted} />
     </TouchableOpacity>
   );
 }

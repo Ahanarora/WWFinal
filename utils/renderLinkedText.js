@@ -74,7 +74,7 @@ export function renderLinkedText(text, navigation) {
             <Text
               key={i}
               style={{
-                color: "#2563EB",
+                color: "#DC2626",
                 textDecorationLine: "underline",
               }}
               onPress={async () => {
@@ -135,7 +135,7 @@ export function renderLinkedText(text, navigation) {
             <Text
               key={i}
               style={{
-                color: "#2563EB",
+            color: "#DC2626",
                 textDecorationLine: "underline",
               }}
               onPress={() => Linking.openURL(n.href)}

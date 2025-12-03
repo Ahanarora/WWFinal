@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
   modalMeta: {
     fontFamily: fonts.body,
     fontSize: 12,
-    color: "#6B7280",
+    color: colors.textSecondary,
   },
   modalClose: {
     alignSelf: "flex-end",
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   modalCloseText: {
-    color: "#2563EB",
+    color: colors.accent,
     fontSize: 14,
     fontWeight: "600",
   },

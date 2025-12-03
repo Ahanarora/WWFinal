@@ -251,7 +251,7 @@ export default function HomeScreen({ navigation }) {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#2563EB" />
+        <ActivityIndicator size="large" color="#DC2626" />
         <Text style={styles.loadingText}>Loading content...</Text>
       </View>
     );

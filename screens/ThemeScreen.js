@@ -29,7 +29,7 @@ import ShareButton from "../components/ShareButton";
 import { shareItem } from "../utils/share";
 import EventSortToggle from "../components/EventSortToggle";
 
-const PHASE_PALETTE = ["#2563EB", "#DC2626", "#059669", "#D97706", "#6D28D9"];
+const PHASE_PALETTE = ["#DC2626", "#B91C1C", "#EF4444", "#991B1B", "#F87171"];
 
 function getFactCheckRgb(score) {
   if (score >= 85) return { bg: "#BBF7D0", text: "#166534" };
@@ -280,7 +280,7 @@ export default function ThemeScreen({ route, navigation }) {
                 <Ionicons
                   name={isFavorite(item.id) ? "bookmark" : "bookmark-outline"}
                   size={20}
-                  color={isFavorite(item.id) ? "#2563EB" : colors.muted}
+                  color={isFavorite(item.id) ? colors.accent : colors.muted}
                 />
               </TouchableOpacity>
             </View>
@@ -354,9 +354,9 @@ export default function ThemeScreen({ route, navigation }) {
               step={1}
               value={depth}
               onValueChange={(v) => setDepth(v)}
-              minimumTrackTintColor="#2563EB"
-              maximumTrackTintColor="#D1D5DB"
-              thumbTintColor="#2563EB"
+              minimumTrackTintColor={colors.accent}
+              maximumTrackTintColor={colors.border}
+              thumbTintColor={colors.accent}
             />
             <Text style={styles.sliderLabel}>Complete</Text>
           </View>
@@ -623,7 +623,7 @@ const styles = StyleSheet.create({
   },
   subcategory: {
     fontFamily: fonts.body,
-    color: "#2563EB",
+    color: colors.textPrimary,
     marginBottom: spacing.sm,
     textDecorationLine: "underline",
   },
@@ -650,12 +650,12 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: "rgba(0,0,0,0.03)",
     borderWidth: 1,
-    borderColor: "#2563EB",
+    borderColor: colors.textPrimary,
     alignItems: "center",
     justifyContent: "center",
   },
   analysisButtonText: {
-    color: "#2563EB",
+    color: colors.textPrimary,
     fontFamily: fonts.body,
     fontSize: 12,
     fontWeight: "600",
@@ -732,7 +732,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   updateBadge: {
-    backgroundColor: "#DBEAFE",
+    backgroundColor: "#FEE2E2",
     borderRadius: 12,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -741,7 +741,7 @@ const styles = StyleSheet.create({
   },
   updateBadgeText: {
     fontSize: 11,
-    color: "#1D4ED8",
+    color: colors.accent,
     fontWeight: "600",
   },
 
@@ -860,7 +860,7 @@ const styles = StyleSheet.create({
   modalMeta: {
     fontFamily: fonts.body,
     fontSize: 12,
-    color: "#6B7280",
+    color: colors.textSecondary,
   },
   modalClose: {
     alignSelf: "flex-end",
@@ -868,7 +868,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   modalCloseText: {
-    color: "#2563EB",
+    color: colors.textPrimary,
     fontSize: 14,
     fontWeight: "600",
   },

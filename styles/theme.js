@@ -6,7 +6,7 @@ export const lightColors = {
   textPrimary: "#0F172A",
   textSecondary: "#475467",
   border: "#E2E8F0",
-  accent: "#2563EB",
+  accent: "#DC2626",
   muted: "#94A3B8",
 };
 
@@ -16,7 +16,7 @@ export const darkColors = {
   textPrimary: "#F8FAFC",
   textSecondary: "#CBD5F5",
   border: "#1E293B",
-  accent: "#60A5FA",
+  accent: "#F87171",
   muted: "#94A3B8",
 };
 

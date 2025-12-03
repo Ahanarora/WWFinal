@@ -224,7 +224,7 @@ function AppNavigator({ user }) {
       <Text
         style={{
           fontFamily: "Jacquard24",
-          fontSize: 66,
+          fontSize: 56,
           color: darkMode ? "#f8fafc" : colors.textPrimary,
         }}
       >

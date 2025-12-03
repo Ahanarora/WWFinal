@@ -1,6 +1,7 @@
 // ----------------------------------------
 // screens/StoriesScreen.js
 // Updated: Uses WWStoryCard + WWCompactCard + docId
+// WITH FIXED NAVIGATION TO STORYSCREEN
 // ----------------------------------------
 
 import React, { useEffect, useState, useMemo } from "react";
@@ -116,9 +117,9 @@ export default function StoriesScreen({ navigation }) {
       try {
         const snap = await getDocs(collection(db, "stories"));
         const data = snap.docs.map((d) => ({
-          docId: d.id,      // 🔑 Firestore document ID
+          docId: d.id, // Firestore document ID
           type: "story",
-          ...d.data(),      // includes old internal id field if present
+          ...d.data(),
         }));
         setStories(data);
       } catch (err) {
@@ -182,13 +183,39 @@ export default function StoriesScreen({ navigation }) {
   }, [filteredStories, sortMode]);
 
   // -----------------------------
+  // NAVIGATION WRAPPER (Fix)
+  // -----------------------------
+  const navigateToStory = (item) => {
+    const index = sortedStories.findIndex((s) => s.docId === item.docId);
+
+    navigation.navigate("Story", {
+      story: item, // send full object
+      index,
+      allStories: sortedStories, // send list for endless scroll
+    });
+  };
+
+  // -----------------------------
   // CARD RENDERER
   // -----------------------------
   const renderStoryCard = ({ item }) => {
     if (item.isCompactCard) {
-      return <WWCompactCard item={item} navigation={navigation} />;
+      return (
+        <WWCompactCard
+          item={item}
+          navigation={navigation}
+          onPress={() => navigateToStory(item)}
+        />
+      );
     }
-    return <WWStoryCard item={item} navigation={navigation} />;
+
+    return (
+      <WWStoryCard
+        item={item}
+        navigation={navigation}
+        onPress={() => navigateToStory(item)}
+      />
+    );
   };
 
   // -----------------------------

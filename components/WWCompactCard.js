@@ -1,5 +1,5 @@
 // components/WWCompactCard.js
-// Compact universal card for Story + Theme
+// Compact universal card for Story + Theme (now uses docId + safe navigation)
 
 import React from "react";
 import {
@@ -13,34 +13,42 @@ import { Ionicons } from "@expo/vector-icons";
 import { useUserData } from "../contexts/UserDataContext";
 import { getThemeColors } from "../styles/theme";
 
-export default function WWCompactCard({ item, navigation }) {
+export default function WWCompactCard({ item, navigation, onPress }) {
   const { favorites, toggleFavorite, getUpdatesSinceLastVisit, themeColors } =
     useUserData();
 
   const palette = themeColors || getThemeColors(false);
   const styles = createStyles(palette);
 
+  // Correct favorite state using docId
   const isFav =
     item.type === "story"
-      ? favorites?.stories?.includes(item.id)
-      : favorites?.themes?.includes(item.id);
+      ? favorites?.stories?.includes(item.docId)
+      : favorites?.themes?.includes(item.docId);
 
   const updates = getUpdatesSinceLastVisit(item.type + "s", item);
 
-  const onPress = () => {
+  // Default fallback navigation
+  const defaultPress = () => {
     if (item.type === "story") {
       navigation.navigate("Story", {
-        storyId: item.id,
+        story: item,
+        index: 0,
+        allStories: [item],
       });
     } else {
       navigation.navigate("Theme", {
         theme: item,
+        index: 0,
+        allThemes: [item],
       });
     }
   };
 
+  const pressHandler = onPress || defaultPress;
+
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress}>
+    <TouchableOpacity style={styles.card} onPress={pressHandler}>
       {/* Thumbnail */}
       {item.imageUrl ? (
         <Image source={{ uri: item.imageUrl }} style={styles.thumb} />
@@ -63,12 +71,10 @@ export default function WWCompactCard({ item, navigation }) {
         )}
       </View>
 
-      {/* Save icon */}
+      {/* Bookmark */}
       <TouchableOpacity
         style={styles.bookmark}
-        onPress={() => {
-          toggleFavorite(item.type + "s", item.id, item);
-        }}
+        onPress={() => toggleFavorite(item.type + "s", item.docId, item)}
       >
         <Ionicons
           name={isFav ? "bookmark" : "bookmark-outline"}

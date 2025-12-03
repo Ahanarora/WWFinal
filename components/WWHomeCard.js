@@ -1,5 +1,5 @@
 // components/WWHomeCard.js
-// Full-size home card for Story + Theme (featured + regular)
+// Full-size home card for Story + Theme (supports docId + full-screen nav)
 
 import React from "react";
 import {
@@ -10,42 +10,46 @@ import {
   StyleSheet,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-
 import { useUserData } from "../contexts/UserDataContext";
 import { getThemeColors } from "../styles/theme";
 import { formatUpdatedAt } from "../utils/formatTime";
 import { getLatestHeadlines } from "../utils/getLatestHeadlines";
 
-export default function WWHomeCard({ item, navigation }) {
+export default function WWHomeCard({ item, navigation, onPress }) {
   const { favorites, toggleFavorite, getUpdatesSinceLastVisit, themeColors } =
     useUserData();
 
   const palette = themeColors || getThemeColors(false);
   const styles = createStyles(palette);
 
-  // Determine which favorite list to check
   const isFav =
     item.type === "story"
-      ? favorites?.stories?.includes(item.id)
-      : favorites?.themes?.includes(item.id);
+      ? favorites?.stories?.includes(item.docId)
+      : favorites?.themes?.includes(item.docId);
 
   const updates = getUpdatesSinceLastVisit(item.type + "s", item);
   const headlines = getLatestHeadlines(item.timeline || []);
 
-  const onPress = () => {
+  const defaultPress = () => {
     if (item.type === "story") {
       navigation.navigate("Story", {
-        storyId: item.id,
+        story: item,
+        index: 0,
+        allStories: [item],
       });
     } else {
       navigation.navigate("Theme", {
         theme: item,
+        index: 0,
+        allThemes: [item],
       });
     }
   };
 
+  const pressHandler = onPress || defaultPress;
+
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress}>
+    <TouchableOpacity style={styles.card} onPress={pressHandler}>
       {/* IMAGE */}
       <View style={styles.imageWrap}>
         {item.imageUrl ? (
@@ -66,31 +70,24 @@ export default function WWHomeCard({ item, navigation }) {
 
       {/* BODY */}
       <View style={styles.body}>
-        {/* Title */}
         <Text style={styles.title}>{item.title}</Text>
-
-        {/* Updated time */}
         <Text style={styles.updated}>{formatUpdatedAt(item.updatedAt)}</Text>
 
-        {/* Overview */}
         {item.overview && (
           <Text style={styles.overview} numberOfLines={2}>
             {item.overview}
           </Text>
         )}
 
-        {/* Updates Since Last Visit */}
         {updates > 0 && (
           <Text style={styles.updateBadge}>
             {updates} update{updates > 1 ? "s" : ""} since last visit
           </Text>
         )}
 
-        {/* Latest updates bullets */}
         {headlines.length > 0 && (
           <View style={styles.latestWrap}>
             <Text style={styles.latestLabel}>Latest updates</Text>
-
             {headlines.slice(0, 2).map((h) => (
               <View style={styles.bulletRow} key={h.id}>
                 <View style={styles.bulletDot} />
@@ -100,12 +97,11 @@ export default function WWHomeCard({ item, navigation }) {
           </View>
         )}
 
-        {/* BOOKMARK */}
         <TouchableOpacity
           style={styles.bookmark}
-          onPress={() => {
-            toggleFavorite(item.type + "s", item.id, item);
-          }}
+          onPress={() =>
+            toggleFavorite(item.type + "s", item.docId, item)
+          }
         >
           <Ionicons
             name={isFav ? "bookmark" : "bookmark-outline"}
@@ -130,12 +126,10 @@ const createStyles = (palette) =>
       overflow: "hidden",
     },
 
-    // Image
     imageWrap: { position: "relative" },
     image: {
       width: "100%",
       height: 200,
-      backgroundColor: palette.border,
     },
     placeholder: {
       width: "100%",
@@ -149,7 +143,6 @@ const createStyles = (palette) =>
       color: palette.muted,
     },
 
-    // Type badge
     typeBadge: {
       position: "absolute",
       top: 10,
@@ -163,30 +156,24 @@ const createStyles = (palette) =>
       color: "#fff",
       fontSize: 11,
       fontWeight: "600",
-      textTransform: "uppercase",
     },
 
-    // Body
     body: {
       padding: 16,
       gap: 6,
     },
-
     title: {
       fontSize: 18,
       fontWeight: "600",
       color: palette.textPrimary,
     },
-
     updated: {
       fontSize: 13,
       color: palette.muted,
     },
-
     overview: {
       fontSize: 14,
       color: palette.textSecondary,
-      marginTop: 2,
     },
 
     updateBadge: {
@@ -203,7 +190,6 @@ const createStyles = (palette) =>
     latestLabel: {
       fontSize: 11,
       color: palette.muted,
-      textTransform: "uppercase",
     },
     bulletRow: {
       flexDirection: "row",

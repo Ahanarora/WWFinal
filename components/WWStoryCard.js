@@ -1,5 +1,5 @@
 // components/WWStoryCard.js
-// Full card layout for STORY
+// Full card layout for STORY — now uses docId + proper navigation
 
 import React from "react";
 import {
@@ -15,25 +15,31 @@ import { formatUpdatedAt } from "../utils/formatTime";
 import { getLatestHeadlines } from "../utils/getLatestHeadlines";
 import { getThemeColors } from "../styles/theme";
 
-export default function WWStoryCard({ item, navigation }) {
+export default function WWStoryCard({ item, navigation, onPress }) {
   const { favorites, toggleFavorite, getUpdatesSinceLastVisit, themeColors } =
     useUserData();
 
   const palette = themeColors || getThemeColors(false);
   const styles = createStyles(palette);
 
-  const isFav = favorites?.stories?.includes(item.id);
+  // Correct: stories are favorited by their Firestore docId
+  const isFav = favorites?.stories?.includes(item.docId);
   const updates = getUpdatesSinceLastVisit("stories", item);
   const headlines = getLatestHeadlines(item.timeline || []);
 
-  const onPress = () => {
+  // Fallback navigation if parent does not provide onPress
+  const defaultPress = () => {
     navigation.navigate("Story", {
-      storyId: item.id,
+      story: item,
+      index: 0,
+      allStories: [item],
     });
   };
 
+  const pressHandler = onPress || defaultPress;
+
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress}>
+    <TouchableOpacity style={styles.card} onPress={pressHandler}>
       {/* Full-width Image */}
       <View style={styles.imageWrap}>
         {item.imageUrl ? (
@@ -84,7 +90,7 @@ export default function WWStoryCard({ item, navigation }) {
         {/* Bookmark */}
         <TouchableOpacity
           style={styles.bookmark}
-          onPress={() => toggleFavorite("stories", item.id, item)}
+          onPress={() => toggleFavorite("stories", item.docId, item)}
         >
           <Ionicons
             name={isFav ? "bookmark" : "bookmark-outline"}

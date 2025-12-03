@@ -1,5 +1,5 @@
 // components/WWThemeCard.js
-// Full-size Theme card (same layout as Story)
+// Full Theme card — now uses docId + safe nav
 
 import React from "react";
 import {
@@ -15,25 +15,29 @@ import { formatUpdatedAt } from "../utils/formatTime";
 import { getLatestHeadlines } from "../utils/getLatestHeadlines";
 import { getThemeColors } from "../styles/theme";
 
-export default function WWThemeCard({ item, navigation }) {
+export default function WWThemeCard({ item, navigation, onPress }) {
   const { favorites, toggleFavorite, getUpdatesSinceLastVisit, themeColors } =
     useUserData();
 
   const palette = themeColors || getThemeColors(false);
   const styles = createStyles(palette);
 
-  const isFav = favorites?.themes?.includes(item.id);
+  const isFav = favorites?.themes?.includes(item.docId);
   const updates = getUpdatesSinceLastVisit("themes", item);
   const headlines = getLatestHeadlines(item.timeline || []);
 
-  const onPress = () => {
+  const defaultPress = () => {
     navigation.navigate("Theme", {
       theme: item,
+      index: 0,
+      allThemes: [item],
     });
   };
 
+  const pressHandler = onPress || defaultPress;
+
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress}>
+    <TouchableOpacity style={styles.card} onPress={pressHandler}>
       {/* Image */}
       <View style={styles.imageWrap}>
         {item.imageUrl ? (
@@ -50,9 +54,10 @@ export default function WWThemeCard({ item, navigation }) {
         </View>
       </View>
 
-      {/* Body */}
       <View style={styles.body}>
+        {/* TITLE */}
         <Text style={styles.title}>{item.title}</Text>
+
         <Text style={styles.updated}>{formatUpdatedAt(item.updatedAt)}</Text>
 
         {item.overview && (
@@ -61,12 +66,14 @@ export default function WWThemeCard({ item, navigation }) {
           </Text>
         )}
 
+        {/* Updates */}
         {updates > 0 && (
           <Text style={styles.updatesText}>
             {updates} update{updates > 1 ? "s" : ""} since last visit
           </Text>
         )}
 
+        {/* Latest Bullets */}
         {headlines.length > 0 && (
           <View style={styles.latestWrap}>
             <Text style={styles.latestLabel}>Latest updates</Text>
@@ -80,10 +87,9 @@ export default function WWThemeCard({ item, navigation }) {
           </View>
         )}
 
-        {/* Bookmark */}
         <TouchableOpacity
           style={styles.bookmark}
-          onPress={() => toggleFavorite("themes", item.id, item)}
+          onPress={() => toggleFavorite("themes", item.docId, item)}
         >
           <Ionicons
             name={isFav ? "bookmark" : "bookmark-outline"}
@@ -107,9 +113,7 @@ const createStyles = (palette) =>
       borderColor: palette.border,
       overflow: "hidden",
     },
-    imageWrap: {
-      position: "relative",
-    },
+    imageWrap: { position: "relative" },
     image: {
       width: "100%",
       height: 200,
@@ -121,9 +125,8 @@ const createStyles = (palette) =>
       justifyContent: "center",
       alignItems: "center",
     },
-    placeholderText: {
-      color: palette.muted,
-    },
+    placeholderText: { color: palette.muted },
+
     typeBadge: {
       position: "absolute",
       top: 10,
@@ -138,56 +141,36 @@ const createStyles = (palette) =>
       fontSize: 11,
       fontWeight: "600",
     },
-    body: {
-      padding: 16,
-      gap: 6,
-    },
+
+    body: { padding: 16, gap: 6 },
     title: {
       fontSize: 18,
       fontWeight: "600",
       color: palette.textPrimary,
     },
-    updated: {
-      fontSize: 13,
-      color: palette.muted,
-    },
-    overview: {
-      fontSize: 14,
-      color: palette.textSecondary,
-    },
+    updated: { fontSize: 13, color: palette.muted },
+    overview: { fontSize: 14, color: palette.textSecondary },
+
     updatesText: {
       marginTop: 4,
       fontSize: 12,
       color: palette.accent,
       fontWeight: "600",
     },
-    latestWrap: {
-      marginTop: 10,
-      gap: 6,
-    },
-    latestLabel: {
-      fontSize: 11,
-      textTransform: "uppercase",
-      color: palette.muted,
-    },
-    bulletRow: {
-      flexDirection: "row",
-      gap: 8,
-    },
+    latestWrap: { marginTop: 10, gap: 6 },
+    latestLabel: { fontSize: 11, color: palette.muted },
+    bulletRow: { flexDirection: "row", gap: 8 },
     bulletDot: {
       width: 4,
       height: 4,
       borderRadius: 2,
-      backgroundColor: palette.accent,
       marginTop: 6,
+      backgroundColor: palette.accent,
     },
     bulletText: {
       fontSize: 13,
       color: palette.textSecondary,
       flex: 1,
     },
-    bookmark: {
-      alignSelf: "flex-end",
-      marginTop: 8,
-    },
+    bookmark: { marginTop: 8, alignSelf: "flex-end" },
   });

@@ -356,13 +356,14 @@ export default function StoryScreen({ route, navigation }) {
           </View>
         )}
 
-        {filteredTimeline.length > 0 && feed[0].id === item.id && (
-          <EventSortToggle sortOrder={sortOrder} onChange={setSortOrder} />
-        )}
-
         {/* TIMELINE */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Timeline</Text>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Timeline</Text>
+            {filteredTimeline.length > 0 && feed[0].id === item.id && (
+              <EventSortToggle sortOrder={sortOrder} onChange={setSortOrder} />
+            )}
+          </View>
 
           {filteredTimeline.map((e, i) => {
             const startingPhase = getPhaseForEventStart(e);
@@ -670,10 +671,15 @@ const styles = StyleSheet.create({
   },
 
   section: { marginBottom: spacing.lg },
+  sectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: spacing.sm,
+  },
   sectionTitle: {
     fontFamily: fonts.heading,
     fontSize: 18,
-    marginBottom: spacing.sm,
     borderBottomWidth: 1,
     borderColor: colors.border,
     paddingBottom: 4,

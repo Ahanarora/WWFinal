@@ -372,15 +372,16 @@ export default function ThemeScreen({ route, navigation }) {
           </View>
         )}
 
-        {rawTimeline.length > 0 && isFirst && (
-          <EventSortToggle sortOrder={sortOrder} onChange={setSortOrder} />
-        )}
-
         {/* ------------------------------
             TIMELINE WITH PHASE HEADERS
            ------------------------------ */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Chronology of Events</Text>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Chronology of Events</Text>
+            {rawTimeline.length > 0 && isFirst && (
+              <EventSortToggle sortOrder={sortOrder} onChange={setSortOrder} />
+            )}
+          </View>
 
           {filteredTimeline.length === 0 ? (
             <Text style={styles.empty}>No events for this depth.</Text>
@@ -692,10 +693,15 @@ const styles = StyleSheet.create({
 
   // TIMELINE
   section: { marginBottom: spacing.lg },
+  sectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: spacing.sm,
+  },
   sectionTitle: {
     fontFamily: fonts.heading,
     fontSize: 18,
-    marginBottom: spacing.sm,
     borderBottomWidth: 1,
     borderColor: colors.border,
     paddingBottom: 4,

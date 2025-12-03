@@ -389,25 +389,17 @@ export default function HomeScreen({ navigation }) {
                 {
                   flexDirection: "row",
                   alignItems: "center",
-                  justifyContent: "space-between",
+                  justifyContent: "flex-end",
                 },
               ]}
             >
-              <Text style={styles.dropdownButtonText}>
-                Sort:{" "}
-                {sortMode === "relevance"
-                  ? "Relevance"
-                  : sortMode === "updated"
-                  ? "Recently Updated"
-                  : "Recently Published"}
-              </Text>
-
               <Ionicons
-                name="chevron-down-outline"
-                size={18}
-                color={palette.textPrimary}
-                style={{ marginLeft: 8 }}
+                name="swap-vertical-outline"
+                size={16}
+                color={palette.textSecondary}
+                style={{ marginRight: 6 }}
               />
+              <Text style={styles.dropdownButtonText}>Sort</Text>
             </TouchableOpacity>
           </>
         }
@@ -549,18 +541,22 @@ const createStyles = (palette) =>
 
     // Sort dropdown
     dropdownButton: {
-      paddingVertical: 10,
+      paddingVertical: 6,
       paddingHorizontal: 16,
-      backgroundColor: palette.surface,
+      backgroundColor: "transparent",
       marginTop: 8,
-      borderRadius: 8,
+      borderRadius: 0,
       marginHorizontal: 16,
-      borderWidth: 1,
-      borderColor: palette.border,
+      borderWidth: 0,
+      borderColor: "transparent",
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "flex-end",
     },
     dropdownButtonText: {
-      fontSize: 14,
-      color: palette.textPrimary,
+      fontSize: 13,
+      color: palette.textSecondary,
+      fontWeight: "700",
     },
 
     // Sort modal

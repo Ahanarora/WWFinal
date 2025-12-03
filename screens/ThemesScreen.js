@@ -204,20 +204,13 @@ export default function ThemesScreen({ navigation }) {
           onPress={() => setShowSortMenu(true)}
           style={styles.dropdownButton}
         >
-          <Text style={styles.dropdownButtonText}>
-            Sort:{" "}
-            {sortMode === "relevance"
-              ? "Relevance"
-              : sortMode === "updated"
-              ? "Recently Updated"
-              : "Recently Published"}
-          </Text>
-
           <Ionicons
-            name="chevron-down-outline"
-            size={18}
-            color={palette.textPrimary}
+            name="swap-vertical-outline"
+            size={16}
+            color={palette.textSecondary}
+            style={{ marginRight: 6 }}
           />
+          <Text style={styles.dropdownButtonText}>Sort</Text>
         </TouchableOpacity>
       </View>
 
@@ -335,19 +328,20 @@ const createStyles = (palette) =>
     },
 
     dropdownButton: {
-      paddingVertical: 10,
-      paddingHorizontal: 14,
-      backgroundColor: palette.surface,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: palette.border,
+      paddingVertical: 6,
+      paddingHorizontal: 0,
+      backgroundColor: "transparent",
+      borderRadius: 0,
+      borderWidth: 0,
+      borderColor: "transparent",
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "space-between",
+      justifyContent: "flex-end",
     },
     dropdownButtonText: {
-      fontSize: 14,
-      color: palette.textPrimary,
+      fontSize: 13,
+      color: palette.textSecondary,
+      fontWeight: "700",
     },
 
     // MODAL

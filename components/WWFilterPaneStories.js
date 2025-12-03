@@ -76,7 +76,7 @@ export default function WWFilterPaneStories({
           contentContainerStyle={styles.subcategoryRow}
         >
           {/* ALL subcategory */}
-          {[{ label: "ALL", value: "All" }, ...SUBCATS.map((s) => ({ label: s, value: s }))].map(
+          {[{ label: "All", value: "All" }, ...SUBCATS.map((s) => ({ label: s, value: s }))].map(
             (sub, idx, arr) => {
               const active = activeSubcategory === sub.value;
               return (

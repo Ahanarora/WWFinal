@@ -3,7 +3,7 @@
 // Clean version using WWFilterPaneStories
 // ----------------------------------------
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -97,9 +97,55 @@ export default function StoriesScreen({ navigation }) {
   const [activeSubcategory, setActiveSubcategory] = useState("All");
   const [sortMode, setSortMode] = useState("relevance");
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [filterVisible, setFilterVisible] = useState(true);
 
   const palette = getThemeColors(false);
   const styles = useMemo(() => createStyles(palette), [palette]);
+  const headerShownRef = useRef(true);
+  const lastOffsetY = useRef(0);
+  const filterVisibleRef = useRef(true);
+
+  const toggleHeader = useCallback(
+    (show) => {
+      if (!navigation?.getParent) return;
+      if (headerShownRef.current === show) return;
+      navigation.getParent()?.setOptions({ headerShown: show });
+      headerShownRef.current = show;
+    },
+    [navigation]
+  );
+
+  const handleHeaderScroll = useCallback(
+    ({ nativeEvent }) => {
+      const y = nativeEvent?.contentOffset?.y || 0;
+      const delta = y - lastOffsetY.current;
+      const threshold = 20;
+      if (delta > threshold) {
+        toggleHeader(false);
+        if (filterVisibleRef.current) {
+          filterVisibleRef.current = false;
+          setFilterVisible(false);
+        }
+      } else if (delta < -threshold) {
+        toggleHeader(true);
+        if (!filterVisibleRef.current) {
+          filterVisibleRef.current = true;
+          setFilterVisible(true);
+        }
+      }
+      lastOffsetY.current = y;
+    },
+    [toggleHeader]
+  );
+
+  useEffect(
+    () => () => {
+      toggleHeader(true);
+      filterVisibleRef.current = true;
+      setFilterVisible(true);
+    },
+    [toggleHeader]
+  );
 
   // -----------------------------
   // FETCH STORIES
@@ -248,17 +294,19 @@ export default function StoriesScreen({ navigation }) {
   return (
     <View style={styles.container}>
       {/* PINNED FILTER PANE */}
-      <WWFilterPaneStories
-        categories={CATEGORIES}
-        subcategories={SUBCATEGORY_MAP}
-        activeCategory={activeCategory}
-        activeSubcategory={activeSubcategory}
-        onCategoryChange={(cat) => {
-          setActiveCategory(cat);
-          setActiveSubcategory("All");
-        }}
-        onSubcategoryChange={setActiveSubcategory}
-      />
+      {filterVisible && (
+        <WWFilterPaneStories
+          categories={CATEGORIES}
+          subcategories={SUBCATEGORY_MAP}
+          activeCategory={activeCategory}
+          activeSubcategory={activeSubcategory}
+          onCategoryChange={(cat) => {
+            setActiveCategory(cat);
+            setActiveSubcategory("All");
+          }}
+          onSubcategoryChange={setActiveSubcategory}
+        />
+      )}
       <View style={styles.sortBar}>
         <TouchableOpacity
           style={styles.sortButton}
@@ -279,6 +327,8 @@ export default function StoriesScreen({ navigation }) {
         data={sortedStories}
         keyExtractor={(item) => item.docId || item.id}
         renderItem={renderStoryCard}
+        onScroll={handleHeaderScroll}
+        scrollEventThrottle={32}
         contentContainerStyle={{ paddingBottom: 24 }}
       />
 

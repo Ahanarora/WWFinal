@@ -3,7 +3,7 @@
 // (RESTORED ORIGINAL + Analysis buttons + PHASES + Event Reader phases)
 // ----------------------------------------
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -66,6 +66,32 @@ export default function StoryScreen({ route, navigation }) {
     toggleFavorite,
     recordVisit,
   } = useUserData();
+  const headerShownRef = useRef(true);
+  const lastOffsetY = useRef(0);
+
+  const toggleHeader = useCallback(
+    (show) => {
+      if (!navigation?.getParent) return;
+      if (headerShownRef.current === show) return;
+      navigation.getParent()?.setOptions({ headerShown: show });
+      headerShownRef.current = show;
+    },
+    [navigation]
+  );
+
+  const handleHeaderScroll = useCallback(
+    ({ nativeEvent }) => {
+      const y = nativeEvent?.contentOffset?.y || 0;
+      const delta = y - lastOffsetY.current;
+      const threshold = 20;
+      if (delta > threshold) toggleHeader(false);
+      else if (delta < -threshold) toggleHeader(true);
+      lastOffsetY.current = y;
+    },
+    [toggleHeader]
+  );
+
+  useEffect(() => () => toggleHeader(true), [toggleHeader]);
   const [sortOrder, setSortOrder] = useState("chronological");
   const [factCheckModal, setFactCheckModal] = useState({
     visible: false,
@@ -508,6 +534,7 @@ export default function StoryScreen({ route, navigation }) {
     <ScrollView
       style={styles.container}
       onScroll={({ nativeEvent }) => {
+        handleHeaderScroll({ nativeEvent });
         const pad = 300;
         if (
           nativeEvent.layoutMeasurement.height +
@@ -517,7 +544,7 @@ export default function StoryScreen({ route, navigation }) {
           loadNextStory();
         }
       }}
-      scrollEventThrottle={250}
+      scrollEventThrottle={32}
     >
       {feed.map((s) => (
         <View key={s.id}>

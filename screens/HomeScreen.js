@@ -3,7 +3,7 @@
 // Now uses WWFilterPaneStories for category + subcategory + sort
 // ----------------------------------------
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -99,6 +99,7 @@ export default function HomeScreen({ navigation }) {
   const [themes, setThemes] = useState([]);
   const [stories, setStories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filterVisible, setFilterVisible] = useState(true);
 
   // Filter-pane shared states:
   const [activeCategory, setActiveCategory] = useState("All");
@@ -109,6 +110,52 @@ export default function HomeScreen({ navigation }) {
   const { themeColors } = useUserData() || {};
   const palette = themeColors || getThemeColors(false);
   const styles = useMemo(() => createStyles(palette), [palette]);
+
+  const headerShownRef = useRef(true);
+  const lastOffsetY = useRef(0);
+  const filterVisibleRef = useRef(true);
+
+  const toggleHeader = useCallback(
+    (show) => {
+      if (!navigation?.getParent) return;
+      if (headerShownRef.current === show) return;
+      navigation.getParent()?.setOptions({ headerShown: show });
+      headerShownRef.current = show;
+    },
+    [navigation]
+  );
+
+  const handleHeaderScroll = useCallback(
+    ({ nativeEvent }) => {
+      const y = nativeEvent?.contentOffset?.y || 0;
+      const delta = y - lastOffsetY.current;
+      const threshold = 20;
+      if (delta > threshold) {
+        toggleHeader(false);
+        if (filterVisibleRef.current) {
+          filterVisibleRef.current = false;
+          setFilterVisible(false);
+        }
+      } else if (delta < -threshold) {
+        toggleHeader(true);
+        if (!filterVisibleRef.current) {
+          filterVisibleRef.current = true;
+          setFilterVisible(true);
+        }
+      }
+      lastOffsetY.current = y;
+    },
+    [toggleHeader]
+  );
+
+  useEffect(
+    () => () => {
+      toggleHeader(true);
+      filterVisibleRef.current = true;
+      setFilterVisible(true);
+    },
+    [toggleHeader]
+  );
 
   // -------------------------------
   // FETCH STORIES + THEMES
@@ -310,23 +357,27 @@ export default function HomeScreen({ navigation }) {
     <View style={styles.container}>
 
       {/* ⬇ REPLACED ENTIRE OLD UI WITH SHARED COMPONENT */}
-      <WWFilterPaneStories
-        categories={CATEGORIES}
-        subcategories={SUBCATEGORY_MAP}
-        activeCategory={activeCategory}
-        activeSubcategory={activeSubcategory}
-        onCategoryChange={(cat) => {
-          setActiveCategory(cat);
-          setActiveSubcategory("All");
-        }}
-        onSubcategoryChange={setActiveSubcategory}
-      />
+      {filterVisible && (
+        <WWFilterPaneStories
+          categories={CATEGORIES}
+          subcategories={SUBCATEGORY_MAP}
+          activeCategory={activeCategory}
+          activeSubcategory={activeSubcategory}
+          onCategoryChange={(cat) => {
+            setActiveCategory(cat);
+            setActiveSubcategory("All");
+          }}
+          onSubcategoryChange={setActiveSubcategory}
+        />
+      )}
 
       {/* MAIN FEED */}
       <FlatList
         data={regularCombined}
         keyExtractor={(item) => `${item.type}-${item.docId || item.id}`}
         renderItem={renderRegularItem}
+        onScroll={handleHeaderScroll}
+        scrollEventThrottle={32}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         contentContainerStyle={{ paddingBottom: 24 }}
         ListHeaderComponent={

@@ -10,7 +10,10 @@ import {
   ActivityIndicator,
   StyleSheet,
   FlatList,
+  Modal,
+  TouchableOpacity,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
@@ -61,6 +64,7 @@ export default function ThemesScreen({ navigation }) {
 
   const [activeCategory, setActiveCategory] = useState("All");
   const [sortMode, setSortMode] = useState("relevance");
+  const [showSortMenu, setShowSortMenu] = useState(false);
 
   const palette = getThemeColors(false);
   const styles = useMemo(() => createStyles(palette), [palette]);
@@ -162,10 +166,22 @@ export default function ThemesScreen({ navigation }) {
       <WWFilterPaneThemes
         categories={CATEGORIES}
         activeCategory={activeCategory}
-        sortMode={sortMode}
         onCategoryChange={setActiveCategory}
-        onSortChange={setSortMode}
       />
+      <View style={styles.sortBar}>
+        <TouchableOpacity
+          style={styles.sortButton}
+          onPress={() => setShowSortMenu(true)}
+        >
+          <Ionicons
+            name="swap-vertical-outline"
+            size={16}
+            color={palette.textSecondary}
+            style={{ marginRight: 4 }}
+          />
+          <Text style={styles.sortButtonText}>Sort</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* THEMES LIST */}
       <FlatList
@@ -174,6 +190,44 @@ export default function ThemesScreen({ navigation }) {
         renderItem={renderThemeCard}
         contentContainerStyle={{ paddingBottom: 24 }}
       />
+
+      <Modal
+        visible={showSortMenu}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setShowSortMenu(false)}
+      >
+        <TouchableOpacity
+          style={styles.sortModalBackdrop}
+          onPress={() => setShowSortMenu(false)}
+        >
+          <View style={styles.sortModalContent}>
+            {[
+              { key: "relevance", label: "Relevance" },
+              { key: "updated", label: "Recently Updated" },
+              { key: "published", label: "Recently Published" },
+            ].map((opt) => (
+              <TouchableOpacity
+                key={opt.key}
+                style={styles.sortModalOption}
+                onPress={() => {
+                  setSortMode(opt.key);
+                  setShowSortMenu(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.sortModalOptionText,
+                    sortMode === opt.key && styles.sortSelectedOptionText,
+                  ]}
+                >
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }

@@ -10,7 +10,10 @@ import {
   ActivityIndicator,
   StyleSheet,
   FlatList,
+  Modal,
+  TouchableOpacity,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
@@ -93,6 +96,7 @@ export default function StoriesScreen({ navigation }) {
   const [activeCategory, setActiveCategory] = useState("All");
   const [activeSubcategory, setActiveSubcategory] = useState("All");
   const [sortMode, setSortMode] = useState("relevance");
+  const [showSortMenu, setShowSortMenu] = useState(false);
 
   const palette = getThemeColors(false);
   const styles = useMemo(() => createStyles(palette), [palette]);
@@ -237,14 +241,26 @@ export default function StoriesScreen({ navigation }) {
         subcategories={SUBCATEGORY_MAP}
         activeCategory={activeCategory}
         activeSubcategory={activeSubcategory}
-        sortMode={sortMode}
         onCategoryChange={(cat) => {
           setActiveCategory(cat);
           setActiveSubcategory("All");
         }}
         onSubcategoryChange={setActiveSubcategory}
-        onSortChange={setSortMode}
       />
+      <View style={styles.sortBar}>
+        <TouchableOpacity
+          style={styles.sortButton}
+          onPress={() => setShowSortMenu(true)}
+        >
+          <Ionicons
+            name="swap-vertical-outline"
+            size={16}
+            color={palette.textSecondary}
+            style={{ marginRight: 4 }}
+          />
+          <Text style={styles.sortButtonText}>Sort</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* STORY LIST */}
       <FlatList
@@ -253,6 +269,44 @@ export default function StoriesScreen({ navigation }) {
         renderItem={renderStoryCard}
         contentContainerStyle={{ paddingBottom: 24 }}
       />
+
+      <Modal
+        visible={showSortMenu}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setShowSortMenu(false)}
+      >
+        <TouchableOpacity
+          style={styles.sortModalBackdrop}
+          onPress={() => setShowSortMenu(false)}
+        >
+          <View style={styles.sortModalContent}>
+            {[
+              { key: "relevance", label: "Relevance" },
+              { key: "updated", label: "Recently Updated" },
+              { key: "published", label: "Recently Published" },
+            ].map((opt) => (
+              <TouchableOpacity
+                key={opt.key}
+                style={styles.sortModalOption}
+                onPress={() => {
+                  setSortMode(opt.key);
+                  setShowSortMenu(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.sortModalOptionText,
+                    sortMode === opt.key && styles.sortSelectedOptionText,
+                  ]}
+                >
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -266,6 +320,22 @@ const createStyles = (palette) =>
       flex: 1,
       backgroundColor: palette.background,
     },
+    sortBar: {
+      flexDirection: "row",
+      justifyContent: "flex-end",
+      paddingHorizontal: 16,
+      paddingTop: 8,
+      paddingBottom: 4,
+    },
+    sortButton: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    sortButtonText: {
+      fontSize: 14,
+      color: palette.textSecondary,
+      fontWeight: "500",
+    },
 
     center: {
       flex: 1,
@@ -274,4 +344,27 @@ const createStyles = (palette) =>
     },
     loadingText: { marginTop: 8, color: palette.textSecondary },
     emptyText: { fontSize: 16, color: palette.textSecondary },
+    sortModalBackdrop: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.3)",
+      justifyContent: "center",
+      padding: 30,
+    },
+    sortModalContent: {
+      backgroundColor: palette.surface,
+      borderRadius: 10,
+      overflow: "hidden",
+    },
+    sortModalOption: {
+      paddingVertical: 14,
+      paddingHorizontal: 18,
+    },
+    sortModalOptionText: {
+      fontSize: 16,
+      color: palette.textPrimary,
+    },
+    sortSelectedOptionText: {
+      fontWeight: "bold",
+      color: palette.accent,
+    },
   });

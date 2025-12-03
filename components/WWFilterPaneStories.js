@@ -235,6 +235,7 @@ const createStyles = (palette) =>
     },
     subcategoryTextActive: {
       color: palette.textPrimary,
+      fontWeight: "600",
     },
     separator: {
       width: 1,

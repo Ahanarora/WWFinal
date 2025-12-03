@@ -215,23 +215,37 @@ function AppNavigator({ user }) {
   const navigationRef = useNavigationContainerRef();
   const { darkMode, toggleDarkMode } = useUserData();
   const [menuVisible, setMenuVisible] = useState(false);
-  const WaitHeader = ({ onPress }) => (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.8}
-      style={{ paddingHorizontal: 4 }}
-    >
-      <Text
-        style={{
-          fontFamily: "Jacquard24",
-          fontSize: 56,
-          color: darkMode ? "#f8fafc" : colors.textPrimary,
-        }}
+  const WaitHeader = ({ onPress }) => {
+    const textColor = darkMode ? "#f8fafc" : colors.textPrimary;
+    const accentColor = "#DC2626";
+    const underlineColor = "#FACC15";
+
+    return (
+      <TouchableOpacity
+        onPress={onPress}
+        activeOpacity={0.8}
+        style={{ paddingHorizontal: 4 }}
       >
-        Wait...What?
-      </Text>
-    </TouchableOpacity>
-  );
+        <View style={styles.logoContainer}>
+          <View style={styles.logoRow}>
+            <Text style={[styles.logoWord, { color: textColor }]}>Wait</Text>
+            <Text style={[styles.logoDots, { color: textColor }]}>...</Text>
+            <View style={[styles.logoOval, { borderColor: accentColor }]}>
+              <Text style={[styles.logoOvalText, { color: textColor }]}>
+                What?
+              </Text>
+            </View>
+          </View>
+          <View
+            style={[
+              styles.logoUnderline,
+              { backgroundColor: underlineColor },
+            ]}
+          />
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   const navigateHome = (navigation) => {
     navigation.navigate("RootTabs", { screen: "HomeTab" });
@@ -421,6 +435,52 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
+  logoContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  logoWord: {
+    fontFamily: "Jacquard24",
+    fontSize: 44,
+  },
+  logoDots: {
+    fontFamily: "Jacquard24",
+    fontSize: 36,
+    marginHorizontal: 2,
+  },
+  logoOval: {
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 18,
+    borderBottomLeftRadius: 14,
+    borderBottomRightRadius: 30,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    justifyContent: "center",
+    alignItems: "center",
+    transform: [{ rotate: "-3deg" }],
+  },
+  logoOvalText: {
+    fontFamily: "Jacquard24",
+    fontSize: 42,
+    lineHeight: 44,
+  },
+  logoUnderline: {
+    marginTop: 4,
+    height: 2,
+    borderRadius: 4,
+    alignSelf: "center",
+    width: "100%",
+    maxWidth: 260,
+    minWidth: 140,
+    transform: [{ rotate: "-2deg" }],
+  },
   menuOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.4)",

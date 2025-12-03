@@ -47,6 +47,15 @@ export default function WWCompactCard({ item, navigation, onPress }) {
 
   const pressHandler = onPress || defaultPress;
 
+  const previewText =
+    item.cardDescription ||
+    item.card_description ||
+    item.cardPreview ||
+    item.card_preview ||
+    item.preview ||
+    item.overview ||
+    "";
+
   return (
     <TouchableOpacity style={styles.card} onPress={pressHandler}>
       {/* Thumbnail */}
@@ -63,6 +72,12 @@ export default function WWCompactCard({ item, navigation, onPress }) {
         <Text style={styles.title} numberOfLines={2}>
           {item.title}
         </Text>
+
+        {!!previewText && (
+          <Text style={styles.preview} numberOfLines={2}>
+            {previewText}
+          </Text>
+        )}
 
         {updates > 0 && (
           <Text style={styles.updateLabel}>
@@ -117,6 +132,11 @@ const createStyles = (palette) =>
     body: {
       flex: 1,
       gap: 4,
+    },
+    preview: {
+      fontSize: 13,
+      color: palette.textSecondary,
+      marginTop: -2,
     },
     title: {
       fontSize: 16,

@@ -108,11 +108,23 @@ export default function StoriesScreen({ navigation }) {
     const fetchStories = async () => {
       try {
         const snap = await getDocs(collection(db, "stories"));
-        const data = snap.docs.map((d) => ({
-          docId: d.id, // Firestore document ID
-          type: "story",
-          ...d.data(),
-        }));
+        const data = snap.docs.map((d) => {
+          const raw = d.data() || {};
+          return {
+            docId: d.id, // Firestore document ID
+            type: "story",
+            ...raw,
+            cardPreview:
+              raw.cardDescription ||
+              raw.card_description ||
+              raw.cardPreview ||
+              raw.card_preview ||
+              raw.preview ||
+              raw.summary ||
+              raw.overview ||
+              null,
+          };
+        });
         setStories(data);
       } catch (err) {
         console.error("Error loading stories:", err);

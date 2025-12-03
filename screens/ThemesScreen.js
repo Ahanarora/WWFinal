@@ -76,11 +76,23 @@ export default function ThemesScreen({ navigation }) {
     const fetchThemes = async () => {
       try {
         const snapshot = await getDocs(collection(db, "themes"));
-        const data = snapshot.docs.map((doc) => ({
-          docId: doc.id,
-          type: "theme",
-          ...doc.data(),
-        }));
+        const data = snapshot.docs.map((doc) => {
+          const raw = doc.data() || {};
+          return {
+            docId: doc.id,
+            type: "theme",
+            ...raw,
+            cardPreview:
+              raw.cardDescription ||
+              raw.card_description ||
+              raw.cardPreview ||
+              raw.card_preview ||
+              raw.preview ||
+              raw.summary ||
+              raw.overview ||
+              null,
+          };
+        });
         setThemes(data);
       } catch (err) {
         console.error("Error loading themes:", err);

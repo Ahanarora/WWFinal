@@ -73,9 +73,9 @@ export default function WWHomeCard({ item, navigation, onPress }) {
         <Text style={styles.title}>{item.title}</Text>
         <Text style={styles.updated}>{formatUpdatedAt(item.updatedAt)}</Text>
 
-        {item.overview && (
+        {(item.cardDescription || item.card_description || item.cardPreview || item.card_preview || item.preview || item.overview) && (
           <Text style={styles.overview} numberOfLines={2}>
-            {item.overview}
+            {item.cardDescription || item.card_description || item.cardPreview || item.card_preview || item.preview || item.overview}
           </Text>
         )}
 

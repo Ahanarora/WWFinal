@@ -119,17 +119,41 @@ export default function HomeScreen({ navigation }) {
         const themeSnap = await getDocs(collection(db, "themes"));
         const storySnap = await getDocs(collection(db, "stories"));
 
-        const themeData = themeSnap.docs.map((d) => ({
-          docId: d.id,
-          type: "theme",
-          ...d.data(),
-        }));
+        const themeData = themeSnap.docs.map((d) => {
+          const raw = d.data() || {};
+          return {
+            docId: d.id,
+            type: "theme",
+            ...raw,
+            cardPreview:
+              raw.cardDescription ||
+              raw.card_description ||
+              raw.cardPreview ||
+              raw.card_preview ||
+              raw.preview ||
+              raw.summary ||
+              raw.overview ||
+              null,
+          };
+        });
 
-        const storyData = storySnap.docs.map((d) => ({
-          docId: d.id,
-          type: "story",
-          ...d.data(),
-        }));
+        const storyData = storySnap.docs.map((d) => {
+          const raw = d.data() || {};
+          return {
+            docId: d.id,
+            type: "story",
+            ...raw,
+            cardPreview:
+              raw.cardDescription ||
+              raw.card_description ||
+              raw.cardPreview ||
+              raw.card_preview ||
+              raw.preview ||
+              raw.summary ||
+              raw.overview ||
+              null,
+          };
+        });
 
         setThemes(themeData);
         setStories(storyData);

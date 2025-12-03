@@ -173,7 +173,7 @@ const createStyles = (palette) =>
       bottom: -2,
       left: -6,
       right: -6,
-      backgroundColor: palette.accent,
+      backgroundColor: "#FACC15",
       opacity: 0.7,
       transform: [{ skewX: "-15deg" }],
       borderRadius: 6,

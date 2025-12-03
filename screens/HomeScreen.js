@@ -1,7 +1,6 @@
 // ----------------------------------------
 // screens/HomeScreen.js
-// Category → Featured Stories → Featured Themes → Regular Combined Feed
-// Using WWHomeCard + WWCompactCard + docId
+// Now uses WWFilterPaneStories for category + subcategory + sort
 // ----------------------------------------
 
 import React, { useEffect, useState, useMemo } from "react";
@@ -10,21 +9,25 @@ import {
   Text,
   FlatList,
   ActivityIndicator,
-  TouchableOpacity,
   ScrollView,
-  Modal,
   StyleSheet,
+  Modal,
+  TouchableOpacity,
 } from "react-native";
+
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
+
 import { scoreContent } from "../utils/ranking";
 import { getThemeColors } from "../styles/theme";
-import { Ionicons } from "@expo/vector-icons";
 import { useUserData } from "../contexts/UserDataContext";
 import { setStorySearchCache } from "../utils/storyCache";
 
 import WWHomeCard from "../components/WWHomeCard";
 import WWCompactCard from "../components/WWCompactCard";
+
+// ⬇ NEW SHARED FILTER-PANE
+import WWFilterPaneStories from "../components/WWFilterPaneStories";
 
 // -------------------------------
 // SAFE TIMESTAMP HELPERS
@@ -55,6 +58,7 @@ const getCreatedAtMs = (item) => {
 
 // -------------------------------
 // CATEGORY + SUBCATEGORY DEFINITIONS
+// (Same taxonomy as Stories & Themes)
 // -------------------------------
 const CATEGORIES = ["All", "Politics", "Business & Economy", "World", "India"];
 
@@ -87,16 +91,18 @@ const SUBCATEGORY_MAP = {
   ],
 };
 
+// -------------------------------
+// MAIN COMPONENT
+// -------------------------------
 export default function HomeScreen({ navigation }) {
   const [themes, setThemes] = useState([]);
   const [stories, setStories] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Filter-pane shared states:
   const [activeCategory, setActiveCategory] = useState("All");
   const [activeSubcategory, setActiveSubcategory] = useState("All");
-
-  const [sortMode, setSortMode] = useState("relevance"); // "relevance" | "updated" | "published"
-  const [showSortMenu, setShowSortMenu] = useState(false);
+  const [sortMode, setSortMode] = useState("relevance");
 
   const { themeColors } = useUserData() || {};
   const palette = themeColors || getThemeColors(false);
@@ -112,13 +118,13 @@ export default function HomeScreen({ navigation }) {
         const storySnap = await getDocs(collection(db, "stories"));
 
         const themeData = themeSnap.docs.map((d) => ({
-          docId: d.id,     // 🔑 Firestore document ID
+          docId: d.id,
           type: "theme",
           ...d.data(),
         }));
 
         const storyData = storySnap.docs.map((d) => ({
-          docId: d.id,     // 🔑 Firestore document ID
+          docId: d.id,
           type: "story",
           ...d.data(),
         }));
@@ -142,25 +148,22 @@ export default function HomeScreen({ navigation }) {
   const matchesCategory = (item, category) => {
     if (category === "All") return true;
 
-    const allCats = Array.isArray(item.allCategories)
+    const arr = Array.isArray(item.allCategories)
       ? item.allCategories
       : item.category
       ? [item.category]
       : [];
 
-    const target = category.toLowerCase();
-    return allCats.some((c) => (c || "").toLowerCase() === target);
+    return arr.map((c) => (c || "").toLowerCase()).includes(category.toLowerCase());
   };
 
   const matchesSubcategory = (item, subcat) => {
     if (subcat === "All") return true;
 
     const primary = item.subcategory;
-    const secondary =
-      Array.isArray(item.secondarySubcategories) &&
-      item.secondarySubcategories.length
-        ? item.secondarySubcategories
-        : [];
+    const secondary = Array.isArray(item.secondarySubcategories)
+      ? item.secondarySubcategories
+      : [];
 
     return primary === subcat || secondary.includes(subcat);
   };
@@ -186,7 +189,7 @@ export default function HomeScreen({ navigation }) {
   );
 
   // -------------------------------
-  // FEATURED ITEMS
+  // FEATURED ITEMS LOGIC
   // -------------------------------
   const TOP_N = 3;
 
@@ -195,6 +198,7 @@ export default function HomeScreen({ navigation }) {
     if (!pinned) return false;
 
     if (!item.pinnedCategory || item.pinnedCategory === "All") return true;
+
     return item.pinnedCategory === category;
   };
 
@@ -214,39 +218,35 @@ export default function HomeScreen({ navigation }) {
     );
 
     const auto = combinedItems
-      .filter((item) => !pinnedKeys.has(`${item.type}-${item.docId || item.id}`))
+      .filter((i) => !pinnedKeys.has(`${i.type}-${i.docId || i.id}`))
       .sort((a, b) => scoreContent(b) - scoreContent(a));
 
     return [...pinned, ...auto].slice(0, TOP_N);
   }, [combinedItems, activeCategory, activeSubcategory]);
 
   // -------------------------------
-  // REGULAR COMBINED FEED (EXCLUDING FEATURED)
+  // REGULAR COMBINED FEED
   // -------------------------------
   const regularCombined = useMemo(() => {
-    const featuredKeys = new Set(
-      featuredItems.map((item) => `${item.type}-${item.docId || item.id}`)
+    const keys = new Set(
+      featuredItems.map((i) => `${i.type}-${i.docId || i.id}`)
     );
 
     const remaining = combinedItems.filter(
-      (item) => !featuredKeys.has(`${item.type}-${item.docId || item.id}`)
+      (i) => !keys.has(`${i.type}-${i.docId || i.id}`)
     );
 
-    if (sortMode === "updated") {
+    if (sortMode === "updated")
       return [...remaining].sort((a, b) => safeTimestamp(b) - safeTimestamp(a));
-    }
 
-    if (sortMode === "published") {
-      return [...remaining].sort(
-        (a, b) => getCreatedAtMs(b) - getCreatedAtMs(a)
-      );
-    }
+    if (sortMode === "published")
+      return [...remaining].sort((a, b) => getCreatedAtMs(b) - getCreatedAtMs(a));
 
     return [...remaining].sort((a, b) => scoreContent(b) - scoreContent(a));
   }, [combinedItems, featuredItems, sortMode]);
 
   // -------------------------------
-  // LOADING STATE
+  // LOADING
   // -------------------------------
   if (loading) {
     return (
@@ -278,101 +278,27 @@ export default function HomeScreen({ navigation }) {
   };
 
   // -------------------------------
-  // MAIN RENDER
+  // UI
   // -------------------------------
   return (
     <View style={styles.container}>
-      {/* FILTER PANE PINNED */}
-      <View style={styles.filterWrapper}>
-        <View style={styles.filterTopRow}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoryRow}
-          >
-            {CATEGORIES.map((cat) => {
-              const active = cat === activeCategory;
-              return (
-                <TouchableOpacity
-                  key={cat}
-                  onPress={() => {
-                    setActiveCategory(cat);
-                    setActiveSubcategory("All");
-                  }}
-                  style={[
-                    styles.categoryPill,
-                    active && styles.categoryPillActive,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.categoryText,
-                      active && styles.categoryTextActive,
-                    ]}
-                  >
-                    {cat}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
 
-          <TouchableOpacity
-            onPress={() => setShowSortMenu(true)}
-            style={styles.dropdownButton}
-          >
-            <Ionicons
-              name="swap-vertical-outline"
-              size={16}
-              color={palette.textSecondary}
-              style={{ marginRight: 6 }}
-            />
-            <Text style={styles.dropdownButtonText}>Sort</Text>
-          </TouchableOpacity>
-        </View>
+      {/* ⬇ REPLACED ENTIRE OLD UI WITH SHARED COMPONENT */}
+      <WWFilterPaneStories
+        categories={CATEGORIES}
+        subcategories={SUBCATEGORY_MAP}
+        activeCategory={activeCategory}
+        activeSubcategory={activeSubcategory}
+        sortMode={sortMode}
+        onCategoryChange={(cat) => {
+          setActiveCategory(cat);
+          setActiveSubcategory("All");
+        }}
+        onSubcategoryChange={setActiveSubcategory}
+        onSortChange={setSortMode}
+      />
 
-        {activeCategory !== "All" && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.subcategoryRow}
-          >
-            <TouchableOpacity
-              onPress={() => setActiveSubcategory("All")}
-              style={styles.subcategoryTextWrap}
-            >
-              <Text
-                style={[
-                  styles.subcategoryText,
-                  activeSubcategory === "All" &&
-                    styles.subcategoryTextActive,
-                ]}
-              >
-                ALL
-              </Text>
-            </TouchableOpacity>
-
-            {(SUBCATEGORY_MAP[activeCategory] || []).map((sub) => (
-              <TouchableOpacity
-                key={sub}
-                onPress={() => setActiveSubcategory(sub)}
-                style={styles.subcategoryTextWrap}
-              >
-                <Text
-                  style={[
-                    styles.subcategoryText,
-                    activeSubcategory === sub &&
-                      styles.subcategoryTextActive,
-                  ]}
-                >
-                  {sub}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        )}
-      </View>
-
+      {/* MAIN FEED */}
       <FlatList
         data={regularCombined}
         keyExtractor={(item) => `${item.type}-${item.docId || item.id}`}
@@ -394,51 +320,12 @@ export default function HomeScreen({ navigation }) {
           ) : null
         }
       />
-
-      {/* SORT MODAL */}
-      <Modal
-        visible={showSortMenu}
-        animationType="fade"
-        transparent
-        onRequestClose={() => setShowSortMenu(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalBackdrop}
-          onPress={() => setShowSortMenu(false)}
-        >
-          <View style={styles.modalContent}>
-            {[
-              { key: "relevance", label: "Relevance" },
-              { key: "updated", label: "Recently Updated" },
-              { key: "published", label: "Recently Published" },
-            ].map((opt) => (
-              <TouchableOpacity
-                key={opt.key}
-                style={styles.modalOption}
-                onPress={() => {
-                  setSortMode(opt.key);
-                  setShowSortMenu(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.modalOptionText,
-                    sortMode === opt.key && styles.selectedOptionText,
-                  ]}
-                >
-                  {opt.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </TouchableOpacity>
-      </Modal>
     </View>
   );
 }
 
 // ----------------------------------------
-// STYLES
+// STYLES (unchanged except header pane removed)
 // ----------------------------------------
 const createStyles = (palette) =>
   StyleSheet.create({
@@ -447,78 +334,13 @@ const createStyles = (palette) =>
       backgroundColor: palette.background,
     },
 
-    // Loading
     center: {
       flex: 1,
       justifyContent: "center",
       alignItems: "center",
     },
-    loadingText: {
-      marginTop: 8,
-      color: palette.textSecondary,
-    },
+    loadingText: { marginTop: 8, color: palette.textSecondary },
 
-    // Filters
-    filterWrapper: {
-      borderBottomWidth: 1,
-      borderColor: palette.border,
-      paddingVertical: 6,
-      backgroundColor: palette.surface,
-    },
-    filterTopRow: {
-      flexDirection: "row",
-      alignItems: "flex-start",
-      justifyContent: "space-between",
-      gap: 8,
-      paddingHorizontal: 16,
-      paddingTop: 0,
-    },
-    categoryRow: {
-      flexDirection: "row",
-      gap: 10,
-      paddingHorizontal: 0,
-    },
-    categoryPill: {
-      borderWidth: 1,
-      borderColor: palette.border,
-      borderRadius: 999,
-      paddingVertical: 6,
-      paddingHorizontal: 14,
-      backgroundColor: palette.surface,
-    },
-    categoryPillActive: {
-      backgroundColor: palette.accent,
-      borderColor: palette.accent,
-    },
-    categoryText: {
-      fontSize: 13,
-      color: palette.textSecondary,
-    },
-    categoryTextActive: {
-      color: "#fff",
-      fontWeight: "600",
-    },
-
-    subcategoryRow: {
-      flexDirection: "row",
-      gap: 14,
-      paddingHorizontal: 16,
-      paddingVertical: 8,
-    },
-    subcategoryTextWrap: {
-      justifyContent: "center",
-    },
-    subcategoryText: {
-      fontSize: 13,
-      color: palette.textSecondary,
-      textDecorationLine: "none",
-    },
-    subcategoryTextActive: {
-      color: palette.accent,
-      fontWeight: "600",
-    },
-
-    // Featured section
     featuredSection: {
       paddingHorizontal: 16,
       paddingTop: 16,
@@ -537,51 +359,6 @@ const createStyles = (palette) =>
       marginRight: 16,
     },
 
-    // Sort dropdown
-    dropdownButton: {
-      paddingVertical: 4,
-      paddingHorizontal: 0,
-      backgroundColor: "transparent",
-      marginTop: 2,
-      borderRadius: 0,
-      marginHorizontal: 0,
-      borderWidth: 0,
-      borderColor: "transparent",
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "flex-end",
-    },
-    dropdownButtonText: {
-      fontSize: 13,
-      color: palette.textSecondary,
-      fontWeight: "400",
-    },
-
-    // Sort modal
-    modalBackdrop: {
-      flex: 1,
-      backgroundColor: "rgba(0,0,0,0.3)",
-      justifyContent: "center",
-      padding: 30,
-    },
-    modalContent: {
-      backgroundColor: palette.surface,
-      borderRadius: 10,
-    },
-    modalOption: {
-      paddingVertical: 14,
-      paddingHorizontal: 18,
-    },
-    modalOptionText: {
-      fontSize: 16,
-      color: palette.textPrimary,
-    },
-    selectedOptionText: {
-      fontWeight: "bold",
-      color: palette.accent,
-    },
-
-    // Main list separator
     separator: {
       height: 16,
     },

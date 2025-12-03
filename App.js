@@ -438,6 +438,7 @@ const styles = StyleSheet.create({
   logoContainer: {
     alignItems: "center",
     justifyContent: "center",
+    position: "relative",
   },
   logoRow: {
     flexDirection: "row",
@@ -455,16 +456,18 @@ const styles = StyleSheet.create({
   },
   logoOval: {
     borderWidth: 1,
-    borderStyle: "dashed",
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 18,
-    borderBottomLeftRadius: 14,
-    borderBottomRightRadius: 30,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    borderStyle: "solid",
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
     justifyContent: "center",
     alignItems: "center",
-    transform: [{ rotate: "-3deg" }],
+    transform: [
+      { rotate: "-3deg" },
+      { skewX: "-2deg" },
+      { scaleX: 1.05 },
+      { scaleY: 0.95 },
+    ],
   },
   logoOvalText: {
     fontFamily: "Jacquard24",
@@ -472,14 +475,15 @@ const styles = StyleSheet.create({
     lineHeight: 44,
   },
   logoUnderline: {
-    marginTop: 4,
+    marginTop: -14,
     height: 2,
     borderRadius: 4,
     alignSelf: "center",
     width: "100%",
-    maxWidth: 260,
-    minWidth: 140,
+    maxWidth: 280,
+    minWidth: 150,
     transform: [{ rotate: "-2deg" }],
+    zIndex: -1,
   },
   menuOverlay: {
     flex: 1,

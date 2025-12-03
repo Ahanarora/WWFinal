@@ -282,6 +282,97 @@ export default function HomeScreen({ navigation }) {
   // -------------------------------
   return (
     <View style={styles.container}>
+      {/* FILTER PANE PINNED */}
+      <View style={styles.filterWrapper}>
+        <View style={styles.filterTopRow}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoryRow}
+          >
+            {CATEGORIES.map((cat) => {
+              const active = cat === activeCategory;
+              return (
+                <TouchableOpacity
+                  key={cat}
+                  onPress={() => {
+                    setActiveCategory(cat);
+                    setActiveSubcategory("All");
+                  }}
+                  style={[
+                    styles.categoryPill,
+                    active && styles.categoryPillActive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.categoryText,
+                      active && styles.categoryTextActive,
+                    ]}
+                  >
+                    {cat}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
+          <TouchableOpacity
+            onPress={() => setShowSortMenu(true)}
+            style={styles.dropdownButton}
+          >
+            <Ionicons
+              name="swap-vertical-outline"
+              size={16}
+              color={palette.textSecondary}
+              style={{ marginRight: 6 }}
+            />
+            <Text style={styles.dropdownButtonText}>Sort</Text>
+          </TouchableOpacity>
+        </View>
+
+        {activeCategory !== "All" && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.subcategoryRow}
+          >
+            <TouchableOpacity
+              onPress={() => setActiveSubcategory("All")}
+              style={styles.subcategoryTextWrap}
+            >
+              <Text
+                style={[
+                  styles.subcategoryText,
+                  activeSubcategory === "All" &&
+                    styles.subcategoryTextActive,
+                ]}
+              >
+                ALL
+              </Text>
+            </TouchableOpacity>
+
+            {(SUBCATEGORY_MAP[activeCategory] || []).map((sub) => (
+              <TouchableOpacity
+                key={sub}
+                onPress={() => setActiveSubcategory(sub)}
+                style={styles.subcategoryTextWrap}
+              >
+                <Text
+                  style={[
+                    styles.subcategoryText,
+                    activeSubcategory === sub &&
+                      styles.subcategoryTextActive,
+                  ]}
+                >
+                  {sub}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
+      </View>
+
       <FlatList
         data={regularCombined}
         keyExtractor={(item) => `${item.type}-${item.docId || item.id}`}
@@ -289,119 +380,18 @@ export default function HomeScreen({ navigation }) {
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         contentContainerStyle={{ paddingBottom: 24 }}
         ListHeaderComponent={
-          <>
-            {/* CATEGORY PILLS */}
-            <View style={styles.filterWrapper}>
+          featuredItems.length > 0 ? (
+            <View style={styles.featuredSection}>
+              <Text style={styles.featuredHeader}>Featured</Text>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.categoryRow}
+                contentContainerStyle={styles.featuredRow}
               >
-                {CATEGORIES.map((cat) => {
-                  const active = cat === activeCategory;
-                  return (
-                    <TouchableOpacity
-                      key={cat}
-                      onPress={() => {
-                        setActiveCategory(cat);
-                        setActiveSubcategory("All");
-                      }}
-                      style={[
-                        styles.categoryPill,
-                        active && styles.categoryPillActive,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.categoryText,
-                          active && styles.categoryTextActive,
-                        ]}
-                      >
-                        {cat}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+                {featuredItems.map(renderFeaturedCard)}
               </ScrollView>
             </View>
-
-            {/* SUBCATEGORY ROW */}
-            {activeCategory !== "All" && (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.subcategoryRow}
-              >
-                <TouchableOpacity
-                  onPress={() => setActiveSubcategory("All")}
-                  style={styles.subcategoryTextWrap}
-                >
-                  <Text
-                    style={[
-                      styles.subcategoryText,
-                      activeSubcategory === "All" &&
-                        styles.subcategoryTextActive,
-                    ]}
-                  >
-                    ALL
-                  </Text>
-                </TouchableOpacity>
-
-                {(SUBCATEGORY_MAP[activeCategory] || []).map((sub) => (
-                  <TouchableOpacity
-                    key={sub}
-                    onPress={() => setActiveSubcategory(sub)}
-                    style={styles.subcategoryTextWrap}
-                  >
-                    <Text
-                      style={[
-                        styles.subcategoryText,
-                        activeSubcategory === sub &&
-                          styles.subcategoryTextActive,
-                      ]}
-                    >
-                      {sub}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            )}
-
-            {/* FEATURED SECTION */}
-            {featuredItems.length > 0 && (
-              <View style={styles.featuredSection}>
-                <Text style={styles.featuredHeader}>Featured</Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.featuredRow}
-                >
-                  {featuredItems.map(renderFeaturedCard)}
-                </ScrollView>
-              </View>
-            )}
-
-            {/* SORT DROPDOWN */}
-            <TouchableOpacity
-              onPress={() => setShowSortMenu(true)}
-              style={[
-                styles.dropdownButton,
-                {
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "flex-end",
-                },
-              ]}
-            >
-              <Ionicons
-                name="swap-vertical-outline"
-                size={16}
-                color={palette.textSecondary}
-                style={{ marginRight: 6 }}
-              />
-              <Text style={styles.dropdownButtonText}>Sort</Text>
-            </TouchableOpacity>
-          </>
+          ) : null
         }
       />
 
@@ -472,13 +462,21 @@ const createStyles = (palette) =>
     filterWrapper: {
       borderBottomWidth: 1,
       borderColor: palette.border,
-      paddingVertical: 10,
+      paddingVertical: 6,
       backgroundColor: palette.surface,
+    },
+    filterTopRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 8,
+      paddingHorizontal: 16,
+      paddingTop: 0,
     },
     categoryRow: {
       flexDirection: "row",
       gap: 10,
-      paddingHorizontal: 16,
+      paddingHorizontal: 0,
     },
     categoryPill: {
       borderWidth: 1,
@@ -542,11 +540,11 @@ const createStyles = (palette) =>
     // Sort dropdown
     dropdownButton: {
       paddingVertical: 6,
-      paddingHorizontal: 16,
+      paddingHorizontal: 0,
       backgroundColor: "transparent",
       marginTop: 8,
       borderRadius: 0,
-      marginHorizontal: 16,
+      marginHorizontal: 0,
       borderWidth: 0,
       borderColor: "transparent",
       flexDirection: "row",
@@ -556,7 +554,7 @@ const createStyles = (palette) =>
     dropdownButtonText: {
       fontSize: 13,
       color: palette.textSecondary,
-      fontWeight: "700",
+      fontWeight: "400",
     },
 
     // Sort modal

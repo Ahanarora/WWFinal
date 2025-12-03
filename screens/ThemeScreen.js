@@ -42,7 +42,7 @@ const PHASE_PALETTE = [
 ];
 
 function getFactCheckRgb(score) {
-  if (score >= 85) return { bg: "#BBF7D0", text: "#166534" };
+  if (score >= 85) return { bg: "#E9F9D0", text: "#3F6212" };
   if (score >= 70) return { bg: "#FEF9C3", text: "#854D0E" };
   if (score >= 50) return { bg: "#FFEDD5", text: "#9A3412" };
   return { bg: "#FEE2E2", text: "#991B1B" };
@@ -479,14 +479,15 @@ export default function ThemeScreen({ route, navigation }) {
                               }
                             >
                               <Text
-                                style={[
-                                  styles.factCheckBadge,
-                                  {
-                                    backgroundColor: factCheckColors.bg,
-                                    color: factCheckColors.text,
-                                  },
-                                ]}
-                              >
+                              style={[
+                                styles.factCheckBadge,
+                                {
+                                  backgroundColor: "#fff",
+                                  color: factCheckColors.text,
+                                  borderColor: factCheckColors.text,
+                                },
+                              ]}
+                            >
                                 {e.factCheck.confidenceScore}% fact-check confidence
                               </Text>
                             </TouchableOpacity>
@@ -846,6 +847,12 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 999,
     alignSelf: "flex-start",
+    borderWidth: 1.25,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
 
 

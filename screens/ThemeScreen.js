@@ -294,9 +294,6 @@ export default function ThemeScreen({ route, navigation }) {
         {/* OVERVIEW */}
         {item.overview ? (
           <View style={styles.overviewBlock}>
-            <View style={styles.cardHeaderRow}>
-              <Text style={styles.overviewHeading}>Overview</Text>
-            </View>
             <RenderWithContext
               text={item.overview}
               contexts={combinedContexts}

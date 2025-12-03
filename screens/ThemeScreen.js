@@ -360,17 +360,26 @@ export default function ThemeScreen({ route, navigation }) {
         {!item.disableDepthToggle && isFirst && rawTimeline.length > 0 && (
           <View style={styles.sliderBox}>
             <Text style={styles.sliderLabel}>Essential</Text>
-            <Slider
-              style={{ flex: 1 }}
-              minimumValue={1}
-              maximumValue={3}
-              step={1}
-              value={depth}
-              onValueChange={(v) => setDepth(v)}
-              minimumTrackTintColor={colors.accent}
-              maximumTrackTintColor={colors.border}
-              thumbTintColor={colors.accent}
-            />
+            <View style={styles.sliderTrackWrap}>
+              <Slider
+                style={styles.slider}
+                minimumValue={1}
+                maximumValue={3}
+                step={1}
+                value={depth}
+                onValueChange={(v) => setDepth(v)}
+                minimumTrackTintColor={colors.accent}
+                maximumTrackTintColor={colors.border}
+                thumbTintColor={colors.accent}
+              />
+              <View style={styles.depthDotsRow} pointerEvents="none">
+                <View style={[styles.depthDot, styles.depthDotSmall]} />
+                <View style={[styles.depthDot, styles.depthDotSmall]} />
+                <View style={[styles.depthDot, styles.depthDotBig]} />
+                <View style={[styles.depthDot, styles.depthDotSmall]} />
+                <View style={[styles.depthDot, styles.depthDotSmall]} />
+              </View>
+            </View>
             <Text style={styles.sliderLabel}>Complete</Text>
           </View>
         )}
@@ -380,7 +389,7 @@ export default function ThemeScreen({ route, navigation }) {
            ------------------------------ */}
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Chronology of Events</Text>
+            <Text style={styles.sectionTitle}>Timeline</Text>
             {rawTimeline.length > 0 && isFirst && (
               <EventSortToggle sortOrder={sortOrder} onChange={setSortOrder} />
             )}
@@ -689,6 +698,36 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     marginBottom: spacing.md,
+  },
+  sliderTrackWrap: {
+    flex: 1,
+    position: "relative",
+    justifyContent: "center",
+  },
+  slider: { flex: 1, height: 40 },
+  depthDotsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    position: "absolute",
+    left: 0,
+    right: 0,
+  },
+  depthDot: {
+    borderWidth: 1.25,
+    borderColor: "#EF4444",
+    backgroundColor: "#EF4444",
+  },
+  depthDotSmall: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  depthDotBig: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
   sliderLabel: {
     fontFamily: fonts.body,

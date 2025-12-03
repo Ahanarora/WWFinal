@@ -481,8 +481,8 @@ const styles = StyleSheet.create({
   },
   logoUnderline: {
     marginTop: -2,
-    height: 2,
-    borderRadius: 2,
+    height: 2.5,
+    borderRadius: 3,
     alignSelf: "center",
     width: "100%",
     maxWidth: 280,

@@ -307,20 +307,22 @@ export default function StoriesScreen({ navigation }) {
           onSubcategoryChange={setActiveSubcategory}
         />
       )}
-      <View style={styles.sortBar}>
-        <TouchableOpacity
-          style={styles.sortButton}
-          onPress={() => setShowSortMenu(true)}
-        >
-          <Ionicons
-            name="swap-vertical-outline"
-            size={16}
-            color={palette.textSecondary}
-            style={{ marginRight: 4 }}
-          />
-          <Text style={styles.sortButtonText}>Sort</Text>
-        </TouchableOpacity>
-      </View>
+      {filterVisible && (
+        <View style={styles.sortBar}>
+          <TouchableOpacity
+            style={styles.sortButton}
+            onPress={() => setShowSortMenu(true)}
+          >
+            <Ionicons
+              name="swap-vertical-outline"
+              size={16}
+              color={palette.textSecondary}
+              style={{ marginRight: 4 }}
+            />
+            <Text style={styles.sortButtonText}>Sort</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* STORY LIST */}
       <FlatList

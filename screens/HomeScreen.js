@@ -384,7 +384,8 @@ export default function HomeScreen({ navigation }) {
           featuredItems.length > 0 ? (
             <View style={styles.featuredSection}>
               <View style={styles.featuredHeaderRow}>
-                <Text style={styles.featuredHeader}>Featured</Text>
+              <Text style={styles.featuredHeader}>Featured</Text>
+              {filterVisible && (
                 <TouchableOpacity
                   style={styles.sortButton}
                   onPress={() => setShowSortMenu(true)}
@@ -397,7 +398,8 @@ export default function HomeScreen({ navigation }) {
                   />
                   <Text style={styles.sortButtonText}>Sort</Text>
                 </TouchableOpacity>
-              </View>
+              )}
+            </View>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}

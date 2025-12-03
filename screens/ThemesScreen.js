@@ -222,27 +222,28 @@ export default function ThemesScreen({ navigation }) {
     <View style={styles.container}>
       {/* PINNED FILTER PANE */}
       {filterVisible && (
-        <WWFilterPaneThemes
-          categories={CATEGORIES}
-          activeCategory={activeCategory}
-          onCategoryChange={setActiveCategory}
-        />
-      )}
-      <View style={styles.sortBar}>
-        <TouchableOpacity
-          style={styles.sortButton}
-          onPress={() => setShowSortMenu(true)}
-        >
-          <Ionicons
-            name="swap-vertical-outline"
-            size={16}
-            color={palette.textSecondary}
-            style={{ marginRight: 4 }}
+        <>
+          <WWFilterPaneThemes
+            categories={CATEGORIES}
+            activeCategory={activeCategory}
+            onCategoryChange={setActiveCategory}
           />
-          <Text style={styles.sortButtonText}>Sort</Text>
-        </TouchableOpacity>
-      </View>
-
+          <View style={styles.sortBar}>
+            <TouchableOpacity
+              style={styles.sortButton}
+              onPress={() => setShowSortMenu(true)}
+            >
+              <Ionicons
+                name="swap-vertical-outline"
+                size={16}
+                color={palette.textSecondary}
+                style={{ marginRight: 4 }}
+              />
+              <Text style={styles.sortButtonText}>Sort</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
       {/* THEMES LIST */}
       <FlatList
         data={sortedThemes}

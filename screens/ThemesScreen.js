@@ -241,6 +241,22 @@ const createStyles = (palette) =>
       flex: 1,
       backgroundColor: palette.background,
     },
+    sortBar: {
+      flexDirection: "row",
+      justifyContent: "flex-end",
+      paddingHorizontal: 16,
+      paddingTop: 8,
+      paddingBottom: 4,
+    },
+    sortButton: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    sortButtonText: {
+      fontSize: 14,
+      color: palette.textSecondary,
+      fontWeight: "500",
+    },
 
     center: {
       flex: 1,
@@ -249,4 +265,27 @@ const createStyles = (palette) =>
     },
     loadingText: { marginTop: 8, color: palette.textSecondary },
     emptyText: { fontSize: 16, color: palette.textSecondary },
+    sortModalBackdrop: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.3)",
+      justifyContent: "center",
+      padding: 30,
+    },
+    sortModalContent: {
+      backgroundColor: palette.surface,
+      borderRadius: 10,
+      overflow: "hidden",
+    },
+    sortModalOption: {
+      paddingVertical: 14,
+      paddingHorizontal: 18,
+    },
+    sortModalOptionText: {
+      fontSize: 16,
+      color: palette.textPrimary,
+    },
+    sortSelectedOptionText: {
+      fontWeight: "bold",
+      color: palette.accent,
+    },
   });

@@ -27,6 +27,7 @@ import CommentsSection from "../components/CommentsSection";
 import { getStorySearchCache } from "../utils/storyCache";
 import ShareButton from "../components/ShareButton";
 import { shareItem } from "../utils/share";
+import EventSortToggle from "../components/EventSortToggle";
 
 const PHASE_PALETTE = ["#2563EB", "#DC2626", "#059669", "#D97706", "#6D28D9"];
 
@@ -45,6 +46,7 @@ export default function ThemeScreen({ route, navigation }) {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const [depth, setDepth] = useState(1);
+  const [sortOrder, setSortOrder] = useState("chronological");
   const {
     user,
     favorites,
@@ -135,7 +137,21 @@ export default function ThemeScreen({ route, navigation }) {
   // Render one theme block
   // ------------------------------
   const renderThemeBlock = (item, isFirst) => {
-    const rawTimeline = Array.isArray(item.timeline) ? item.timeline : [];
+    const sortEvents = (events) => {
+      if (!Array.isArray(events)) return [];
+      const copy = [...events];
+      return copy.sort((a, b) => {
+        const aTime = a.timestamp || a.date || a.startedAt;
+        const bTime = b.timestamp || b.date || b.startedAt;
+        if (!aTime || !bTime) return 0;
+        const aMs = typeof aTime === "number" ? aTime : new Date(aTime).getTime();
+        const bMs = typeof bTime === "number" ? bTime : new Date(bTime).getTime();
+        if (Number.isNaN(aMs) || Number.isNaN(bMs)) return 0;
+        return sortOrder === "chronological" ? aMs - bMs : bMs - aMs;
+      });
+    };
+
+    const rawTimeline = sortEvents(item.timeline);
     const analysisForItem =
       item.id === theme.id ? primaryAnalysis : normalizeAnalysis(item.analysis);
     const combinedContexts = [
@@ -344,6 +360,10 @@ export default function ThemeScreen({ route, navigation }) {
             />
             <Text style={styles.sliderLabel}>Complete</Text>
           </View>
+        )}
+
+        {rawTimeline.length > 0 && isFirst && (
+          <EventSortToggle sortOrder={sortOrder} onChange={setSortOrder} />
         )}
 
         {/* ------------------------------

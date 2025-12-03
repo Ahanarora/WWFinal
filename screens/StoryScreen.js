@@ -29,6 +29,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { getStorySearchCache } from "../utils/storyCache";
 import ShareButton from "../components/ShareButton";
 import { shareItem } from "../utils/share";
+import EventSortToggle from "../components/EventSortToggle";
 
 const PHASE_PALETTE = ["#2563EB", "#DC2626", "#059669", "#D97706", "#6D28D9"];
 
@@ -55,6 +56,7 @@ export default function StoryScreen({ route, navigation }) {
     toggleFavorite,
     recordVisit,
   } = useUserData();
+  const [sortOrder, setSortOrder] = useState("chronological");
   const [factCheckModal, setFactCheckModal] = useState({
     visible: false,
     factCheck: null,
@@ -125,7 +127,21 @@ export default function StoryScreen({ route, navigation }) {
   // RENDER SINGLE STORY BLOCK (WITH PHASE HEADERS)
   // ---------------------------------------------------------
   const renderStoryBlock = (item) => {
-    const rawTimeline = Array.isArray(item.timeline) ? item.timeline : [];
+    const sortEvents = (events) => {
+      if (!Array.isArray(events)) return [];
+      const copy = [...events];
+      return copy.sort((a, b) => {
+        const aTime = a.timestamp || a.date || a.startedAt;
+        const bTime = b.timestamp || b.date || b.startedAt;
+        if (!aTime || !bTime) return 0;
+        const aMs = typeof aTime === "number" ? aTime : new Date(aTime).getTime();
+        const bMs = typeof bTime === "number" ? bTime : new Date(bTime).getTime();
+        if (Number.isNaN(aMs) || Number.isNaN(bMs)) return 0;
+        return sortOrder === "chronological" ? aMs - bMs : bMs - aMs;
+      });
+    };
+
+    const rawTimeline = sortEvents(item.timeline);
     const analysisForItem =
       item.id === story.id ? primaryAnalysis : normalizeAnalysis(item.analysis);
     const combinedContexts = [
@@ -328,6 +344,10 @@ export default function StoryScreen({ route, navigation }) {
             />
             <Text style={styles.sliderLabel}>Complete</Text>
           </View>
+        )}
+
+        {filteredTimeline.length > 0 && feed[0].id === item.id && (
+          <EventSortToggle sortOrder={sortOrder} onChange={setSortOrder} />
         )}
 
         {/* TIMELINE */}

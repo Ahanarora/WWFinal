@@ -59,7 +59,7 @@ export default function StoryScreen({ route, navigation }) {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   // Depth slider
-  const [depth, setDepth] = useState(1);
+  const [depth, setDepth] = useState(2);
   const {
     user,
     favorites,
@@ -353,16 +353,9 @@ export default function StoryScreen({ route, navigation }) {
                 value={depth}
                 onValueChange={(v) => setDepth(v)}
                 minimumTrackTintColor={colors.accent}
-                maximumTrackTintColor={colors.border}
+                maximumTrackTintColor="#6B7280"
                 thumbTintColor={colors.accent}
               />
-              <View style={styles.depthDotsRow} pointerEvents="none">
-                <View style={[styles.depthDot, styles.depthDotSmall]} />
-                <View style={[styles.depthDot, styles.depthDotSmall]} />
-                <View style={[styles.depthDot, styles.depthDotBig]} />
-                <View style={[styles.depthDot, styles.depthDotSmall]} />
-                <View style={[styles.depthDot, styles.depthDotSmall]} />
-              </View>
             </View>
             <Text style={styles.sliderLabel}>Complete</Text>
           </View>
@@ -684,30 +677,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   slider: { flex: 1, height: 40 },
-  depthDotsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    position: "absolute",
-    left: 0,
-    right: 0,
-  },
-  depthDot: {
-    borderWidth: 1.25,
-    borderColor: "#EF4444",
-    backgroundColor: "#EF4444",
-  },
-  depthDotSmall: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  depthDotBig: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
   sliderLabel: {
     fontFamily: fonts.body,
     fontSize: 12,

@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     color: "#222",
   },
   link: {
-    color: "#DC2626",
+    color: "#2563EB",
     textDecorationLine: "underline",
   },
   highlight: {

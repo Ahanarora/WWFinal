@@ -30,15 +30,15 @@ import { shareItem } from "../utils/share";
 import EventSortToggle from "../components/EventSortToggle";
 
 const PHASE_PALETTE = [
-  "#B44A4A", // muted red
-  "#C9A646", // muted yellow
-  "#4F8A6F", // muted green
-  "#4F9B8F", // muted teal
-  "#4A7CA6", // muted blue
-  "#5A5FA3", // muted indigo
-  "#8A70A6", // muted purple
-  "#C47A3C", // muted orange
-  "#A76F6F", // muted rose
+  "#EF4444", // red
+  "#3B82F6", // blue
+  "#FACC15", // yellow
+  "#22C55E", // green
+  "#F97316", // orange
+  "#A855F7", // purple
+  "#14B8A6", // teal
+  "#EC4899", // pink
+  "#6366F1", // indigo
 ];
 
 function getFactCheckRgb(score) {

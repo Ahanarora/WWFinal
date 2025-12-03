@@ -467,7 +467,7 @@ const createStyles = (palette) =>
     },
     filterTopRow: {
       flexDirection: "row",
-      alignItems: "center",
+      alignItems: "flex-start",
       justifyContent: "space-between",
       gap: 8,
       paddingHorizontal: 16,
@@ -511,7 +511,7 @@ const createStyles = (palette) =>
     subcategoryText: {
       fontSize: 13,
       color: palette.textSecondary,
-      textDecorationLine: "underline",
+      textDecorationLine: "none",
     },
     subcategoryTextActive: {
       color: palette.accent,
@@ -539,10 +539,10 @@ const createStyles = (palette) =>
 
     // Sort dropdown
     dropdownButton: {
-      paddingVertical: 6,
+      paddingVertical: 4,
       paddingHorizontal: 0,
       backgroundColor: "transparent",
-      marginTop: 8,
+      marginTop: 2,
       borderRadius: 0,
       marginHorizontal: 0,
       borderWidth: 0,

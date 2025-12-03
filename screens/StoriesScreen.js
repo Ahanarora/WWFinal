@@ -1,18 +1,14 @@
 // ----------------------------------------
 // screens/StoriesScreen.js
-// Updated: Uses WWStoryCard + WWCompactCard + docId
-// WITH FIXED NAVIGATION TO STORYSCREEN
+// Clean version using WWFilterPaneStories
 // ----------------------------------------
 
 import React, { useEffect, useState, useMemo } from "react";
 import {
   View,
   Text,
-  ScrollView,
-  TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
-  Modal,
   FlatList,
 } from "react-native";
 
@@ -20,23 +16,15 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import { scoreContent } from "../utils/ranking";
 import { getThemeColors } from "../styles/theme";
-import { Ionicons } from "@expo/vector-icons";
 
 import WWStoryCard from "../components/WWStoryCard";
 import WWCompactCard from "../components/WWCompactCard";
+import WWFilterPaneStories from "../components/WWFilterPaneStories";
 
 // -----------------------------
-// CATEGORIES
+// TAXONOMY (passed as props)
 // -----------------------------
 const CATEGORIES = ["All", "Politics", "Business & Economy", "World", "India"];
-
-const CATEGORY_LABELS = {
-  All: "All",
-  Politics: "Politics",
-  "Business & Economy": "Business & Economy",
-  World: "World",
-  India: "India",
-};
 
 const SUBCATEGORY_MAP = {
   Politics: [
@@ -101,10 +89,10 @@ export default function StoriesScreen({ navigation }) {
   const [stories, setStories] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Filter pane states
   const [activeCategory, setActiveCategory] = useState("All");
   const [activeSubcategory, setActiveSubcategory] = useState("All");
   const [sortMode, setSortMode] = useState("relevance");
-  const [showSortMenu, setShowSortMenu] = useState(false);
 
   const palette = getThemeColors(false);
   const styles = useMemo(() => createStyles(palette), [palette]);
@@ -183,15 +171,15 @@ export default function StoriesScreen({ navigation }) {
   }, [filteredStories, sortMode]);
 
   // -----------------------------
-  // NAVIGATION WRAPPER (Fix)
+  // NAVIGATION WRAPPER
   // -----------------------------
   const navigateToStory = (item) => {
     const index = sortedStories.findIndex((s) => s.docId === item.docId);
 
     navigation.navigate("Story", {
-      story: item, // send full object
+      story: item, 
       index,
-      allStories: sortedStories, // send list for endless scroll
+      allStories: sortedStories,
     });
   };
 
@@ -239,136 +227,26 @@ export default function StoriesScreen({ navigation }) {
   }
 
   // -----------------------------
-  // UI
+  // MAIN UI
   // -----------------------------
   return (
     <View style={styles.container}>
-      {/* FILTER pane */}
-      <View style={styles.filterPane}>
-        {/* Category pills */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryRow}
-        >
-          {CATEGORIES.map((cat) => {
-            const active = cat === activeCategory;
-            return (
-              <TouchableOpacity
-                key={cat}
-                onPress={() => {
-                  setActiveCategory(cat);
-                  setActiveSubcategory("All");
-                }}
-                style={[
-                  styles.categoryPill,
-                  active && styles.categoryPillActive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.categoryText,
-                    active && styles.categoryTextActive,
-                  ]}
-                >
-                  {CATEGORY_LABELS[cat]}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+      {/* PINNED FILTER PANE */}
+      <WWFilterPaneStories
+        categories={CATEGORIES}
+        subcategories={SUBCATEGORY_MAP}
+        activeCategory={activeCategory}
+        activeSubcategory={activeSubcategory}
+        sortMode={sortMode}
+        onCategoryChange={(cat) => {
+          setActiveCategory(cat);
+          setActiveSubcategory("All");
+        }}
+        onSubcategoryChange={setActiveSubcategory}
+        onSortChange={setSortMode}
+      />
 
-        {/* Subcategories */}
-        {activeCategory !== "All" && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.subcategoryRow}
-          >
-            <TouchableOpacity onPress={() => setActiveSubcategory("All")}>
-              <Text
-                style={[
-                  styles.subcategoryText,
-                  activeSubcategory === "All" && styles.subcategoryTextActive,
-                ]}
-              >
-                ALL
-              </Text>
-            </TouchableOpacity>
-
-            {(SUBCATEGORY_MAP[activeCategory] || []).map((sub) => (
-              <TouchableOpacity
-                key={sub}
-                onPress={() => setActiveSubcategory(sub)}
-              >
-                <Text
-                  style={[
-                    styles.subcategoryText,
-                    activeSubcategory === sub && styles.subcategoryTextActive,
-                  ]}
-                >
-                  {sub}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        )}
-
-        {/* Sort dropdown */}
-        <TouchableOpacity
-          onPress={() => setShowSortMenu(true)}
-          style={styles.dropdownButton}
-        >
-          <Ionicons
-            name="swap-vertical-outline"
-            size={16}
-            color={palette.textSecondary}
-            style={{ marginRight: 6 }}
-          />
-          <Text style={styles.dropdownButtonText}>Sort</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Sort modal */}
-      <Modal
-        visible={showSortMenu}
-        animationType="fade"
-        transparent
-        onRequestClose={() => setShowSortMenu(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalBackdrop}
-          onPress={() => setShowSortMenu(false)}
-        >
-          <View style={styles.modalContent}>
-            {[
-              { key: "relevance", label: "Relevance" },
-              { key: "updated", label: "Recently Updated" },
-              { key: "published", label: "Recently Published" },
-            ].map((opt) => (
-              <TouchableOpacity
-                key={opt.key}
-                style={styles.modalOption}
-                onPress={() => {
-                  setSortMode(opt.key);
-                  setShowSortMenu(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.modalOptionText,
-                    sortMode === opt.key && styles.selectedOptionText,
-                  ]}
-                >
-                  {opt.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* Story list */}
+      {/* STORY LIST */}
       <FlatList
         data={sortedStories}
         keyExtractor={(item) => item.docId || item.id}
@@ -387,7 +265,6 @@ const createStyles = (palette) =>
     container: {
       flex: 1,
       backgroundColor: palette.background,
-      padding: 16,
     },
 
     center: {
@@ -397,104 +274,4 @@ const createStyles = (palette) =>
     },
     loadingText: { marginTop: 8, color: palette.textSecondary },
     emptyText: { fontSize: 16, color: palette.textSecondary },
-
-    // FILTER PANE
-    filterPane: {
-      backgroundColor: palette.surface,
-      borderRadius: 14,
-      paddingVertical: 10,
-      paddingHorizontal: 8,
-      marginBottom: 16,
-      borderWidth: 1,
-      borderColor: palette.border,
-      shadowColor: "#000",
-      shadowOpacity: 0.05,
-      shadowRadius: 4,
-      elevation: 2,
-    },
-
-    categoryRow: {
-      flexDirection: "row",
-      gap: 10,
-      paddingHorizontal: 16,
-      marginBottom: 12,
-    },
-    categoryPill: {
-      borderWidth: 1,
-      borderColor: palette.border,
-      borderRadius: 999,
-      paddingHorizontal: 14,
-      paddingVertical: 6,
-      backgroundColor: palette.surface,
-    },
-    categoryPillActive: {
-      backgroundColor: palette.accent,
-      borderColor: palette.accent,
-    },
-    categoryText: {
-      fontSize: 13,
-      color: palette.textSecondary,
-    },
-    categoryTextActive: {
-      color: "#fff",
-      fontWeight: "600",
-    },
-
-    subcategoryRow: {
-      flexDirection: "row",
-      gap: 14,
-      paddingHorizontal: 16,
-      paddingVertical: 6,
-    },
-    subcategoryText: {
-      fontSize: 13,
-      color: palette.textSecondary,
-      textDecorationLine: "underline",
-    },
-    subcategoryTextActive: {
-      color: palette.accent,
-      fontWeight: "600",
-    },
-
-    // DROPDOWN
-    dropdownButton: {
-      paddingVertical: 6,
-      paddingHorizontal: 0,
-      backgroundColor: "transparent",
-      borderRadius: 0,
-      borderWidth: 0,
-      flexDirection: "row",
-      alignItems: "center",
-      alignSelf: "flex-end",
-    },
-    dropdownButtonText: {
-      fontSize: 13,
-      color: palette.textSecondary,
-      fontWeight: "700",
-    },
-
-    // MODAL
-    modalBackdrop: {
-      flex: 1,
-      backgroundColor: "rgba(0,0,0,0.3)",
-      justifyContent: "center",
-      padding: 30,
-    },
-    modalContent: {
-      backgroundColor: palette.surface,
-      borderRadius: 10,
-      overflow: "hidden",
-    },
-    modalOption: {
-      paddingVertical: 14,
-      paddingHorizontal: 18,
-    },
-    modalOptionText: {
-      fontSize: 16,
-      color: palette.textPrimary,
-    },
-    selectedOptionText: {
-      fontWeight: "bold",
-      color: palette.accent,
-    },
   });

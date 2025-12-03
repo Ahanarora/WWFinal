@@ -31,7 +31,17 @@ import ShareButton from "../components/ShareButton";
 import { shareItem } from "../utils/share";
 import EventSortToggle from "../components/EventSortToggle";
 
-const PHASE_PALETTE = ["#DC2626", "#B91C1C", "#EF4444", "#991B1B", "#F87171"];
+const PHASE_PALETTE = [
+  "#B44A4A", // muted red
+  "#C9A646", // muted yellow
+  "#4F8A6F", // muted green
+  "#4F9B8F", // muted teal
+  "#4A7CA6", // muted blue
+  "#5A5FA3", // muted indigo
+  "#8A70A6", // muted purple
+  "#C47A3C", // muted orange
+  "#A76F6F", // muted rose
+];
 
 function getFactCheckRgb(score) {
   if (score >= 85) return { bg: "#BBF7D0", text: "#166534" }; // green

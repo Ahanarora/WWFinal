@@ -439,6 +439,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
+    transform: [{ translateY: -4 }],
   },
   logoRow: {
     flexDirection: "row",
@@ -455,11 +456,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 2,
   },
   logoOval: {
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderStyle: "solid",
     borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingHorizontal: 5,
+    paddingVertical:8,
     justifyContent: "center",
     alignItems: "center",
     transform: [
@@ -471,7 +472,7 @@ const styles = StyleSheet.create({
   },
   logoOvalText: {
     fontFamily: "Jacquard24",
-    fontSize: 42,
+    fontSize: 53,
     lineHeight: 44,
   },
   logoUnderline: {

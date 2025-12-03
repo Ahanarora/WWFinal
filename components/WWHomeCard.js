@@ -29,6 +29,14 @@ export default function WWHomeCard({ item, navigation, onPress }) {
 
   const updates = getUpdatesSinceLastVisit(item.type + "s", item);
   const headlines = getLatestHeadlines(item.timeline || []);
+  const previewText =
+    item.cardDescription ||
+    item.card_description ||
+    item.cardPreview ||
+    item.card_preview ||
+    item.preview ||
+    item.overview ||
+    "";
 
   const defaultPress = () => {
     if (item.type === "story") {
@@ -50,7 +58,35 @@ export default function WWHomeCard({ item, navigation, onPress }) {
 
   return (
     <TouchableOpacity style={styles.card} onPress={pressHandler}>
-      {/* IMAGE */}
+      <View style={styles.headerRow}>
+        <View style={styles.headerTextWrap}>
+          <Text style={styles.title} numberOfLines={2}>
+            {item.title}
+          </Text>
+          <Text style={styles.updated}>
+            Updated on {formatUpdatedAt(item.updatedAt)}
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={styles.saveButton}
+          onPress={() =>
+            toggleFavorite(item.type + "s", item.docId, item)
+          }
+        >
+          <Ionicons
+            name={isFav ? "bookmark" : "bookmark-outline"}
+            size={26}
+            color={isFav ? palette.accent : palette.muted}
+          />
+        </TouchableOpacity>
+      </View>
+
+      {!!previewText && (
+        <Text style={styles.overview} numberOfLines={2}>
+          {previewText}
+        </Text>
+      )}
+
       <View style={styles.imageWrap}>
         {item.imageUrl ? (
           <Image source={{ uri: item.imageUrl }} style={styles.image} />
@@ -59,57 +95,39 @@ export default function WWHomeCard({ item, navigation, onPress }) {
             <Text style={styles.placeholderText}>No Image</Text>
           </View>
         )}
-
-        {/* TYPE BADGE */}
-        <View style={styles.typeBadge}>
-          <Text style={styles.typeBadgeText}>
-            {item.type === "story" ? "Story" : "Theme"}
-          </Text>
-        </View>
-      </View>
-
-      {/* BODY */}
-      <View style={styles.body}>
-        <Text style={styles.title}>{item.title}</Text>
-        <Text style={styles.updated}>{formatUpdatedAt(item.updatedAt)}</Text>
-
-        {(item.cardDescription || item.card_description || item.cardPreview || item.card_preview || item.preview || item.overview) && (
-          <Text style={styles.overview} numberOfLines={2}>
-            {item.cardDescription || item.card_description || item.cardPreview || item.card_preview || item.preview || item.overview}
-          </Text>
-        )}
-
-        {updates > 0 && (
-          <Text style={styles.updateBadge}>
-            {updates} update{updates > 1 ? "s" : ""} since last visit
-          </Text>
-        )}
-
-        {headlines.length > 0 && (
-          <View style={styles.latestWrap}>
-            <Text style={styles.latestLabel}>Latest updates</Text>
-            {headlines.slice(0, 2).map((h) => (
-              <View style={styles.bulletRow} key={h.id}>
-                <View style={styles.bulletDot} />
-                <Text style={styles.bulletText}>{h.title}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-
         <TouchableOpacity
-          style={styles.bookmark}
+          style={styles.typeIconBadge}
           onPress={() =>
-            toggleFavorite(item.type + "s", item.docId, item)
+            navigation.navigate("RootTabs", {
+              screen: item.type === "story" ? "StoriesTab" : "ThemesTab",
+            })
           }
         >
           <Ionicons
-            name={isFav ? "bookmark" : "bookmark-outline"}
-            size={22}
-            color={isFav ? palette.accent : palette.muted}
+            name={item.type === "story" ? "newspaper-outline" : "compass-outline"}
+            size={16}
+            color="#fff"
           />
         </TouchableOpacity>
       </View>
+
+      {updates > 0 && (
+        <Text style={styles.updateBadge}>
+          {updates} update{updates > 1 ? "s" : ""} since last visit
+        </Text>
+      )}
+
+      {headlines.length > 0 && (
+        <View style={styles.latestWrap}>
+          <Text style={styles.latestLabel}>Latest updates</Text>
+          {headlines.slice(0, 2).map((h) => (
+            <View style={styles.bulletRow} key={h.id}>
+              <View style={styles.bulletDot} />
+              <Text style={styles.bulletText}>{h.title}</Text>
+            </View>
+          ))}
+        </View>
+      )}
     </TouchableOpacity>
   );
 }
@@ -125,8 +143,39 @@ const createStyles = (palette) =>
       borderColor: palette.border,
       overflow: "hidden",
     },
+    headerRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 12,
+      paddingHorizontal: 16,
+      paddingTop: 14,
+    },
+    headerTextWrap: {
+      flex: 1,
+      gap: 4,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: palette.textPrimary,
+    },
+    updated: {
+      fontSize: 12,
+      color: palette.muted,
+    },
+    saveButton: {
+      padding: 8,
+      borderRadius: 12,
+    },
+    overview: {
+      fontSize: 14,
+      color: palette.textSecondary,
+      paddingHorizontal: 16,
+      paddingTop: 4,
+    },
 
-    imageWrap: { position: "relative" },
+    imageWrap: { position: "relative", marginTop: 10 },
     image: {
       width: "100%",
       height: 200,
@@ -142,42 +191,18 @@ const createStyles = (palette) =>
       fontSize: 12,
       color: palette.muted,
     },
-
-    typeBadge: {
+    typeIconBadge: {
       position: "absolute",
       top: 10,
       right: 10,
-      paddingHorizontal: 8,
-      paddingVertical: 3,
+      padding: 6,
       backgroundColor: "#00000088",
-      borderRadius: 8,
-    },
-    typeBadgeText: {
-      color: "#fff",
-      fontSize: 10,
-      fontWeight: "400",
-    },
-
-    body: {
-      padding: 16,
-      gap: 6,
-    },
-    title: {
-      fontSize: 18,
-      fontWeight: "600",
-      color: palette.textPrimary,
-    },
-    updated: {
-      fontSize: 13,
-      color: palette.muted,
-    },
-    overview: {
-      fontSize: 14,
-      color: palette.textSecondary,
+      borderRadius: 12,
     },
 
     updateBadge: {
-      marginTop: 4,
+      marginTop: 8,
+      paddingHorizontal: 16,
       fontSize: 12,
       color: palette.accent,
       fontWeight: "600",
@@ -186,6 +211,8 @@ const createStyles = (palette) =>
     latestWrap: {
       marginTop: 10,
       gap: 6,
+      paddingHorizontal: 16,
+      paddingBottom: 14,
     },
     latestLabel: {
       fontSize: 11,
@@ -206,10 +233,5 @@ const createStyles = (palette) =>
       fontSize: 13,
       color: palette.textSecondary,
       flex: 1,
-    },
-
-    bookmark: {
-      alignSelf: "flex-end",
-      marginTop: 8,
     },
   });

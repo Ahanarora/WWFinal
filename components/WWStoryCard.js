@@ -26,6 +26,14 @@ export default function WWStoryCard({ item, navigation, onPress }) {
   const isFav = favorites?.stories?.includes(item.docId);
   const updates = getUpdatesSinceLastVisit("stories", item);
   const headlines = getLatestHeadlines(item.timeline || []);
+  const previewText =
+    item.cardDescription ||
+    item.card_description ||
+    item.cardPreview ||
+    item.card_preview ||
+    item.preview ||
+    item.overview ||
+    "";
 
   // Fallback navigation if parent does not provide onPress
   const defaultPress = () => {
@@ -40,7 +48,33 @@ export default function WWStoryCard({ item, navigation, onPress }) {
 
   return (
     <TouchableOpacity style={styles.card} onPress={pressHandler}>
-      {/* Full-width Image */}
+      <View style={styles.headerRow}>
+        <View style={styles.headerTextWrap}>
+          <Text style={styles.title} numberOfLines={2}>
+            {item.title}
+          </Text>
+          <Text style={styles.updated}>
+            Updated on {formatUpdatedAt(item.updatedAt)}
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={styles.saveButton}
+          onPress={() => toggleFavorite("stories", item.docId, item)}
+        >
+          <Ionicons
+            name={isFav ? "bookmark" : "bookmark-outline"}
+            size={26}
+            color={isFav ? palette.accent : palette.muted}
+          />
+        </TouchableOpacity>
+      </View>
+
+      {!!previewText && (
+        <Text style={styles.overview} numberOfLines={2}>
+          {previewText}
+        </Text>
+      )}
+
       <View style={styles.imageWrap}>
         {item.imageUrl ? (
           <Image source={{ uri: item.imageUrl }} style={styles.image} />
@@ -51,54 +85,35 @@ export default function WWStoryCard({ item, navigation, onPress }) {
         )}
 
         {/* Type Badge */}
-        <View style={styles.typeBadge}>
-          <Text style={styles.typeBadgeText}>Story</Text>
-        </View>
-      </View>
-
-      {/* Body */}
-      <View style={styles.body}>
-        <Text style={styles.title}>{item.title}</Text>
-        <Text style={styles.updated}>{formatUpdatedAt(item.updatedAt)}</Text>
-
-        {(item.cardDescription || item.card_description || item.cardPreview || item.card_preview || item.preview || item.overview) && (
-          <Text style={styles.overview} numberOfLines={2}>
-            {item.cardDescription || item.card_description || item.cardPreview || item.card_preview || item.preview || item.overview}
-          </Text>
-        )}
-
-        {/* Updates Since Last Visit */}
-        {updates > 0 && (
-          <Text style={styles.updatesText}>
-            {updates} update{updates > 1 ? "s" : ""} since last visit
-          </Text>
-        )}
-
-        {/* Latest 2 bullets */}
-        {headlines.length > 0 && (
-          <View style={styles.latestWrap}>
-            <Text style={styles.latestLabel}>Latest updates</Text>
-            {headlines.slice(0, 2).map((h) => (
-              <View style={styles.bulletRow} key={h.id}>
-                <View style={styles.bulletDot} />
-                <Text style={styles.bulletText}>{h.title}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {/* Bookmark */}
         <TouchableOpacity
-          style={styles.bookmark}
-          onPress={() => toggleFavorite("stories", item.docId, item)}
+          style={styles.typeBadge}
+          onPress={() =>
+            navigation.navigate("RootTabs", { screen: "StoriesTab" })
+          }
         >
-          <Ionicons
-            name={isFav ? "bookmark" : "bookmark-outline"}
-            size={22}
-            color={isFav ? palette.accent : palette.muted}
-          />
+          <Ionicons name="newspaper-outline" size={16} color="#fff" />
         </TouchableOpacity>
       </View>
+
+      {/* Updates Since Last Visit */}
+      {updates > 0 && (
+        <Text style={styles.updatesText}>
+          {updates} update{updates > 1 ? "s" : ""} since last visit
+        </Text>
+      )}
+
+      {/* Latest 2 bullets */}
+      {headlines.length > 0 && (
+        <View style={styles.latestWrap}>
+          <Text style={styles.latestLabel}>Latest updates</Text>
+          {headlines.slice(0, 2).map((h) => (
+            <View style={styles.bulletRow} key={h.id}>
+              <View style={styles.bulletDot} />
+              <Text style={styles.bulletText}>{h.title}</Text>
+            </View>
+          ))}
+        </View>
+      )}
     </TouchableOpacity>
   );
 }
@@ -114,8 +129,40 @@ const createStyles = (palette) =>
       borderColor: palette.border,
       overflow: "hidden",
     },
+    headerRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 12,
+      paddingHorizontal: 16,
+      paddingTop: 14,
+    },
+    headerTextWrap: {
+      flex: 1,
+      gap: 4,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: palette.textPrimary,
+    },
+    updated: {
+      fontSize: 12,
+      color: palette.muted,
+    },
+    saveButton: {
+      padding: 8,
+      borderRadius: 12,
+    },
+    overview: {
+      fontSize: 14,
+      color: palette.textSecondary,
+      paddingHorizontal: 16,
+      paddingTop: 4,
+    },
     imageWrap: {
       position: "relative",
+      marginTop: 10,
     },
     image: {
       width: "100%",
@@ -145,25 +192,9 @@ const createStyles = (palette) =>
       fontSize: 10,
       fontWeight: "400",
     },
-    body: {
-      padding: 16,
-      gap: 6,
-    },
-    title: {
-      fontSize: 18,
-      fontWeight: "600",
-      color: palette.textPrimary,
-    },
-    updated: {
-      fontSize: 13,
-      color: palette.muted,
-    },
-    overview: {
-      fontSize: 14,
-      color: palette.textSecondary,
-    },
     updatesText: {
-      marginTop: 4,
+      marginTop: 8,
+      paddingHorizontal: 16,
       fontSize: 12,
       color: palette.accent,
       fontWeight: "600",
@@ -171,6 +202,8 @@ const createStyles = (palette) =>
     latestWrap: {
       marginTop: 10,
       gap: 6,
+      paddingHorizontal: 16,
+      paddingBottom: 14,
     },
     latestLabel: {
       fontSize: 11,

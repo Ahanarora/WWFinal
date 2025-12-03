@@ -25,6 +25,14 @@ export default function WWThemeCard({ item, navigation, onPress }) {
   const isFav = favorites?.themes?.includes(item.docId);
   const updates = getUpdatesSinceLastVisit("themes", item);
   const headlines = getLatestHeadlines(item.timeline || []);
+  const previewText =
+    item.cardDescription ||
+    item.card_description ||
+    item.cardPreview ||
+    item.card_preview ||
+    item.preview ||
+    item.overview ||
+    "";
 
   const defaultPress = () => {
     navigation.navigate("Theme", {
@@ -38,7 +46,33 @@ export default function WWThemeCard({ item, navigation, onPress }) {
 
   return (
     <TouchableOpacity style={styles.card} onPress={pressHandler}>
-      {/* Image */}
+      <View style={styles.headerRow}>
+        <View style={styles.headerTextWrap}>
+          <Text style={styles.title} numberOfLines={2}>
+            {item.title}
+          </Text>
+          <Text style={styles.updated}>
+            Updated on {formatUpdatedAt(item.updatedAt)}
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={styles.saveButton}
+          onPress={() => toggleFavorite("themes", item.docId, item)}
+        >
+          <Ionicons
+            name={isFav ? "bookmark" : "bookmark-outline"}
+            size={26}
+            color={isFav ? palette.accent : palette.muted}
+          />
+        </TouchableOpacity>
+      </View>
+
+      {!!previewText && (
+        <Text style={styles.overview} numberOfLines={2}>
+          {previewText}
+        </Text>
+      )}
+
       <View style={styles.imageWrap}>
         {item.imageUrl ? (
           <Image source={{ uri: item.imageUrl }} style={styles.image} />
@@ -49,55 +83,36 @@ export default function WWThemeCard({ item, navigation, onPress }) {
         )}
 
         {/* TYPE BADGE */}
-        <View style={styles.typeBadge}>
-          <Text style={styles.typeBadgeText}>Theme</Text>
-        </View>
-      </View>
-
-      <View style={styles.body}>
-        {/* TITLE */}
-        <Text style={styles.title}>{item.title}</Text>
-
-        <Text style={styles.updated}>{formatUpdatedAt(item.updatedAt)}</Text>
-
-        {(item.cardDescription || item.card_description || item.cardPreview || item.card_preview || item.preview || item.overview) && (
-          <Text style={styles.overview} numberOfLines={2}>
-            {item.cardDescription || item.card_description || item.cardPreview || item.card_preview || item.preview || item.overview}
-          </Text>
-        )}
-
-        {/* Updates */}
-        {updates > 0 && (
-          <Text style={styles.updatesText}>
-            {updates} update{updates > 1 ? "s" : ""} since last visit
-          </Text>
-        )}
-
-        {/* Latest Bullets */}
-        {headlines.length > 0 && (
-          <View style={styles.latestWrap}>
-            <Text style={styles.latestLabel}>Latest updates</Text>
-
-            {headlines.slice(0, 2).map((h) => (
-              <View style={styles.bulletRow} key={h.id}>
-                <View style={styles.bulletDot} />
-                <Text style={styles.bulletText}>{h.title}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-
         <TouchableOpacity
-          style={styles.bookmark}
-          onPress={() => toggleFavorite("themes", item.docId, item)}
+          style={styles.typeBadge}
+          onPress={() =>
+            navigation.navigate("RootTabs", { screen: "ThemesTab" })
+          }
         >
-          <Ionicons
-            name={isFav ? "bookmark" : "bookmark-outline"}
-            size={20}
-            color={isFav ? palette.accent : palette.muted}
-          />
+          <Ionicons name="compass-outline" size={16} color="#fff" />
         </TouchableOpacity>
       </View>
+
+      {/* Updates */}
+      {updates > 0 && (
+        <Text style={styles.updatesText}>
+          {updates} update{updates > 1 ? "s" : ""} since last visit
+        </Text>
+      )}
+
+      {/* Latest Bullets */}
+      {headlines.length > 0 && (
+        <View style={styles.latestWrap}>
+          <Text style={styles.latestLabel}>Latest updates</Text>
+
+          {headlines.slice(0, 2).map((h) => (
+            <View style={styles.bulletRow} key={h.id}>
+              <View style={styles.bulletDot} />
+              <Text style={styles.bulletText}>{h.title}</Text>
+            </View>
+          ))}
+        </View>
+      )}
     </TouchableOpacity>
   );
 }
@@ -113,7 +128,36 @@ const createStyles = (palette) =>
       borderColor: palette.border,
       overflow: "hidden",
     },
-    imageWrap: { position: "relative" },
+    headerRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 12,
+      paddingHorizontal: 16,
+      paddingTop: 14,
+    },
+    headerTextWrap: {
+      flex: 1,
+      gap: 4,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: palette.textPrimary,
+    },
+    updated: { fontSize: 12, color: palette.muted },
+    saveButton: {
+      padding: 8,
+      borderRadius: 12,
+    },
+    overview: {
+      fontSize: 14,
+      color: palette.textSecondary,
+      paddingHorizontal: 16,
+      paddingTop: 4,
+    },
+
+    imageWrap: { position: "relative", marginTop: 10 },
     image: {
       width: "100%",
       height: 200,
@@ -142,22 +186,19 @@ const createStyles = (palette) =>
       fontWeight: "400",
     },
 
-    body: { padding: 16, gap: 6 },
-    title: {
-      fontSize: 18,
-      fontWeight: "600",
-      color: palette.textPrimary,
-    },
-    updated: { fontSize: 13, color: palette.muted },
-    overview: { fontSize: 14, color: palette.textSecondary },
-
     updatesText: {
-      marginTop: 4,
+      marginTop: 8,
+      paddingHorizontal: 16,
       fontSize: 12,
       color: palette.accent,
       fontWeight: "600",
     },
-    latestWrap: { marginTop: 10, gap: 6 },
+    latestWrap: {
+      marginTop: 10,
+      gap: 6,
+      paddingHorizontal: 16,
+      paddingBottom: 14,
+    },
     latestLabel: { fontSize: 11, color: palette.muted },
     bulletRow: { flexDirection: "row", gap: 8 },
     bulletDot: {
@@ -172,5 +213,4 @@ const createStyles = (palette) =>
       color: palette.textSecondary,
       flex: 1,
     },
-    bookmark: { marginTop: 8, alignSelf: "flex-end" },
   });

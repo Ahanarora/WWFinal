@@ -29,6 +29,7 @@ import { shareItem } from "../utils/share";
 import EventSortToggle from "../components/EventSortToggle";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
+import WWHomeCard from "../components/WWHomeCard";
 
 const PHASE_PALETTE = [
   "#EF4444", // red
@@ -147,12 +148,21 @@ export default function ThemeScreen({ route, navigation }) {
   useEffect(() => {
     let mounted = true;
     const loadPool = async () => {
-      if (suggestionPool.length) return;
+      if (suggestionPool.length >= 5) return;
       try {
         const snap = await getDocs(collection(db, "themes"));
         if (!mounted) return;
         const data = snap.docs.map((d) => ({ docId: d.id, ...d.data() }));
-        setSuggestionPool(data);
+        const merged = [...suggestionPool, ...data];
+        const deduped = [];
+        const seen = new Set();
+        merged.forEach((item) => {
+          const key = item.docId || item.id;
+          if (!key || seen.has(key)) return;
+          seen.add(key);
+          deduped.push(item);
+        });
+        setSuggestionPool(deduped);
       } catch (err) {
         console.warn("Failed to load theme suggestions", err);
       }
@@ -300,21 +310,22 @@ export default function ThemeScreen({ route, navigation }) {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.suggestionRow}
         >
-          {items.map((itm) => (
-            <TouchableOpacity
-              key={itm.id || itm.docId}
-              style={styles.suggestionCard}
-              onPress={() => onPressItem(itm)}
-            >
-              <Text style={styles.suggestionType}>Theme</Text>
-              <Text style={styles.suggestionText} numberOfLines={2}>
-                {itm.title || "Untitled theme"}
-              </Text>
-              <Text style={styles.suggestionMeta} numberOfLines={1}>
-                {primaryCategory(itm) || "General"}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {items.map((itm) => {
+            const normalized = {
+              ...itm,
+              docId: itm.docId || itm.id,
+              type: itm.type || "theme",
+            };
+            return (
+              <View key={normalized.docId} style={styles.suggestionCardWrapper}>
+                <WWHomeCard
+                  item={normalized}
+                  navigation={navigation}
+                  onPress={() => onPressItem(normalized)}
+                />
+              </View>
+            );
+          })}
         </ScrollView>
       </View>
     );
@@ -1081,32 +1092,11 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   suggestionRow: {
-    gap: 10,
+    gap: 12,
   },
-  suggestionCard: {
-    width: 200,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+  suggestionCardWrapper: {
+    width: 260,
     marginRight: 8,
-  },
-  suggestionType: {
-    fontSize: 11,
-    textTransform: "uppercase",
-    color: colors.muted,
-    marginBottom: 4,
-  },
-  suggestionText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-  suggestionMeta: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 6,
   },
   modalBackdrop: {
     flex: 1,

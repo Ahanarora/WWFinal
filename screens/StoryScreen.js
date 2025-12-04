@@ -32,6 +32,7 @@ import { db } from "../firebaseConfig";
 import ShareButton from "../components/ShareButton";
 import { shareItem } from "../utils/share";
 import EventSortToggle from "../components/EventSortToggle";
+import WWHomeCard from "../components/WWHomeCard";
 
 const PHASE_PALETTE = [
   "#EF4444", // red
@@ -200,12 +201,21 @@ export default function StoryScreen({ route, navigation }) {
   useEffect(() => {
     let mounted = true;
     const loadPool = async () => {
-      if (suggestionPool.length) return;
+      if (suggestionPool.length >= 5) return;
       try {
         const snap = await getDocs(collection(db, "stories"));
         if (!mounted) return;
         const data = snap.docs.map((d) => ({ docId: d.id, ...d.data() }));
-        setSuggestionPool(data);
+        const merged = [...suggestionPool, ...data];
+        const deduped = [];
+        const seen = new Set();
+        merged.forEach((item) => {
+          const key = item.docId || item.id;
+          if (!key || seen.has(key)) return;
+          seen.add(key);
+          deduped.push(item);
+        });
+        setSuggestionPool(deduped);
       } catch (err) {
         console.warn("Failed to load suggestions", err);
       }
@@ -257,24 +267,12 @@ export default function StoryScreen({ route, navigation }) {
     const pool = (suggestionPool || []).filter(
       (s) => (s.id || s.docId) && (s.id || s.docId) !== baseId
     );
-    const categoryLabel = primaryCategory(base) || "this category";
-
     const similar = pool
       .map((item) => ({ item, score: scoreSimilarity(base, item) }))
       .sort((a, b) => b.score - a.score)
       .slice(0, 5)
       .map((entry) => entry.item);
-
-    const normalizedCat = (categoryLabel || "").toLowerCase();
-    const moreCategory = pool
-      .filter((item) => {
-        if (!normalizedCat) return true;
-        return primaryCategory(item).toLowerCase() === normalizedCat;
-      })
-      .sort((a, b) => recencyWeight(b) - recencyWeight(a))
-      .slice(0, 5);
-
-    return { similar, moreCategory, categoryLabel };
+    return { similar };
   };
 
   const renderSuggestionsRow = (title, items, onPressItem) => {
@@ -287,29 +285,30 @@ export default function StoryScreen({ route, navigation }) {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.suggestionRow}
         >
-          {items.map((itm) => (
-            <TouchableOpacity
-              key={itm.id || itm.docId}
-              style={styles.suggestionCard}
-              onPress={() => onPressItem(itm)}
-            >
-              <Text style={styles.suggestionType}>Story</Text>
-              <Text style={styles.suggestionText} numberOfLines={2}>
-                {itm.title || "Untitled story"}
-              </Text>
-              <Text style={styles.suggestionMeta} numberOfLines={1}>
-                {primaryCategory(itm) || "General"}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {items.map((itm) => {
+            const normalized = {
+              ...itm,
+              docId: itm.docId || itm.id,
+              type: itm.type || "story",
+            };
+            return (
+              <View key={normalized.docId} style={styles.suggestionCardWrapper}>
+                <WWHomeCard
+                  item={normalized}
+                  navigation={navigation}
+                  onPress={() => onPressItem(normalized)}
+                />
+              </View>
+            );
+          })}
         </ScrollView>
       </View>
     );
   };
 
   const renderSuggestions = (base) => {
-    const { similar, moreCategory, categoryLabel } = buildSuggestions(base);
-    if (!similar.length && !moreCategory.length) return null;
+    const { similar } = buildSuggestions(base);
+    if (!similar.length) return null;
     const openStory = (item) =>
       navigation.push("Story", {
         story: item,
@@ -320,11 +319,6 @@ export default function StoryScreen({ route, navigation }) {
     return (
       <View style={styles.suggestionsSection}>
         {renderSuggestionsRow("Continue reading", similar, openStory)}
-        {renderSuggestionsRow(
-          `More from ${categoryLabel || "this category"}`,
-          moreCategory,
-          openStory
-        )}
       </View>
     );
   };
@@ -1048,32 +1042,11 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   suggestionRow: {
-    gap: 10,
+    gap: 12,
   },
-  suggestionCard: {
-    width: 200,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+  suggestionCardWrapper: {
+    width: 260,
     marginRight: 8,
-  },
-  suggestionType: {
-    fontSize: 11,
-    textTransform: "uppercase",
-    color: colors.muted,
-    marginBottom: 4,
-  },
-  suggestionText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-  suggestionMeta: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 6,
   },
   modalCard: {
     backgroundColor: "#fff",

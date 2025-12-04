@@ -226,6 +226,7 @@ export default function ThemesScreen({ navigation }) {
           <WWFilterPaneThemes
             categories={CATEGORIES}
             activeCategory={activeCategory}
+            themeColors={palette}
             onCategoryChange={setActiveCategory}
           />
           <View style={styles.sortBar}>

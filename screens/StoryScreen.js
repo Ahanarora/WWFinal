@@ -15,7 +15,7 @@ import {
   Modal,
 } from "react-native";
 import Slider from "@react-native-community/slider";
-import { colors, fonts, spacing } from "../styles/theme";
+import { colors, fonts, spacing, getThemeColors } from "../styles/theme";
 import SourceLinks from "../components/SourceLinks";
 import RenderWithContext from "../components/RenderWithContext";
 import {
@@ -130,9 +130,13 @@ export default function StoryScreen({ route, navigation }) {
     favorites,
     toggleFavorite,
     recordVisit,
+    themeColors,
+    darkMode,
   } = useUserData();
   const headerShownRef = useRef(true);
   const lastOffsetY = useRef(0);
+  const palette = themeColors || getThemeColors(darkMode);
+  const styles = useMemo(() => createStyles(palette), [palette]);
 
   const toggleHeader = useCallback(
     (show) => {
@@ -453,7 +457,7 @@ export default function StoryScreen({ route, navigation }) {
               <Ionicons
                 name={isFavoriteStory(item.id) ? "bookmark" : "bookmark-outline"}
                 size={24}
-                color={isFavoriteStory(item.id) ? "#FACC15" : colors.muted}
+                color={isFavoriteStory(item.id) ? "#FACC15" : palette.muted}
               />
             </TouchableOpacity>
           </View>
@@ -479,6 +483,8 @@ export default function StoryScreen({ route, navigation }) {
               text={item.overview}
               contexts={combinedContexts}
               navigation={navigation}
+              themeColors={palette}
+              textStyle={{ color: palette.textPrimary }}
             />
           </View>
         ) : null}
@@ -545,9 +551,9 @@ export default function StoryScreen({ route, navigation }) {
                 step={1}
                 value={depth}
                 onValueChange={(v) => setDepth(v)}
-                minimumTrackTintColor={colors.accent}
+                minimumTrackTintColor={palette.accent}
                 maximumTrackTintColor="#6B7280"
-                thumbTintColor={colors.accent}
+                thumbTintColor={palette.accent}
               />
             </View>
             <Text style={styles.sliderLabel}>Complete</Text>
@@ -651,16 +657,18 @@ export default function StoryScreen({ route, navigation }) {
                         <Ionicons
                           name="help-circle-outline"
                           size={18}
-                          color={colors.accent}
+                          color={palette.accent}
                         />
                       </TouchableOpacity>
                     )}
                   </View>
 
-                  <RenderWithContext
-                    text={e.description}
-                    contexts={e.contexts || []}
-                    navigation={navigation}
+                      <RenderWithContext
+                        text={e.description}
+                        contexts={e.contexts || []}
+                        navigation={navigation}
+                        themeColors={palette}
+                        textStyle={{ color: palette.textPrimary }}
                       />
 
                       {hasFactCheck && (
@@ -692,7 +700,7 @@ export default function StoryScreen({ route, navigation }) {
 
                       {Array.isArray(e.sources) && e.sources.length > 0 && (
                         <View style={styles.eventSources}>
-                          <SourceLinks sources={e.sources} />
+                          <SourceLinks sources={e.sources} themeColors={palette} />
                         </View>
                       )}
                     </View>
@@ -828,7 +836,7 @@ export default function StoryScreen({ route, navigation }) {
                     <Ionicons
                       name={faqExpanded[idx] ? "chevron-up" : "chevron-down"}
                       size={18}
-                      color={colors.textSecondary}
+                      color={palette.textSecondary}
                     />
                   </TouchableOpacity>
                   {faqExpanded[idx] && (
@@ -858,345 +866,351 @@ export default function StoryScreen({ route, navigation }) {
 // ----------------------------------------
 // STYLES
 // ----------------------------------------
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    padding: 2,
-  },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  error: { color: "red" },
+const createStyles = (palette) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: palette.background,
+      padding: 2,
+    },
+    center: { flex: 1, justifyContent: "center", alignItems: "center" },
+    error: { color: "red" },
 
-  coverImage: {
-    width: "100%",
-    height: 240,
-    borderRadius: 4,
-    marginBottom: spacing.lg,
-  },
+    coverImage: {
+      width: "100%",
+      height: 240,
+      borderRadius: 4,
+      marginBottom: spacing.lg,
+    },
 
-  title: {
-    fontFamily: fonts.heading,
-    fontSize: 26,
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
-  },
-  storyHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.md,
-  },
-  storyActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  actionButton: {
-    padding: 10,
-    borderRadius: 14,
-  },
+    title: {
+      fontFamily: fonts.heading,
+      fontSize: 26,
+      color: palette.textPrimary,
+      marginBottom: spacing.sm,
+    },
+    storyHeaderRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: spacing.md,
+    },
+    storyActions: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+    },
+    actionButton: {
+      padding: 10,
+      borderRadius: 14,
+    },
 
-  category: {
-    fontFamily: fonts.body,
-    color: colors.textSecondary,
-    marginBottom: spacing.sm,
-    letterSpacing: 1,
-  },
-  subcategory: {
-    fontFamily: fonts.body,
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
-    textDecorationLine: "underline",
-  },
+    category: {
+      fontFamily: fonts.body,
+      color: palette.textSecondary,
+      marginBottom: spacing.sm,
+      letterSpacing: 1,
+    },
+    subcategory: {
+      fontFamily: fonts.body,
+      color: palette.textPrimary,
+      marginBottom: spacing.sm,
+      textDecorationLine: "underline",
+    },
 
-  updated: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: "#6B7280",
-    marginBottom: spacing.md,
-  },
+    updated: {
+      fontFamily: fonts.body,
+      fontSize: 13,
+      color: palette.textSecondary,
+      marginBottom: spacing.md,
+    },
 
-  analysisButtonsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 6,
-    marginBottom: spacing.md,
-    marginTop: spacing.sm,
-  },
-  analysisButton: {
-    flex: 1,
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    borderRadius: 14,
-    backgroundColor: "#fff",
-    borderWidth: 0,
-    shadowColor: "#0F172A",
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  analysisButtonText: {
-    color: colors.textPrimary,
-    fontFamily: fonts.body,
-    fontSize: 12,
-    fontWeight: "600",
-  },
+    analysisButtonsRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      gap: 6,
+      marginBottom: spacing.md,
+      marginTop: spacing.sm,
+    },
+    analysisButton: {
+      flex: 1,
+      paddingVertical: 6,
+      paddingHorizontal: 8,
+      borderRadius: 14,
+      backgroundColor: palette.surface,
+      borderWidth: 0,
+      shadowColor: "#0F172A",
+      shadowOpacity: 0.08,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 3 },
+      elevation: 3,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    analysisButtonText: {
+      color: palette.textPrimary,
+      fontFamily: fonts.body,
+      fontSize: 12,
+      fontWeight: "600",
+    },
 
-  sliderBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: spacing.md,
-  },
-  sliderTrackWrap: {
-    flex: 1,
-    position: "relative",
-    justifyContent: "center",
-  },
-  slider: { flex: 1, height: 40 },
-  sliderLabel: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.textSecondary,
-    width: 60,
-    textAlign: "center",
-  },
+    sliderBox: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: spacing.md,
+    },
+    sliderTrackWrap: {
+      flex: 1,
+      position: "relative",
+      justifyContent: "center",
+    },
+    slider: { flex: 1, height: 40 },
+    sliderLabel: {
+      fontFamily: fonts.body,
+      fontSize: 12,
+      color: palette.textSecondary,
+      width: 60,
+      textAlign: "center",
+    },
 
-  section: { marginBottom: spacing.lg },
-  sectionHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: spacing.sm,
-  },
-  sectionTitle: {
-    fontFamily: fonts.heading,
-    fontSize: 18,
-    borderBottomWidth: 1,
-    borderColor: colors.border,
-    paddingBottom: 4,
-  },
+    section: { marginBottom: spacing.lg },
+    sectionHeaderRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: spacing.sm,
+    },
+    sectionTitle: {
+      fontFamily: fonts.heading,
+      fontSize: 18,
+      borderBottomWidth: 1,
+      borderColor: palette.border,
+      paddingBottom: 4,
+      color: palette.textPrimary,
+    },
 
-  phaseHeader: {
-    marginBottom: 12,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    borderLeftWidth: 4,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 4,
-  },
+    phaseHeader: {
+      marginBottom: 12,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
+      backgroundColor: palette.surface,
+      borderRadius: 12,
+      borderLeftWidth: 4,
+      shadowColor: "#000",
+      shadowOpacity: 0.08,
+      shadowRadius: 6,
+      shadowOffset: { width: 0, height: 3 },
+      elevation: 3,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 4,
+    },
 
-  phaseTitle: {
-    fontFamily: fonts.heading,
-    fontSize: 15,
-    color: "#111827",
-    textAlign: "center",
-  },
+    phaseTitle: {
+      fontFamily: fonts.heading,
+      fontSize: 15,
+      color: palette.textPrimary,
+      textAlign: "center",
+    },
 
-  phaseSubtitle: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: "#6B7280",
-    textAlign: "center",
-  },
+    phaseSubtitle: {
+      fontFamily: fonts.body,
+      fontSize: 13,
+      color: palette.textSecondary,
+      textAlign: "center",
+    },
 
-  overviewBlock: {
-    marginBottom: spacing.lg,
-  },
+    overviewBlock: {
+      marginBottom: spacing.lg,
+    },
 
-  eventBlock: {
-    marginBottom: spacing.lg,
-  },
+    eventBlock: {
+      marginBottom: spacing.lg,
+    },
 
-  eventCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: spacing.md,
-    shadowColor: "#0F172A",
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
-    gap: spacing.sm,
-  },
+    eventCard: {
+      backgroundColor: palette.surface,
+      borderRadius: 16,
+      padding: spacing.md,
+      shadowColor: "#0F172A",
+      shadowOpacity: 0.06,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 3 },
+      elevation: 3,
+      gap: spacing.sm,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: palette.border,
+    },
 
-  eventImage: {
-    width: "100%",
-    height: 190,
-    borderRadius: 12,
-    backgroundColor: "#e5e7eb",
-  },
+    eventImage: {
+      width: "100%",
+      height: 190,
+      borderRadius: 12,
+      backgroundColor: palette.border,
+    },
 
-  eventImagePlaceholder: {
-    width: "100%",
-    height: 190,
-    borderRadius: 12,
-    backgroundColor: "#e5e7eb",
-    alignItems: "center",
-    justifyContent: "center",
-  },
+    eventImagePlaceholder: {
+      width: "100%",
+      height: 190,
+      borderRadius: 12,
+      backgroundColor: palette.border,
+      alignItems: "center",
+      justifyContent: "center",
+    },
 
-  eventImageEmoji: {
-    fontSize: 26,
-  },
+    eventImageEmoji: {
+      fontSize: 26,
+    },
 
-  eventContent: {
-    gap: 6,
-  },
+    eventContent: {
+      gap: 6,
+    },
 
-  eventDate: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.textPrimary,
-    fontWeight: "500",
-    fontStyle: "italic",
-    marginBottom: 4,
-  },
+    eventDate: {
+      fontFamily: fonts.body,
+      fontSize: 13,
+      color: palette.textPrimary,
+      fontWeight: "500",
+      fontStyle: "italic",
+      marginBottom: 4,
+    },
 
-  eventTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 8,
-  },
-  eventTitle: {
-    fontFamily: fonts.heading,
-    fontSize: 16,
-    color: colors.textPrimary,
-    fontWeight: "700",
-  },
-  faqIcon: {
-    padding: 4,
-  },
+    eventTitleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 8,
+    },
+    eventTitle: {
+      fontFamily: fonts.heading,
+      fontSize: 16,
+      color: palette.textPrimary,
+      fontWeight: "700",
+    },
+    faqIcon: {
+      padding: 4,
+    },
 
-  eventSources: {
-    marginTop: spacing.sm,
-  },
+    eventSources: {
+      marginTop: spacing.sm,
+    },
 
-  factCheckContainer: {
-    marginTop: 6,
-    paddingTop: 6,
-    borderTopWidth: 0.5,
-    borderTopColor: "#E5E7EB",
-    gap: 4,
-  },
-  factCheckBadge: {
-    fontSize: 11,
-    fontWeight: "600",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-    overflow: "hidden",
-    alignSelf: "flex-start",
-    borderWidth: 1.25,
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
+    factCheckContainer: {
+      marginTop: 6,
+      paddingTop: 6,
+      borderTopWidth: 0.5,
+      borderTopColor: palette.border,
+      gap: 4,
+    },
+    factCheckBadge: {
+      fontSize: 11,
+      fontWeight: "600",
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 999,
+      overflow: "hidden",
+      alignSelf: "flex-start",
+      borderWidth: 1.25,
+      shadowColor: "#000",
+      shadowOpacity: 0.12,
+      shadowRadius: 4,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 2,
+    },
 
-  phaseEndIndicator: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: spacing.xs,
-    marginBottom: spacing.md,
-    paddingLeft: spacing.sm,
-  },
+    phaseEndIndicator: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginTop: spacing.xs,
+      marginBottom: spacing.md,
+      paddingLeft: spacing.sm,
+    },
 
-  phaseEndDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "center",
-    padding: spacing.md,
-  },
-  suggestionsSection: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    gap: 12,
-  },
-  suggestionBlock: {
-    gap: 8,
-  },
-  suggestionTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
-  suggestionRow: {
-    gap: 12,
-  },
-  suggestionCardWrapper: {
-    width: 260,
-    marginRight: 8,
-  },
-  modalCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: spacing.lg,
-    gap: 8,
-  },
-  faqRow: {
-    marginTop: 6,
-    gap: 4,
-  },
-  faqQuestionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
-  },
-  faqAnswer: {
-    fontFamily: fonts.body,
-    fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 20,
-  },
-  modalTitle: {
-    fontFamily: fonts.heading,
-    fontSize: 18,
-    color: colors.textPrimary,
-  },
-  modalScore: {
-    fontFamily: fonts.heading,
-    fontSize: 16,
-    color: colors.textPrimary,
-  },
-  modalBody: {
-    fontFamily: fonts.body,
-    fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 20,
-  },
-  modalMeta: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  modalClose: {
-    alignSelf: "flex-end",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  modalCloseText: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-});
+    phaseEndDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+    },
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.45)",
+      justifyContent: "center",
+      padding: spacing.md,
+    },
+    suggestionsSection: {
+      paddingHorizontal: 16,
+      paddingBottom: 16,
+      gap: 12,
+    },
+    suggestionBlock: {
+      gap: 8,
+    },
+    suggestionTitle: {
+      fontSize: 16,
+      fontWeight: "700",
+      color: palette.textPrimary,
+    },
+    suggestionRow: {
+      gap: 12,
+    },
+    suggestionCardWrapper: {
+      width: 260,
+      marginRight: 8,
+    },
+    modalCard: {
+      backgroundColor: palette.surface,
+      borderRadius: 12,
+      padding: spacing.lg,
+      gap: 8,
+      borderWidth: 1,
+      borderColor: palette.border,
+    },
+    faqRow: {
+      marginTop: 6,
+      gap: 4,
+    },
+    faqQuestionRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 10,
+    },
+    faqAnswer: {
+      fontFamily: fonts.body,
+      fontSize: 14,
+      color: palette.textSecondary,
+      lineHeight: 20,
+    },
+    modalTitle: {
+      fontFamily: fonts.heading,
+      fontSize: 18,
+      color: palette.textPrimary,
+    },
+    modalScore: {
+      fontFamily: fonts.heading,
+      fontSize: 16,
+      color: palette.textPrimary,
+    },
+    modalBody: {
+      fontFamily: fonts.body,
+      fontSize: 14,
+      color: palette.textSecondary,
+      lineHeight: 20,
+    },
+    modalMeta: {
+      fontFamily: fonts.body,
+      fontSize: 12,
+      color: palette.textSecondary,
+    },
+    modalClose: {
+      alignSelf: "flex-end",
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
+    modalCloseText: {
+      color: palette.textPrimary,
+      fontSize: 14,
+      fontWeight: "600",
+    },
+  });

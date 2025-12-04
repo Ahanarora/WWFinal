@@ -2,7 +2,7 @@
 // screens/ThemeScreen.js
 // PHASE SUPPORT + EventReader integration
 // ----------------------------------------
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import {
   Modal,
 } from "react-native";
 import Slider from "@react-native-community/slider";
-import { colors, fonts, spacing } from "../styles/theme";
+import { colors, fonts, spacing, getThemeColors } from "../styles/theme";
 import SourceLinks from "../components/SourceLinks";
 import RenderWithContext from "../components/RenderWithContext";
 import {
@@ -127,7 +127,11 @@ export default function ThemeScreen({ route, navigation }) {
     toggleFavorite,
     getUpdatesSinceLastVisit,
     recordVisit,
+    themeColors,
+    darkMode,
   } = useUserData();
+  const palette = themeColors || getThemeColors(darkMode);
+  const styles = useMemo(() => createStyles(palette), [palette]);
   const [factCheckModal, setFactCheckModal] = useState({
     visible: false,
     factCheck: null,
@@ -470,7 +474,7 @@ export default function ThemeScreen({ route, navigation }) {
               <Ionicons
                 name={isFavorite(item.id) ? "bookmark" : "bookmark-outline"}
                 size={24}
-                color={isFavorite(item.id) ? "#FACC15" : colors.muted}
+                color={isFavorite(item.id) ? "#FACC15" : palette.muted}
               />
             </TouchableOpacity>
           </View>
@@ -496,6 +500,8 @@ export default function ThemeScreen({ route, navigation }) {
               text={item.overview}
               contexts={combinedContexts}
               navigation={navigation}
+              themeColors={palette}
+              textStyle={{ color: palette.textPrimary }}
             />
             {renderUpdateBadge(updatesCount(item))}
           </View>
@@ -563,9 +569,9 @@ export default function ThemeScreen({ route, navigation }) {
                 step={1}
                 value={depth}
                 onValueChange={(v) => setDepth(v)}
-                minimumTrackTintColor={colors.accent}
+                minimumTrackTintColor={palette.accent}
                 maximumTrackTintColor="#6B7280"
-                thumbTintColor={colors.accent}
+                thumbTintColor={palette.accent}
               />
             </View>
             <Text style={styles.sliderLabel}>Complete</Text>
@@ -670,11 +676,11 @@ export default function ThemeScreen({ route, navigation }) {
                               }
                               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                             >
-                              <Ionicons
-                                name="help-circle-outline"
-                                size={18}
-                                color={colors.accent}
-                              />
+                          <Ionicons
+                            name="help-circle-outline"
+                            size={18}
+                            color={palette.accent}
+                          />
                             </TouchableOpacity>
                           )}
                         </View>
@@ -682,6 +688,8 @@ export default function ThemeScreen({ route, navigation }) {
                           text={e.description}
                           contexts={e.contexts || []}
                           navigation={navigation}
+                          themeColors={palette}
+                          textStyle={{ color: palette.textPrimary }}
                         />
                         {hasFactCheck && (
                           <View style={styles.factCheckContainer}>
@@ -711,7 +719,7 @@ export default function ThemeScreen({ route, navigation }) {
                         )}
                         {Array.isArray(e.sources) && e.sources.length > 0 && (
                           <View style={styles.eventSources}>
-                            <SourceLinks sources={e.sources} />
+                            <SourceLinks sources={e.sources} themeColors={palette} />
                           </View>
                         )}
                       </View>
@@ -849,7 +857,7 @@ export default function ThemeScreen({ route, navigation }) {
                     <Ionicons
                       name={faqExpanded[idx] ? "chevron-up" : "chevron-down"}
                       size={18}
-                      color={colors.textSecondary}
+                      color={palette.textSecondary}
                     />
                   </TouchableOpacity>
                   {faqExpanded[idx] && (
@@ -879,10 +887,11 @@ export default function ThemeScreen({ route, navigation }) {
 // ----------------------------------------
 // STYLES
 // ----------------------------------------
-const styles = StyleSheet.create({
+const createStyles = (palette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: palette.background,
     padding: spacing.md,
   },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
@@ -898,7 +907,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: fonts.heading,
     fontSize: 26,
-    color: colors.textPrimary,
+    color: palette.textPrimary,
     marginBottom: spacing.sm,
   },
   themeHeaderRow: {
@@ -919,13 +928,13 @@ const styles = StyleSheet.create({
 
   category: {
     fontFamily: fonts.body,
-    color: colors.textSecondary,
+    color: palette.textSecondary,
     marginBottom: spacing.sm,
     letterSpacing: 1,
   },
   subcategory: {
     fontFamily: fonts.body,
-    color: colors.textPrimary,
+    color: palette.textPrimary,
     marginBottom: spacing.sm,
     textDecorationLine: "underline",
   },
@@ -961,7 +970,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   analysisButtonText: {
-    color: colors.textPrimary,
+    color: palette.textPrimary,
     fontFamily: fonts.body,
     fontSize: 12,
     fontWeight: "600",
@@ -983,7 +992,7 @@ const styles = StyleSheet.create({
   sliderLabel: {
     fontFamily: fonts.body,
     fontSize: 12,
-    color: colors.textSecondary,
+    color: palette.textSecondary,
     width: 60,
     textAlign: "center",
   },
@@ -1000,7 +1009,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heading,
     fontSize: 18,
     borderBottomWidth: 1,
-    borderColor: colors.border,
+    borderColor: palette.border,
     paddingBottom: 4,
   },
 
@@ -1046,7 +1055,7 @@ const styles = StyleSheet.create({
   overviewHeading: {
     fontFamily: fonts.heading,
     fontSize: 16,
-    color: colors.textPrimary,
+    color: palette.textPrimary,
   },
   updateBadge: {
     backgroundColor: "#FEE2E2",
@@ -1058,7 +1067,7 @@ const styles = StyleSheet.create({
   },
   updateBadgeText: {
     fontSize: 11,
-    color: colors.accent,
+    color: palette.accent,
     fontWeight: "600",
   },
 
@@ -1067,7 +1076,7 @@ const styles = StyleSheet.create({
   },
 
   eventCard: {
-    backgroundColor: colors.surface,
+    backgroundColor: palette.surface,
     borderRadius: 16,
     padding: spacing.md,
     shadowColor: "#0F172A",
@@ -1107,7 +1116,7 @@ const styles = StyleSheet.create({
   eventDate: {
     fontFamily: fonts.body,
     fontSize: 13,
-    color: colors.textPrimary,
+    color: palette.textPrimary,
     fontWeight: "500",
     fontStyle: "italic",
     marginBottom: 4,
@@ -1116,7 +1125,7 @@ const styles = StyleSheet.create({
   eventTitle: {
     fontFamily: fonts.heading,
     fontSize: 16,
-    color: colors.textPrimary,
+    color: palette.textPrimary,
     fontWeight: "700",
   },
   faqIcon: {
@@ -1135,7 +1144,7 @@ const styles = StyleSheet.create({
   faqAnswer: {
     fontFamily: fonts.body,
     fontSize: 14,
-    color: colors.textSecondary,
+    color: palette.textSecondary,
     lineHeight: 20,
   },
 
@@ -1192,7 +1201,7 @@ const styles = StyleSheet.create({
   suggestionTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: colors.textPrimary,
+    color: palette.textPrimary,
   },
   suggestionRow: {
     gap: 12,
@@ -1220,23 +1229,23 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontFamily: fonts.heading,
     fontSize: 18,
-    color: colors.textPrimary,
+    color: palette.textPrimary,
   },
   modalScore: {
     fontFamily: fonts.heading,
     fontSize: 16,
-    color: colors.textPrimary,
+    color: palette.textPrimary,
   },
   modalBody: {
     fontFamily: fonts.body,
     fontSize: 14,
-    color: colors.textSecondary,
+    color: palette.textSecondary,
     lineHeight: 20,
   },
   modalMeta: {
     fontFamily: fonts.body,
     fontSize: 12,
-    color: colors.textSecondary,
+    color: palette.textSecondary,
   },
   modalClose: {
     alignSelf: "flex-end",
@@ -1244,7 +1253,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   modalCloseText: {
-    color: colors.textPrimary,
+    color: palette.textPrimary,
     fontSize: 14,
     fontWeight: "600",
   },

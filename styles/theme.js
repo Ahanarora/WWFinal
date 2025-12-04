@@ -11,13 +11,13 @@ export const lightColors = {
 };
 
 export const darkColors = {
-  background: "#0A0F1C",
-  surface: "#121A2A",
+  background: "#000000",
+  surface: "#111111",
   textPrimary: "#F8FAFC",
-  textSecondary: "#CBD5F5",
-  border: "#1E293B",
+  textSecondary: "#D1D5DB",
+  border: "#1F1F1F",
   accent: "#F87171",
-  muted: "#94A3B8",
+  muted: "#9CA3AF",
 };
 
 export const colors = lightColors;

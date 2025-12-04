@@ -19,6 +19,7 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import { scoreContent } from "../utils/ranking";
 import { getThemeColors } from "../styles/theme";
+import { useUserData } from "../contexts/UserDataContext";
 
 import WWStoryCard from "../components/WWStoryCard";
 import WWCompactCard from "../components/WWCompactCard";
@@ -99,7 +100,8 @@ export default function StoriesScreen({ navigation }) {
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [filterVisible, setFilterVisible] = useState(true);
 
-  const palette = getThemeColors(false);
+  const { themeColors, darkMode } = useUserData();
+  const palette = themeColors || getThemeColors(darkMode);
   const styles = useMemo(() => createStyles(palette), [palette]);
   const headerShownRef = useRef(true);
   const lastOffsetY = useRef(0);
@@ -300,6 +302,7 @@ export default function StoriesScreen({ navigation }) {
           subcategories={SUBCATEGORY_MAP}
           activeCategory={activeCategory}
           activeSubcategory={activeSubcategory}
+          themeColors={palette}
           onCategoryChange={(cat) => {
             setActiveCategory(cat);
             setActiveSubcategory("All");

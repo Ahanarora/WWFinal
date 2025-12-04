@@ -16,8 +16,9 @@ export default function WWFilterPaneStories({
   activeSubcategory,
   onCategoryChange,
   onSubcategoryChange,
+  themeColors,
 }) {
-  const palette = getThemeColors(false);
+  const palette = themeColors || getThemeColors(false);
   const styles = createStyles(palette);
 
   // Active subcategory list for the chosen category

@@ -19,8 +19,9 @@ export default function WWFilterPaneThemes({
   categories = [],
   activeCategory,
   onCategoryChange,
+  themeColors,
 }) {
-  const palette = getThemeColors(false);
+  const palette = themeColors || getThemeColors(false);
   const styles = createStyles(palette);
 
   return (

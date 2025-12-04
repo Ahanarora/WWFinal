@@ -2,7 +2,7 @@
 // screens/AnalysisModalScreen.js
 // Full-screen analysis list for one section
 // ----------------------------------------
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -16,12 +16,14 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { normalizeAnalysis } from "../utils/normalizeAnalysis";
 import RenderWithContext from "../components/RenderWithContext";
+import { useUserData } from "../contexts/UserDataContext";
+import { getThemeColors } from "../styles/theme";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-function AccordionItem({ label, detail, contexts, navigation }) {
+function AccordionItem({ label, detail, contexts, navigation, styles, palette }) {
   const [open, setOpen] = useState(false);
 
   const toggle = () => {
@@ -38,6 +40,7 @@ function AccordionItem({ label, detail, contexts, navigation }) {
             contexts={contexts}
             navigation={navigation}
             textStyle={styles.itemTitle}
+            themeColors={palette}
           />
           <Text style={styles.itemArrow}>{open ? "▲" : "▼"}</Text>
         </View>
@@ -48,6 +51,7 @@ function AccordionItem({ label, detail, contexts, navigation }) {
           contexts={contexts}
           navigation={navigation}
           textStyle={styles.itemDetail}
+          themeColors={palette}
         />
       )}
     </View>
@@ -57,6 +61,9 @@ function AccordionItem({ label, detail, contexts, navigation }) {
 export default function AnalysisModalScreen({ route, navigation }) {
   const { type, analysis: rawAnalysis, contexts: routeContexts = [] } =
     route.params || {};
+  const { themeColors, darkMode } = useUserData();
+  const palette = themeColors || getThemeColors(darkMode);
+  const styles = useMemo(() => createStyles(palette), [palette]);
   const analysis = normalizeAnalysis(rawAnalysis || {}) || {
     stakeholders: [],
     faqs: [],
@@ -93,7 +100,7 @@ export default function AnalysisModalScreen({ route, navigation }) {
           style={styles.headerSide}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="close" size={26} />
+          <Ionicons name="close" size={26} color={palette.textPrimary} />
         </TouchableOpacity>
       </View>
 
@@ -121,6 +128,8 @@ export default function AnalysisModalScreen({ route, navigation }) {
                 detail={detail}
                 contexts={combinedContexts}
                 navigation={navigation}
+                styles={styles}
+                palette={palette}
               />
             );
           })
@@ -134,62 +143,72 @@ export default function AnalysisModalScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "white",
-    paddingTop: 50,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    marginBottom: 10,
-    justifyContent: "space-between",
-  },
-  headerSide: {
-    width: 30,
-    alignItems: "flex-end",
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
-  emptyText: {
-    fontSize: 15,
-    color: "#6B7280",
-    lineHeight: 22,
-  },
-  itemBlock: {
-    backgroundColor: "#f9fafb",
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-  },
-  itemTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 8,
-  },
-  itemTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#111827",
-  },
-  itemArrow: {
-    fontSize: 14,
-    color: "#4B5563",
-  },
-  itemDetail: {
-    marginTop: 6,
-    color: "#374151",
-    fontSize: 13,
-  },
-});
+const createStyles = (palette) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: palette.background,
+      paddingTop: 50,
+    },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 20,
+      marginBottom: 10,
+      justifyContent: "space-between",
+    },
+    headerSide: {
+      width: 30,
+      alignItems: "flex-end",
+    },
+    headerTitle: {
+      fontSize: 20,
+      fontWeight: "700",
+      color: palette.textPrimary,
+    },
+    content: {
+      paddingHorizontal: 20,
+      paddingBottom: 40,
+      gap: 10,
+    },
+    emptyText: {
+      fontSize: 15,
+      color: palette.textSecondary,
+      lineHeight: 22,
+    },
+    itemBlock: {
+      backgroundColor: palette.surface,
+      borderRadius: 10,
+      padding: 12,
+      marginBottom: 10,
+      borderWidth: 1,
+      borderColor: palette.border,
+      shadowColor: "#000",
+      shadowOpacity: 0.06,
+      shadowRadius: 4,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 2,
+    },
+    itemTitleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 8,
+    },
+    itemTitle: {
+      fontSize: 15,
+      fontWeight: "600",
+      color: palette.textPrimary,
+      flex: 1,
+    },
+    itemArrow: {
+      fontSize: 14,
+      color: palette.textSecondary,
+    },
+    itemDetail: {
+      marginTop: 6,
+      color: palette.textSecondary,
+      fontSize: 13,
+      lineHeight: 20,
+    },
+  });

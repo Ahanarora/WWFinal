@@ -14,10 +14,11 @@ import {
   Modal,
   TouchableOpacity,
 } from "react-native";
-import { colors, fonts, spacing } from "../styles/theme";
+import { fonts, spacing, getThemeColors } from "../styles/theme";
 import RenderWithContext from "../components/RenderWithContext";
 import SourceLinks from "../components/SourceLinks";
 import { formatDateLongOrdinal } from "../utils/formatTime";
+import { useUserData } from "../contexts/UserDataContext";
 
 function getFactCheckRgb(score) {
   if (score >= 85) return { bg: "#BBF7D0", text: "#166534" };
@@ -34,6 +35,8 @@ const EventCard = React.memo(function EventCard({
   navigation,
   headerTitle,
   onOpenFactCheck,
+  palette,
+  styles,
 }) {
   if (!event) return null;
 
@@ -75,24 +78,25 @@ const EventCard = React.memo(function EventCard({
       ) : null}
 
       {/* CONTENT */}
-      <View style={styles.content}>
-        {formattedDate ? <Text style={styles.date}>{formattedDate}</Text> : null}
-        {title ? <Text style={styles.title}>{title}</Text> : null}
+          <View style={styles.content}>
+            {formattedDate ? <Text style={styles.date}>{formattedDate}</Text> : null}
+            {title ? <Text style={styles.title}>{title}</Text> : null}
 
-        {description ? (
-          <View style={styles.body}>
-            <RenderWithContext
-              text={description}
-              contexts={contexts}
-              navigation={navigation}
-            />
-          </View>
-        ) : null}
+            {description ? (
+              <View style={styles.body}>
+                <RenderWithContext
+                  text={description}
+                  contexts={contexts}
+                  navigation={navigation}
+                  themeColors={palette}
+                />
+              </View>
+            ) : null}
 
         {/* SOURCES */}
         {Array.isArray(sources) && sources.length > 0 && (
           <View style={styles.sources}>
-            <SourceLinks sources={sources} />
+            <SourceLinks sources={sources} themeColors={palette} />
           </View>
         )}
 
@@ -130,6 +134,9 @@ export default function EventReaderModal({ route, navigation }) {
     startIndex = 0,
     headerTitle = "",
   } = route.params || {};
+  const { themeColors, darkMode } = useUserData();
+  const palette = themeColors || getThemeColors(darkMode);
+  const styles = useMemo(() => createStyles(palette), [palette]);
 
   // Normalize event data
   const safeEvents = useMemo(() => {
@@ -242,7 +249,10 @@ export default function EventReaderModal({ route, navigation }) {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar
+        barStyle={darkMode ? "light-content" : "dark-content"}
+        backgroundColor={palette.background}
+      />
 
       {/* HANDLE */}
       <View style={styles.dragHandle} />
@@ -271,6 +281,8 @@ export default function EventReaderModal({ route, navigation }) {
             onOpenFactCheck={(fc) =>
               setFactCheckModal({ visible: true, factCheck: fc })
             }
+            palette={palette}
+            styles={styles}
           />
         </Animated.View>
       </View>
@@ -328,160 +340,163 @@ export default function EventReaderModal({ route, navigation }) {
 // ----------------------------------------
 // STYLES
 // ----------------------------------------
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-    paddingTop: 24,
-  },
+const createStyles = (palette) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: palette.background,
+      paddingTop: 24,
+    },
 
-  dragHandle: {
-    alignSelf: "center",
-    width: 50,
-    height: 4,
-    borderRadius: 999,
-    backgroundColor: "#E5E7EB",
-    marginBottom: 8,
-  },
+    dragHandle: {
+      alignSelf: "center",
+      width: 50,
+      height: 4,
+      borderRadius: 999,
+      backgroundColor: palette.border,
+      marginBottom: 8,
+    },
 
-  counterRow: {
-    alignItems: "center",
-    marginBottom: 4,
-  },
+    counterRow: {
+      alignItems: "center",
+      marginBottom: 4,
+    },
 
-  counterText: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: "#6B7280",
-  },
+    counterText: {
+      fontFamily: fonts.body,
+      fontSize: 12,
+      color: palette.textSecondary,
+    },
 
-  cardStack: {
-    flex: 1,
-    position: "relative",
-  },
+    cardStack: {
+      flex: 1,
+      position: "relative",
+    },
 
-  cardLayer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "#FFFFFF",
-  },
+    cardLayer: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: palette.background,
+    },
 
-  cardInner: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
+    cardInner: {
+      flex: 1,
+      backgroundColor: palette.surface,
+    },
 
-  modalStoryTitle: {
-    fontFamily: fonts.heading,
-    fontSize: 18,
-    color: "#111827",
-    paddingHorizontal: spacing.md,
-    paddingBottom: 2,
-  },
+    modalStoryTitle: {
+      fontFamily: fonts.heading,
+      fontSize: 18,
+      color: palette.textPrimary,
+      paddingHorizontal: spacing.md,
+      paddingBottom: 2,
+    },
 
-  modalPhaseTitle: {
-    fontFamily: fonts.body,
-    fontSize: 14,
-    color: "#6B7280",
-    paddingHorizontal: spacing.md,
-    paddingBottom: 8,
-  },
+    modalPhaseTitle: {
+      fontFamily: fonts.body,
+      fontSize: 14,
+      color: palette.textSecondary,
+      paddingHorizontal: spacing.md,
+      paddingBottom: 8,
+    },
 
-  image: {
-    width: "100%",
-    height: 220,
-    backgroundColor: "#E5E7EB",
-  },
+    image: {
+      width: "100%",
+      height: 220,
+      backgroundColor: palette.border,
+    },
 
-  content: {
-    flex: 1,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.lg,
-  },
+    content: {
+      flex: 1,
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.md,
+      paddingBottom: spacing.lg,
+    },
 
-  date: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: "#6B7280",
-    marginBottom: 4,
-  },
+    date: {
+      fontFamily: fonts.body,
+      fontSize: 12,
+      color: palette.textSecondary,
+      marginBottom: 4,
+    },
 
-  title: {
-    fontFamily: fonts.heading,
-    fontSize: 20,
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
-  },
+    title: {
+      fontFamily: fonts.heading,
+      fontSize: 20,
+      color: palette.textPrimary,
+      marginBottom: spacing.sm,
+    },
 
-  body: {
-    marginTop: 4,
-    marginBottom: spacing.md,
-  },
+    body: {
+      marginTop: 4,
+      marginBottom: spacing.md,
+    },
 
-  sources: {
-    marginTop: 8,
-  },
+    sources: {
+      marginTop: 8,
+    },
 
-  factCheckBlock: {
-    marginTop: spacing.sm,
-    paddingTop: spacing.xs,
-    borderTopWidth: 0.5,
-    borderTopColor: "#E5E7EB",
-    gap: 6,
-  },
-  factCheckBadge: {
-    fontSize: 12,
-    fontWeight: "700",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    alignSelf: "flex-start",
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "center",
-    padding: spacing.md,
-  },
-  modalCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: spacing.lg,
-    gap: 8,
-  },
-  modalTitle: {
-    fontFamily: fonts.heading,
-    fontSize: 18,
-    color: colors.textPrimary,
-  },
-  modalScore: {
-    fontFamily: fonts.heading,
-    fontSize: 16,
-    color: colors.textPrimary,
-  },
-  modalBody: {
-    fontFamily: fonts.body,
-    fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 20,
-  },
-  modalMeta: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  modalClose: {
-    alignSelf: "flex-end",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  modalCloseText: {
-    color: colors.accent,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-});
+    factCheckBlock: {
+      marginTop: spacing.sm,
+      paddingTop: spacing.xs,
+      borderTopWidth: 0.5,
+      borderTopColor: palette.border,
+      gap: 6,
+    },
+    factCheckBadge: {
+      fontSize: 12,
+      fontWeight: "700",
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 999,
+      alignSelf: "flex-start",
+    },
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.45)",
+      justifyContent: "center",
+      padding: spacing.md,
+    },
+    modalCard: {
+      backgroundColor: palette.surface,
+      borderRadius: 12,
+      padding: spacing.lg,
+      gap: 8,
+      borderWidth: 1,
+      borderColor: palette.border,
+    },
+    modalTitle: {
+      fontFamily: fonts.heading,
+      fontSize: 18,
+      color: palette.textPrimary,
+    },
+    modalScore: {
+      fontFamily: fonts.heading,
+      fontSize: 16,
+      color: palette.textPrimary,
+    },
+    modalBody: {
+      fontFamily: fonts.body,
+      fontSize: 14,
+      color: palette.textSecondary,
+      lineHeight: 20,
+    },
+    modalMeta: {
+      fontFamily: fonts.body,
+      fontSize: 12,
+      color: palette.textSecondary,
+    },
+    modalClose: {
+      alignSelf: "flex-end",
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
+    modalCloseText: {
+      color: palette.textPrimary,
+      fontSize: 14,
+      fontWeight: "600",
+    },
+  });

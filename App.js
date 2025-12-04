@@ -147,9 +147,9 @@ const DarkNavTheme = {
   ...NavigationDarkTheme,
   colors: {
     ...NavigationDarkTheme.colors,
-    background: "#050505",
-    card: "#111827",
-    border: "#1f2937",
+    background: "#000000",
+    card: "#0A0A0A",
+    border: "#1A1A1A",
     text: "#F3F4F6",
   },
 };
@@ -221,10 +221,11 @@ function MenuSheet({
 
 function AppNavigator({ user }) {
   const navigationRef = useNavigationContainerRef();
-  const { darkMode, toggleDarkMode } = useUserData();
+  const { darkMode, toggleDarkMode, themeColors } = useUserData();
+  const palette = themeColors || getThemeColors(darkMode);
   const [menuVisible, setMenuVisible] = useState(false);
   const WaitHeader = ({ onPress }) => {
-    const textColor = darkMode ? "#f8fafc" : colors.textPrimary;
+    const textColor = palette.textPrimary;
     const accentColor = "#DC2626";
     const underlineColor = "#FACC15";
 
@@ -266,9 +267,11 @@ function AppNavigator({ user }) {
   const screenOptions = ({ navigation }) => ({
     headerTitleAlign: "center",
     headerStyle: {
-      backgroundColor: darkMode ? "#0f172a" : "#fff",
+      backgroundColor: palette.surface,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: palette.border,
     },
-    headerTintColor: darkMode ? "#f8fafc" : "#111827",
+    headerTintColor: palette.textPrimary,
     headerTitle: () => (
       <WaitHeader onPress={() => navigateHome(navigation)} />
     ),
@@ -280,7 +283,7 @@ function AppNavigator({ user }) {
         <Ionicons
           name="search"
           size={22}
-          color={darkMode ? "#f8fafc" : "#111827"}
+          color={palette.textPrimary}
         />
       </TouchableOpacity>
     ),
@@ -330,7 +333,7 @@ function AppNavigator({ user }) {
                     <Ionicons
                       name="menu"
                       size={28}
-                      color={darkMode ? "#f8fafc" : "#111827"}
+                      color={palette.textPrimary}
                     />
                   </TouchableOpacity>
                 ),

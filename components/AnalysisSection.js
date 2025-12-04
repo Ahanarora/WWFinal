@@ -1,7 +1,7 @@
 // ----------------------------------------
 // components/AnalysisSection.js  (pure JS)
 // ----------------------------------------
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -12,14 +12,22 @@ import {
   StyleSheet,
 } from "react-native";
 import RenderWithContext from "./RenderWithContext";
+import { getThemeColors } from "../styles/theme";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-export default function AnalysisSection({ analysis, contexts = [], navigation }) {
+export default function AnalysisSection({
+  analysis,
+  contexts = [],
+  navigation,
+  themeColors,
+}) {
   const [openSections, setOpenSections] = useState({});
   const [openSub, setOpenSub] = useState({});
+  const palette = themeColors || getThemeColors(false);
+  const styles = useMemo(() => createStyles(palette), [palette]);
 
   const toggleSection = (key) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -65,6 +73,8 @@ export default function AnalysisSection({ analysis, contexts = [], navigation })
                             contexts={contexts}
                             navigation={navigation}
                             textStyle={styles.itemTitle}
+                            themeColors={palette}
+                            textStyle={styles.itemTitle}
                           />
                           <Text style={styles.itemArrow}>
                             {openSub[`${key}-${idx}`] ? "▲" : "▼"}
@@ -76,6 +86,7 @@ export default function AnalysisSection({ analysis, contexts = [], navigation })
                           text={key === "stakeholders" ? item.detail : item.answer}
                           contexts={contexts}
                           navigation={navigation}
+                          themeColors={palette}
                           textStyle={styles.itemDetail}
                         />
                       )}
@@ -91,34 +102,43 @@ export default function AnalysisSection({ analysis, contexts = [], navigation })
   );
 }
 
-const styles = StyleSheet.create({
-  container: { marginTop: 12 },
-  section: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    marginBottom: 10,
-    padding: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  sectionTitle: { fontWeight: "bold", fontSize: 16, color: "#1e3a8a" },
-  subList: { marginTop: 8 },
-  emptyText: { color: "#6b7280", fontStyle: "italic", fontSize: 13 },
-  itemBlock: {
-    backgroundColor: "#f9fafb",
-    borderRadius: 8,
-    padding: 8,
-    marginTop: 6,
-  },
-  itemTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 8,
-  },
-  itemTitle: { fontWeight: "600", color: "#1f2937", flex: 1 },
-  itemArrow: { color: "#4b5563" },
-  itemDetail: { marginTop: 4, color: "#374151", fontSize: 13 },
-});
+const createStyles = (palette) =>
+  StyleSheet.create({
+    container: { marginTop: 12 },
+    section: {
+      backgroundColor: palette.surface,
+      borderRadius: 10,
+      marginBottom: 10,
+      padding: 10,
+      shadowColor: "#000",
+      shadowOpacity: 0.05,
+      shadowRadius: 3,
+      elevation: 2,
+      borderWidth: 1,
+      borderColor: palette.border,
+    },
+    sectionTitle: {
+      fontWeight: "bold",
+      fontSize: 16,
+      color: palette.textPrimary,
+    },
+    subList: { marginTop: 8 },
+    emptyText: { color: palette.textSecondary, fontStyle: "italic", fontSize: 13 },
+    itemBlock: {
+      backgroundColor: palette.surface,
+      borderRadius: 8,
+      padding: 8,
+      marginTop: 6,
+      borderWidth: 1,
+      borderColor: palette.border,
+    },
+    itemTitleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 8,
+    },
+    itemTitle: { fontWeight: "600", color: palette.textPrimary, flex: 1 },
+    itemArrow: { color: palette.textSecondary },
+    itemDetail: { marginTop: 4, color: palette.textSecondary, fontSize: 13 },
+  });

@@ -358,15 +358,16 @@ export default function HomeScreen({ navigation }) {
           ]}
         >
           <WWFilterPaneStories
-            categories={CATEGORIES}
-            subcategories={SUBCATEGORY_MAP}
-            activeCategory={activeCategory}
-            activeSubcategory={activeSubcategory}
-            onCategoryChange={(cat) => {
-              setActiveCategory(cat);
-              setActiveSubcategory("All");
-            }}
-            onSubcategoryChange={setActiveSubcategory}
+          categories={CATEGORIES}
+          subcategories={SUBCATEGORY_MAP}
+          activeCategory={activeCategory}
+          activeSubcategory={activeSubcategory}
+          themeColors={palette}
+          onCategoryChange={(cat) => {
+            setActiveCategory(cat);
+            setActiveSubcategory("All");
+          }}
+          onSubcategoryChange={setActiveSubcategory}
           />
         </View>
       );

@@ -12,13 +12,16 @@ import {
 import { parseLinkedText } from "../utils/renderLinkedText";
 import { db } from "../firebaseConfig";
 import { doc, getDoc } from "firebase/firestore";
+import { getThemeColors } from "../styles/theme";
 
 export default function RenderWithContext({
   text = "",
   contexts = [],
   navigation,
   textStyle,
+  themeColors,
 }) {
+  const palette = themeColors || getThemeColors(false);
   const [popup, setPopup] = useState(null);
   if (!text) return null;
 
@@ -66,7 +69,7 @@ export default function RenderWithContext({
       return (
         <Text
           key={i}
-          style={styles.link}
+          style={[styles.link, { color: "#3B82F6" }]}
           onPress={async () => {
             try {
               const collectionName =
@@ -109,7 +112,7 @@ export default function RenderWithContext({
       return (
         <Text
           key={i}
-          style={styles.link}
+          style={[styles.link, { color: "#3B82F6" }]}
           onPress={() => Linking.openURL(n.href)}
         >
           {n.label}
@@ -120,7 +123,7 @@ export default function RenderWithContext({
 
   return (
     <>
-      <Text style={[styles.text, textStyle]}>
+      <Text style={[styles.text, { color: palette.textPrimary }, textStyle]}>
         {tokens.map((n, i) => renderPart(n, i))}
       </Text>
 
@@ -132,11 +135,20 @@ export default function RenderWithContext({
         onRequestClose={() => setPopup(null)}
       >
         <Pressable style={styles.overlay} onPress={() => setPopup(null)}>
-          <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>{popup?.term}</Text>
-            <Text style={styles.modalBody}>{popup?.explainer}</Text>
+          <View
+            style={[
+              styles.modalBox,
+              { backgroundColor: palette.surface, borderColor: palette.border },
+            ]}
+          >
+            <Text style={[styles.modalTitle, { color: palette.textPrimary }]}>
+              {popup?.term}
+            </Text>
+            <Text style={[styles.modalBody, { color: palette.textSecondary }]}>
+              {popup?.explainer}
+            </Text>
             <TouchableOpacity onPress={() => setPopup(null)}>
-              <Text style={styles.close}>Close</Text>
+              <Text style={[styles.close, { color: palette.accent }]}>Close</Text>
             </TouchableOpacity>
           </View>
         </Pressable>
@@ -158,8 +170,8 @@ const styles = StyleSheet.create({
   highlight: {
     textDecorationLine: "underline",
     textDecorationStyle: "dotted",
-    textDecorationColor: "black",
-    color: "#000",
+    textDecorationColor: "#2563EB",
+    color: "#2563EB",
   },
   overlay: {
     flex: 1,
@@ -172,6 +184,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     padding: 18,
     borderRadius: 12,
+    borderWidth: 1,
     maxWidth: "90%",
     elevation: 6,
   },

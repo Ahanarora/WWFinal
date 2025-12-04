@@ -66,11 +66,11 @@ const linking = {
           HomeTab: "home",
           StoriesTab: "stories",
           ThemesTab: "themes",
+          SavedTab: "saved",
         },
       },
       Story: "story/:id",
       Theme: "theme/:id",
-      Saved: "saved",
       Search: "search",
       AnalysisModal: "analysis",
       EventReader: "event",
@@ -84,7 +84,7 @@ const linking = {
 // 🧭 Tab Navigation
 // ----------------------------------------
 function Tabs() {
-  const { themeColors } = useUserData();
+  const { themeColors, savedUpdatesCount } = useUserData();
   const palette = themeColors || getThemeColors(false);
   return (
     <Tab.Navigator
@@ -104,6 +104,7 @@ function Tabs() {
           if (route.name === "HomeTab") iconName = "home-outline";
           else if (route.name === "StoriesTab") iconName = "newspaper-outline";
           else if (route.name === "ThemesTab") iconName = "compass-outline";
+          else if (route.name === "SavedTab") iconName = "bookmark-outline";
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarLabelStyle: { fontSize: 12 },
@@ -112,6 +113,19 @@ function Tabs() {
       <Tab.Screen name="HomeTab" component={HomeScreen} options={{ title: "Home" }} />
       <Tab.Screen name="StoriesTab" component={StoriesScreen} options={{ title: "Stories" }} />
       <Tab.Screen name="ThemesTab" component={ThemesScreen} options={{ title: "Themes" }} />
+      <Tab.Screen
+        name="SavedTab"
+        component={SavedScreen}
+        options={{
+          title: "Saved",
+          tabBarBadge:
+            savedUpdatesCount > 0 ? savedUpdatesCount : undefined,
+          tabBarBadgeStyle: {
+            backgroundColor: palette.accent,
+            color: palette.surface,
+          },
+        }}
+      />
     </Tab.Navigator>
   );
 }
@@ -143,7 +157,6 @@ const DarkNavTheme = {
 function MenuSheet({
   visible,
   onClose,
-  onOpenSaved,
   onOpenAbout,
   onOpenContact,
   darkMode,
@@ -171,11 +184,6 @@ function MenuSheet({
               style={styles.menuOptionIcon}
             />
             <Text style={styles.menuOptionText}>Log out</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuOption} onPress={onOpenSaved}>
-            <Ionicons name="bookmark" size={18} style={styles.menuOptionIcon} />
-            <Text style={styles.menuOptionText}>Saved</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.menuOption} onPress={onOpenAbout}>
@@ -281,11 +289,6 @@ function AppNavigator({ user }) {
   const openMenu = () => setMenuVisible(true);
   const closeMenu = () => setMenuVisible(false);
 
-  const handleOpenSaved = () => {
-    closeMenu();
-    navigationRef.current?.navigate("Saved");
-  };
-
   const handleOpenAbout = () => {
     closeMenu();
     navigationRef.current?.navigate("WhatIsWaitWhat");
@@ -347,11 +350,6 @@ function AppNavigator({ user }) {
             />
 
             <Stack.Screen
-              name="Saved"
-              component={SavedScreen}
-            />
-
-            <Stack.Screen
               name="WhatIsWaitWhat"
               component={WhatIsWaitWhatScreen}
               options={{ title: "What is Wait...What?" }}
@@ -386,12 +384,11 @@ function AppNavigator({ user }) {
       <MenuSheet
         visible={menuVisible}
         onClose={closeMenu}
-        onOpenSaved={handleOpenSaved}
         onOpenAbout={handleOpenAbout}
         onOpenContact={handleOpenContact}
         darkMode={darkMode}
         onToggleDarkMode={toggleDarkMode}
-          user={user}
+        user={user}
         onLogout={handleLogout}
       />
     </>

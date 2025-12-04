@@ -14,6 +14,7 @@ import { getThemeColors } from "../styles/theme";
 const initialFavorites = { stories: [], themes: [] };
 const initialVisited = { stories: {}, themes: {} };
 const initialFavoriteItems = { stories: {}, themes: {} };
+const initialSavedItems = { stories: [], themes: [] };
 
 const UserDataContext = createContext({
   user: null,
@@ -22,6 +23,9 @@ const UserDataContext = createContext({
   favorites: initialFavorites,
   lastVisited: initialVisited,
   favoriteItems: initialFavoriteItems,
+  savedItems: initialSavedItems,
+  savedLoading: false,
+  savedUpdatesCount: 0,
   themeColors: getThemeColors(false),
   toggleDarkMode: () => {},
   toggleFavorite: () => {},
@@ -42,6 +46,9 @@ export function UserDataProvider({ user, children }) {
   const [favorites, setFavorites] = useState(initialFavorites);
   const [lastVisited, setLastVisited] = useState(initialVisited);
   const [favoriteItems, setFavoriteItems] = useState(initialFavoriteItems);
+  const [savedItems, setSavedItems] = useState(initialSavedItems);
+  const [savedLoading, setSavedLoading] = useState(false);
+  const [savedUpdatesCount, setSavedUpdatesCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -54,12 +61,20 @@ export function UserDataProvider({ user, children }) {
           setFavorites(initialFavorites);
           setLastVisited(initialVisited);
           setFavoriteItems(initialFavoriteItems);
+          setSavedItems(initialSavedItems);
+          setSavedUpdatesCount(0);
+          setSavedLoading(false);
           setLoading(false);
         }
         return;
       }
 
       setLoading(true);
+      if (!cancelled) {
+        setSavedLoading(true);
+        setSavedItems(initialSavedItems);
+        setSavedUpdatesCount(0);
+      }
       try {
         const ref = doc(db, "users", currentUser.uid);
         const snap = await getDoc(ref);
@@ -106,6 +121,110 @@ export function UserDataProvider({ user, children }) {
       cancelled = true;
     };
   }, [user]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchSavedItems = async () => {
+      if (!user) {
+        if (!cancelled) {
+          setSavedItems(initialSavedItems);
+          setSavedUpdatesCount(0);
+          setSavedLoading(false);
+        }
+        return;
+      }
+
+      setSavedLoading(true);
+
+      const storyIds = favorites?.stories || [];
+      const themeIds = favorites?.themes || [];
+      const storyMap = favoriteItems?.stories || {};
+      const themeMap = favoriteItems?.themes || {};
+
+      const buildLocalList = (ids, map, kind) =>
+        ids
+          .map((id) => map[id])
+          .filter(Boolean)
+          .map((item) => ({
+            ...item,
+            id: item.id || item.docId || id,
+            _kind: kind,
+          }));
+
+      const localStories = buildLocalList(storyIds, storyMap, "story");
+      const localThemes = buildLocalList(themeIds, themeMap, "theme");
+
+      const needsStoryDocs = storyIds.filter((id) => {
+        const item = storyMap[id];
+        return !item || !Array.isArray(item.timeline);
+      });
+      const needsThemeDocs = themeIds.filter((id) => {
+        const item = themeMap[id];
+        return !item || !Array.isArray(item.timeline);
+      });
+
+      const fetchDocs = async (ids, collectionName, kind) => {
+        const docs = await Promise.all(
+          ids.map(async (id) => {
+            try {
+              const ref = doc(db, collectionName, id);
+              const snap = await getDoc(ref);
+              if (!snap.exists()) return null;
+              const data = snap.data() || {};
+              return { id, docId: data.docId || id, ...data, _kind: kind };
+            } catch (err) {
+              console.warn(`Failed to load saved ${kind} ${id}`, err);
+              return null;
+            }
+          })
+        );
+        return docs.filter(Boolean);
+      };
+
+      try {
+        const [fetchedStories, fetchedThemes] = await Promise.all([
+          fetchDocs(needsStoryDocs, "stories", "story"),
+          fetchDocs(needsThemeDocs, "themes", "theme"),
+        ]);
+
+        const orderItems = (ids, remote, local) =>
+          ids
+            .map((id) => {
+              const fromRemote = remote.find((item) => item.id === id);
+              const fromLocal = local.find((item) => item.id === id);
+              return fromRemote || fromLocal || null;
+            })
+            .filter(Boolean);
+
+        const mergedStories = orderItems(storyIds, fetchedStories, localStories);
+        const mergedThemes = orderItems(themeIds, fetchedThemes, localThemes);
+
+        if (!cancelled) {
+          setSavedItems({
+            stories: mergedStories,
+            themes: mergedThemes,
+          });
+        }
+      } catch (err) {
+        console.warn("Failed to load saved items", err);
+        if (!cancelled) {
+          setSavedItems({
+            stories: localStories,
+            themes: localThemes,
+          });
+        }
+      } finally {
+        if (!cancelled) setSavedLoading(false);
+      }
+    };
+
+    fetchSavedItems();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, favorites, favoriteItems]);
 
   const persist = async (payload) => {
     if (!user) return;
@@ -193,6 +312,22 @@ export function UserDataProvider({ user, children }) {
     [lastVisited]
   );
 
+  useEffect(() => {
+    if (!user) {
+      setSavedUpdatesCount(0);
+      return;
+    }
+    const allSavedItems = [
+      ...(savedItems?.stories || []),
+      ...(savedItems?.themes || []),
+    ];
+    const totalUpdates = allSavedItems.reduce((sum, item) => {
+      const type = item?._kind === "theme" ? "themes" : "stories";
+      return sum + getUpdatesSinceLastVisit(type, item);
+    }, 0);
+    setSavedUpdatesCount(totalUpdates);
+  }, [savedItems, getUpdatesSinceLastVisit, user]);
+
   const themeColors = getThemeColors(darkMode);
 
   const value = {
@@ -202,6 +337,9 @@ export function UserDataProvider({ user, children }) {
     favorites,
     lastVisited,
     favoriteItems,
+    savedItems,
+    savedLoading,
+    savedUpdatesCount,
     themeColors,
     toggleDarkMode,
     toggleFavorite,

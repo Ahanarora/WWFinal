@@ -1,6 +1,6 @@
 //screens/SavedScreen.js//
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useMemo } from "react";
 import {
   View,
   Text,
@@ -9,94 +9,23 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../firebaseConfig";
 import { useUserData } from "../contexts/UserDataContext";
 import { getThemeColors } from "../styles/theme";
 
 export default function SavedScreen({ navigation }) {
-  const { favorites, user, favoriteItems, themeColors } = useUserData();
+  const { user, savedItems, savedLoading, themeColors } = useUserData();
   const palette = themeColors || getThemeColors(false);
   const styles = useMemo(() => createStyles(palette), [palette]);
-  const [loading, setLoading] = useState(true);
-  const [savedStories, setSavedStories] = useState([]);
-  const [savedThemes, setSavedThemes] = useState([]);
+  const savedStories = savedItems?.stories || [];
+  const savedThemes = savedItems?.themes || [];
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadFavorites() {
-      if (!user) {
-        setSavedStories([]);
-        setSavedThemes([]);
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      const storyOrder = favorites?.stories || [];
-      const themeOrder = favorites?.themes || [];
-      const localStoryMap = favoriteItems?.stories || {};
-      const localThemeMap = favoriteItems?.themes || {};
-
-      const localStories = storyOrder
-        .map((id) => localStoryMap[id])
-        .filter(Boolean)
-        .map((item) => ({ ...item, _kind: "story" }));
-      const localThemes = themeOrder
-        .map((id) => localThemeMap[id])
-        .filter(Boolean)
-        .map((item) => ({ ...item, _kind: "theme" }));
-
-      setSavedStories(localStories);
-      setSavedThemes(localThemes);
-
-      const missingStories = storyOrder.filter((id) => !localStoryMap[id]);
-      const missingThemes = themeOrder.filter((id) => !localThemeMap[id]);
-
-      if (!missingStories.length && !missingThemes.length) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const storyDocs = await Promise.all(
-          missingStories.map(async (id) => {
-            const ref = doc(db, "stories", id);
-            const snap = await getDoc(ref);
-            return snap.exists() ? { id, ...snap.data(), _kind: "story" } : null;
-          })
-        );
-        const themeDocs = await Promise.all(
-          missingThemes.map(async (id) => {
-            const ref = doc(db, "themes", id);
-            const snap = await getDoc(ref);
-            return snap.exists() ? { id, ...snap.data(), _kind: "theme" } : null;
-          })
-        );
-        if (!cancelled) {
-          setSavedStories((prev) => [...prev, ...storyDocs.filter(Boolean)]);
-          setSavedThemes((prev) => [...prev, ...themeDocs.filter(Boolean)]);
-        }
-      } catch (err) {
-        console.warn("Failed to load favorites", err);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    loadFavorites();
-    return () => {
-      cancelled = true;
-    };
-  }, [favorites, favoriteItems, user]);
-
-  const combinedList = useMemo(() => {
-    return [
+  const combinedList = useMemo(
+    () => [
       ...savedStories.map((item) => ({ ...item, _key: `story-${item.id}` })),
       ...savedThemes.map((item) => ({ ...item, _key: `theme-${item.id}` })),
-    ];
-  }, [savedStories, savedThemes]);
+    ],
+    [savedStories, savedThemes]
+  );
   const hasContent = combinedList.length > 0;
 
   const handleOpenItem = (item) => {
@@ -123,7 +52,7 @@ export default function SavedScreen({ navigation }) {
     );
   }
 
-  if (loading) {
+  if (savedLoading) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={palette.accent} />

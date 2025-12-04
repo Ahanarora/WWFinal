@@ -358,17 +358,33 @@ export default function HomeScreen({ navigation }) {
 
       {/* ⬇ REPLACED ENTIRE OLD UI WITH SHARED COMPONENT */}
       {filterVisible && (
-        <WWFilterPaneStories
-          categories={CATEGORIES}
-          subcategories={SUBCATEGORY_MAP}
-          activeCategory={activeCategory}
-          activeSubcategory={activeSubcategory}
-          onCategoryChange={(cat) => {
-            setActiveCategory(cat);
-            setActiveSubcategory("All");
-          }}
-          onSubcategoryChange={setActiveSubcategory}
-        />
+        <>
+          <WWFilterPaneStories
+            categories={CATEGORIES}
+            subcategories={SUBCATEGORY_MAP}
+            activeCategory={activeCategory}
+            activeSubcategory={activeSubcategory}
+            onCategoryChange={(cat) => {
+              setActiveCategory(cat);
+              setActiveSubcategory("All");
+            }}
+            onSubcategoryChange={setActiveSubcategory}
+          />
+          <View style={styles.sortPinnedBar}>
+            <TouchableOpacity
+              style={styles.sortButton}
+              onPress={() => setShowSortMenu(true)}
+            >
+              <Ionicons
+                name="swap-vertical-outline"
+                size={16}
+                color={palette.textSecondary}
+                style={{ marginRight: 4 }}
+              />
+              <Text style={styles.sortButtonText}>Sort</Text>
+            </TouchableOpacity>
+          </View>
+        </>
       )}
 
       {/* MAIN FEED */}
@@ -384,22 +400,8 @@ export default function HomeScreen({ navigation }) {
           featuredItems.length > 0 ? (
             <View style={styles.featuredSection}>
               <View style={styles.featuredHeaderRow}>
-              <Text style={styles.featuredHeader}>Featured</Text>
-              {filterVisible && (
-                <TouchableOpacity
-                  style={styles.sortButton}
-                  onPress={() => setShowSortMenu(true)}
-                >
-                  <Ionicons
-                    name="swap-vertical-outline"
-                    size={16}
-                    color={palette.textSecondary}
-                    style={{ marginRight: 4 }}
-                  />
-                  <Text style={styles.sortButtonText}>Sort</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+                <Text style={styles.featuredHeader}>Featured</Text>
+              </View>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -476,7 +478,7 @@ const createStyles = (palette) =>
     featuredHeaderRow: {
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "space-between",
+      justifyContent: "flex-start",
       marginBottom: 8,
     },
     featuredHeader: {
@@ -492,6 +494,13 @@ const createStyles = (palette) =>
       fontSize: 14,
       color: palette.textSecondary,
       fontWeight: "500",
+    },
+    sortPinnedBar: {
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      backgroundColor: palette.surface,
+      borderBottomWidth: 1,
+      borderColor: palette.border,
     },
     featuredRow: {
       paddingBottom: 4,

@@ -23,7 +23,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Linking from "expo-linking";
 
 import { useFonts } from "expo-font";
-import { colors, getThemeColors } from "./styles/theme";
+import { colors, getThemeColors, fonts } from "./styles/theme";
 
 // 🔐 AUTH IMPORTS
 import { onAuthStateChanged } from "firebase/auth";
@@ -107,7 +107,11 @@ function Tabs() {
           else if (route.name === "SavedTab") iconName = "bookmark-outline";
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarLabelStyle: { fontSize: 12 },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontFamily: fonts.navigation,
+          fontWeight: "500",
+        },
       })}
     >
       <Tab.Screen name="HomeTab" component={HomeScreen} options={{ title: "Home" }} />
@@ -423,6 +427,7 @@ export default function App() {
     LondrinaShadow: require("./assets/fonts/LondrinaShadow-Regular.ttf"),
     TurretRoadBold: require("./assets/fonts/TurretRoad-Bold.ttf"),
     TurretRoadExtraBold: require("./assets/fonts/TurretRoad-ExtraBold.ttf"),
+    SourceSerif: require("./assets/fonts/SourceSerif4-Variable.ttf"),
   });
 
   if (!fontsLoaded || authChecking) return null;

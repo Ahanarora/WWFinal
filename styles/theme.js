@@ -25,14 +25,20 @@ export const colors = lightColors;
 export const getThemeColors = (isDark) => (isDark ? darkColors : lightColors);
 
 export const fonts = {
+  heading: "SourceSerif",
+  headingMedium: "SourceSerif",
+  body: "System",
+  small: "System",
   regular: "System",
   medium: "System",
+  navigation: "System",
+  button: "System",
   light: "System",
   thin: "System",
 };
 
 export const text = {
-  fontFamily: "System",
+  fontFamily: fonts.body,
 };
 
 export const spacing = {

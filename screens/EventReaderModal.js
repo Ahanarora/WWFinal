@@ -387,21 +387,23 @@ const createStyles = (palette) =>
       backgroundColor: palette.surface,
     },
 
-    modalStoryTitle: {
-      fontFamily: fonts.heading,
-      fontSize: 18,
-      color: palette.textPrimary,
-      paddingHorizontal: spacing.md,
-      paddingBottom: 2,
-    },
+  modalStoryTitle: {
+    fontFamily: fonts.heading,
+    fontSize: 22,
+    fontWeight: "600",
+    lineHeight: 26,
+    color: palette.textPrimary,
+    paddingHorizontal: spacing.md,
+    paddingBottom: 2,
+  },
 
-    modalPhaseTitle: {
-      fontFamily: fonts.body,
-      fontSize: 14,
-      color: palette.textSecondary,
-      paddingHorizontal: spacing.md,
-      paddingBottom: 8,
-    },
+  modalPhaseTitle: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: palette.textSecondary,
+    paddingHorizontal: spacing.md,
+    paddingBottom: 8,
+  },
 
     image: {
       width: "100%",
@@ -423,12 +425,14 @@ const createStyles = (palette) =>
       marginBottom: 4,
     },
 
-    title: {
-      fontFamily: fonts.heading,
-      fontSize: 20,
-      color: palette.textPrimary,
-      marginBottom: spacing.sm,
-    },
+  title: {
+    fontFamily: fonts.heading,
+    fontSize: 18,
+    fontWeight: "500",
+    lineHeight: 24,
+    color: palette.textPrimary,
+    marginBottom: spacing.sm,
+  },
 
     body: {
       marginTop: 4,

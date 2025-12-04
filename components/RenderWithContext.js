@@ -12,7 +12,7 @@ import {
 import { parseLinkedText } from "../utils/renderLinkedText";
 import { db } from "../firebaseConfig";
 import { doc, getDoc } from "firebase/firestore";
-import { getThemeColors } from "../styles/theme";
+import { getThemeColors, fonts } from "../styles/theme";
 
 export default function RenderWithContext({
   text = "",
@@ -123,7 +123,13 @@ export default function RenderWithContext({
 
   return (
     <>
-      <Text style={[styles.text, { color: palette.textPrimary }, textStyle]}>
+      <Text
+        style={[
+          styles.text,
+          { color: palette.textPrimary, fontFamily: fonts.body },
+          textStyle,
+        ]}
+      >
         {tokens.map((n, i) => renderPart(n, i))}
       </Text>
 

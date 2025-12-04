@@ -885,7 +885,9 @@ const createStyles = (palette) =>
 
     title: {
       fontFamily: fonts.heading,
-      fontSize: 26,
+      fontSize: 30,
+      fontWeight: "600",
+      lineHeight: 34,
       color: palette.textPrimary,
       marginBottom: spacing.sm,
     },
@@ -950,7 +952,7 @@ const createStyles = (palette) =>
     analysisButtonText: {
       color: palette.textPrimary,
       fontFamily: fonts.body,
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: "600",
     },
 
@@ -983,7 +985,9 @@ const createStyles = (palette) =>
     },
     sectionTitle: {
       fontFamily: fonts.heading,
-      fontSize: 18,
+      fontSize: 22,
+      fontWeight: "600",
+      lineHeight: 26,
       borderBottomWidth: 1,
       borderColor: palette.border,
       paddingBottom: 4,
@@ -1084,9 +1088,10 @@ const createStyles = (palette) =>
     },
     eventTitle: {
       fontFamily: fonts.heading,
-      fontSize: 16,
+      fontSize: 18,
+      fontWeight: "500",
+      lineHeight: 24,
       color: palette.textPrimary,
-      fontWeight: "700",
     },
     faqIcon: {
       padding: 4,

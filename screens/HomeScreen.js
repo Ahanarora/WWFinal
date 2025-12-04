@@ -1,6 +1,6 @@
 // ----------------------------------------
 // screens/HomeScreen.js
-// Now uses WWFilterPaneStories for category + subcategory + sort
+// Home feed with featured carousel and inline sort control
 // ----------------------------------------
 
 import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
@@ -26,8 +26,6 @@ import { setStorySearchCache } from "../utils/storyCache";
 
 import WWHomeCard from "../components/WWHomeCard";
 import WWCompactCard from "../components/WWCompactCard";
-
-// ⬇ NEW SHARED FILTER-PANE
 import WWFilterPaneStories from "../components/WWFilterPaneStories";
 
 // -------------------------------
@@ -99,9 +97,8 @@ export default function HomeScreen({ navigation }) {
   const [themes, setThemes] = useState([]);
   const [stories, setStories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filterVisible, setFilterVisible] = useState(true);
 
-  // Filter-pane shared states:
+  // Filter defaults (kept for future category-aware features)
   const [activeCategory, setActiveCategory] = useState("All");
   const [activeSubcategory, setActiveSubcategory] = useState("All");
   const [sortMode, setSortMode] = useState("relevance");
@@ -113,7 +110,6 @@ export default function HomeScreen({ navigation }) {
 
   const headerShownRef = useRef(true);
   const lastOffsetY = useRef(0);
-  const filterVisibleRef = useRef(true);
 
   const toggleHeader = useCallback(
     (show) => {
@@ -130,19 +126,8 @@ export default function HomeScreen({ navigation }) {
       const y = nativeEvent?.contentOffset?.y || 0;
       const delta = y - lastOffsetY.current;
       const threshold = 20;
-      if (delta > threshold) {
-        toggleHeader(false);
-        if (filterVisibleRef.current) {
-          filterVisibleRef.current = false;
-          setFilterVisible(false);
-        }
-      } else if (delta < -threshold) {
-        toggleHeader(true);
-        if (!filterVisibleRef.current) {
-          filterVisibleRef.current = true;
-          setFilterVisible(true);
-        }
-      }
+      if (delta > threshold) toggleHeader(false);
+      else if (delta < -threshold) toggleHeader(true);
       lastOffsetY.current = y;
     },
     [toggleHeader]
@@ -151,8 +136,6 @@ export default function HomeScreen({ navigation }) {
   useEffect(
     () => () => {
       toggleHeader(true);
-      filterVisibleRef.current = true;
-      setFilterVisible(true);
     },
     [toggleHeader]
   );
@@ -355,38 +338,6 @@ export default function HomeScreen({ navigation }) {
   // -------------------------------
   return (
     <View style={styles.container}>
-
-      {/* ⬇ REPLACED ENTIRE OLD UI WITH SHARED COMPONENT */}
-      {filterVisible && (
-        <>
-          <WWFilterPaneStories
-            categories={CATEGORIES}
-            subcategories={SUBCATEGORY_MAP}
-            activeCategory={activeCategory}
-            activeSubcategory={activeSubcategory}
-            onCategoryChange={(cat) => {
-              setActiveCategory(cat);
-              setActiveSubcategory("All");
-            }}
-            onSubcategoryChange={setActiveSubcategory}
-          />
-          <View style={styles.sortPinnedBar}>
-            <TouchableOpacity
-              style={styles.sortButton}
-              onPress={() => setShowSortMenu(true)}
-            >
-              <Ionicons
-                name="swap-vertical-outline"
-                size={16}
-                color={palette.textSecondary}
-                style={{ marginRight: 4 }}
-              />
-              <Text style={styles.sortButtonText}>Sort</Text>
-            </TouchableOpacity>
-          </View>
-        </>
-      )}
-
       {/* MAIN FEED */}
       <FlatList
         data={regularCombined}
@@ -397,20 +348,49 @@ export default function HomeScreen({ navigation }) {
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         contentContainerStyle={{ paddingBottom: 24 }}
         ListHeaderComponent={
-          featuredItems.length > 0 ? (
-            <View style={styles.featuredSection}>
-              <View style={styles.featuredHeaderRow}>
-                <Text style={styles.featuredHeader}>Featured</Text>
+          <View>
+            <WWFilterPaneStories
+              categories={CATEGORIES}
+              subcategories={SUBCATEGORY_MAP}
+              activeCategory={activeCategory}
+              activeSubcategory={activeSubcategory}
+              onCategoryChange={(cat) => {
+                setActiveCategory(cat);
+                setActiveSubcategory("All");
+              }}
+              onSubcategoryChange={setActiveSubcategory}
+            />
+
+            {featuredItems.length > 0 && (
+              <View style={styles.featuredSection}>
+                <View style={styles.featuredHeaderRow}>
+                  <Text style={styles.featuredHeader}>Featured</Text>
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.featuredRow}
+                >
+                  {featuredItems.map(renderFeaturedCard)}
+                </ScrollView>
               </View>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.featuredRow}
+            )}
+
+            <View style={styles.sortButtonRow}>
+              <TouchableOpacity
+                style={styles.sortButton}
+                onPress={() => setShowSortMenu(true)}
               >
-                {featuredItems.map(renderFeaturedCard)}
-              </ScrollView>
+                <Ionicons
+                  name="swap-vertical-outline"
+                  size={16}
+                  color={palette.textSecondary}
+                  style={{ marginRight: 6 }}
+                />
+                <Text style={styles.sortButtonText}>Sort</Text>
+              </TouchableOpacity>
             </View>
-          ) : null
+          </View>
         }
       />
       <Modal
@@ -455,7 +435,7 @@ export default function HomeScreen({ navigation }) {
 }
 
 // ----------------------------------------
-// STYLES (unchanged except header pane removed)
+// STYLES
 // ----------------------------------------
 const createStyles = (palette) =>
   StyleSheet.create({
@@ -495,12 +475,10 @@ const createStyles = (palette) =>
       color: palette.textSecondary,
       fontWeight: "500",
     },
-    sortPinnedBar: {
+    sortButtonRow: {
       paddingHorizontal: 16,
-      paddingVertical: 10,
-      backgroundColor: palette.surface,
-      borderBottomWidth: 1,
-      borderColor: palette.border,
+      paddingBottom: 12,
+      paddingTop: 8,
     },
     featuredRow: {
       paddingBottom: 4,

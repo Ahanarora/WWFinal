@@ -111,6 +111,7 @@ export default function HomeScreen({ navigation }) {
 
   const headerShownRef = useRef(true);
   const lastOffsetY = useRef(0);
+  const MIN_OFFSET_TO_HIDE = 500; // keep controls visible near top longer
 
   const toggleHeader = useCallback(
     (show) => {
@@ -129,7 +130,7 @@ export default function HomeScreen({ navigation }) {
       const hideThreshold = 12;
       const showThreshold = -6;
 
-      if (delta > hideThreshold) {
+      if (delta > hideThreshold && y > MIN_OFFSET_TO_HIDE) {
         toggleHeader(false);
         if (controlsVisible) setControlsVisible(false);
       } else if (delta < showThreshold || y <= 0) {
@@ -530,14 +531,21 @@ const createStyles = (palette) =>
     sortButtonRow: {
       paddingHorizontal: 16,
       paddingBottom: 2,
-      paddingTop: 24,
-      marginTop: 10,
+      paddingTop: 2,
+      marginTop: 30,
       flexDirection: "row",
       justifyContent: "flex-end",
+      width: "100%",
+      alignSelf: "stretch",
+      backgroundColor: palette.background,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderColor: palette.border,
     },
     sortButton: {
       flexDirection: "row",
       alignItems: "center",
+      paddingHorizontal: 6,
+      paddingVertical: 6,
     },
     sortButtonText: {
       fontSize: 14,

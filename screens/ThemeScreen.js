@@ -275,12 +275,11 @@ export default function ThemeScreen({ route, navigation }) {
   // Render one theme block
   // ------------------------------
   const buildSuggestions = (base) => {
-    if (!base) return { similar: [], moreCategory: [], categoryLabel: "" };
+    if (!base) return { similar: [] };
     const baseId = base.id || base.docId;
     const pool = (suggestionPool || []).filter(
       (t) => (t.id || t.docId) && (t.id || t.docId) !== baseId
     );
-    const categoryLabel = primaryCategory(base) || "this category";
 
     const similar = pool
       .map((item) => ({ item, score: scoreSimilarity(base, item) }))
@@ -288,16 +287,7 @@ export default function ThemeScreen({ route, navigation }) {
       .slice(0, 5)
       .map((entry) => entry.item);
 
-    const normalizedCat = (categoryLabel || "").toLowerCase();
-    const moreCategory = pool
-      .filter((item) => {
-        if (!normalizedCat) return true;
-        return primaryCategory(item).toLowerCase() === normalizedCat;
-      })
-      .sort((a, b) => recencyWeight(b) - recencyWeight(a))
-      .slice(0, 5);
-
-    return { similar, moreCategory, categoryLabel };
+    return { similar };
   };
 
   const renderSuggestionsRow = (title, items, onPressItem) => {
@@ -332,8 +322,8 @@ export default function ThemeScreen({ route, navigation }) {
   };
 
   const renderSuggestions = (base) => {
-    const { similar, moreCategory, categoryLabel } = buildSuggestions(base);
-    if (!similar.length && !moreCategory.length) return null;
+    const { similar } = buildSuggestions(base);
+    if (!similar.length) return null;
     const openTheme = (item) =>
       navigation.push("Theme", {
         theme: item,
@@ -344,11 +334,6 @@ export default function ThemeScreen({ route, navigation }) {
     return (
       <View style={styles.suggestionsSection}>
         {renderSuggestionsRow("Continue reading", similar, openTheme)}
-        {renderSuggestionsRow(
-          `More from ${categoryLabel || "this category"}`,
-          moreCategory,
-          openTheme
-        )}
       </View>
     );
   };

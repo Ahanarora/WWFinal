@@ -1,6 +1,7 @@
 // ----------------------------------------
-// components/SourceLinks.js
+// components/SourceLinks.js (GOOGLE FAVICONS VERSION)
 // ----------------------------------------
+
 import React, { useMemo, useState } from "react";
 import {
   View,
@@ -15,10 +16,34 @@ import {
 } from "react-native";
 import { fonts, spacing, getThemeColors } from "../styles/theme";
 
+// ------------------------------
+// HELPERS
+// ------------------------------
+const getGoogleFavicon = (link) => {
+  try {
+    const domain = new URL(link).hostname;
+    return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+  } catch {
+    return null;
+  }
+};
+
+const getInitials = (name = "") =>
+  name
+    .trim()
+    .split(/\s+/)
+    .map((w) => w[0]?.toUpperCase() || "")
+    .join("")
+    .slice(0, 3) || "?";
+
+// ------------------------------
+// MAIN COMPONENT
+// ------------------------------
 export default function SourceLinks({ sources = [], themeColors }) {
   const palette = themeColors || getThemeColors(false);
   const styles = useMemo(() => createStyles(palette), [palette]);
   const [preview, setPreview] = useState(null);
+
   if (!Array.isArray(sources) || sources.length === 0) return null;
 
   const openPreview = (source) => {
@@ -49,45 +74,50 @@ export default function SourceLinks({ sources = [], themeColors }) {
 
   return (
     <>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.container}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.container}
+      >
         {sources.map((s, i) => {
-          let favicon = "https://via.placeholder.com/24?text=%F0%9F%93%B0";
-          try {
-            const origin = new URL(s.link).origin;
-            favicon = `${origin}/favicon.ico`;
-          } catch (err) {}
+          const publisher =
+            s.sourceName ||
+            s.siteName ||
+            (() => {
+              try {
+                return new URL(s.link).hostname.replace(/^www\./, "");
+              } catch {
+                return "Source";
+              }
+            })();
+
+          const initials = getInitials(publisher);
 
           return (
-            <TouchableOpacity
+            <FaviconCard
               key={i}
-              style={[
-                styles.card,
-                { backgroundColor: palette.surface, borderColor: palette.border },
-              ]}
+              s={s}
+              palette={palette}
+              styles={styles}
+              initials={initials}
+              publisher={publisher}
               onPress={() => openPreview(s)}
-              activeOpacity={0.8}
-            >
-              <Image
-                source={{ uri: favicon }}
-                style={styles.favicon}
-              />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.title, { color: palette.textPrimary }]} numberOfLines={2}>
-                  {s.title || "Untitled Article"}
-                </Text>
-              </View>
-            </TouchableOpacity>
+            />
           );
         })}
       </ScrollView>
 
+      {/* Preview Modal */}
       <Modal
         visible={!!preview}
         transparent
         animationType="fade"
         onRequestClose={() => setPreview(null)}
       >
-        <Pressable style={styles.previewOverlay} onPress={() => setPreview(null)}>
+        <Pressable
+          style={styles.previewOverlay}
+          onPress={() => setPreview(null)}
+        >
           <Pressable
             style={[
               styles.previewCard,
@@ -97,14 +127,21 @@ export default function SourceLinks({ sources = [], themeColors }) {
               },
             ]}
           >
-            <Text style={[styles.previewTitle, { color: palette.textPrimary }]} numberOfLines={2}>
+            <Text
+              style={[styles.previewTitle, { color: palette.textPrimary }]}
+              numberOfLines={2}
+            >
               {preview?.title}
             </Text>
+
             {!!preview?.host && (
-              <Text style={[styles.previewHost, { color: palette.textSecondary }]}>
+              <Text
+                style={[styles.previewHost, { color: palette.textSecondary }]}
+              >
                 {preview.host}
               </Text>
             )}
+
             <View style={styles.previewActions}>
               <TouchableOpacity
                 style={[styles.previewButton, styles.previewCancel]}
@@ -112,11 +149,18 @@ export default function SourceLinks({ sources = [], themeColors }) {
               >
                 <Text style={styles.previewButtonText}>Close</Text>
               </TouchableOpacity>
+
               <TouchableOpacity
-                style={[styles.previewButton, styles.previewOpen, { backgroundColor: palette.accent }]}
+                style={[
+                  styles.previewButton,
+                  styles.previewOpen,
+                  { backgroundColor: palette.accent },
+                ]}
                 onPress={confirmOpen}
               >
-                <Text style={[styles.previewButtonText, { color: "#fff" }]}>
+                <Text
+                  style={[styles.previewButtonText, { color: "#fff" }]}
+                >
                   Open
                 </Text>
               </TouchableOpacity>
@@ -128,6 +172,68 @@ export default function SourceLinks({ sources = [], themeColors }) {
   );
 }
 
+// ------------------------------
+// Favicon Card Component
+// ------------------------------
+function FaviconCard({
+  s,
+  palette,
+  styles,
+  initials,
+  publisher,
+  onPress,
+}) {
+  const [stage, setStage] = useState("google");
+
+  const faviconUrl = getGoogleFavicon(s.link);
+
+  return (
+    <TouchableOpacity
+      style={[
+        styles.card,
+        { backgroundColor: palette.surface, borderColor: palette.border },
+      ]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      {/* GOOGLE FAVICON */}
+      {stage !== "initials" && faviconUrl && (
+        <Image
+          source={{ uri: faviconUrl }}
+          style={styles.favicon}
+          onError={() => setStage("initials")}
+        />
+      )}
+
+      {/* INITIALS FALLBACK */}
+      {(stage === "initials" || !faviconUrl) && (
+        <View style={styles.initialsBubble}>
+          <Text style={styles.initialsText}>{initials}</Text>
+        </View>
+      )}
+
+      <View style={{ flex: 1 }}>
+        <Text
+          style={[styles.title, { color: palette.textPrimary }]}
+          numberOfLines={2}
+        >
+          {s.title || "Untitled Article"}
+        </Text>
+
+        <Text
+          style={[styles.subtitle, { color: palette.textSecondary }]}
+          numberOfLines={1}
+        >
+          {publisher}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+// ------------------------------
+// STYLES
+// ------------------------------
 const createStyles = (palette) =>
   StyleSheet.create({
     container: {
@@ -138,12 +244,10 @@ const createStyles = (palette) =>
     card: {
       flexDirection: "row",
       alignItems: "center",
-      backgroundColor: palette.surface,
       borderRadius: 8,
       paddingVertical: 6,
       paddingHorizontal: 10,
       borderWidth: 1,
-      borderColor: palette.border,
       minWidth: 170,
       maxWidth: 200,
     },
@@ -154,62 +258,60 @@ const createStyles = (palette) =>
       marginRight: 8,
       backgroundColor: palette.border,
     },
+    initialsBubble: {
+      width: 18,
+      height: 18,
+      borderRadius: 4,
+      marginRight: 8,
+      backgroundColor: palette.border,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    initialsText: {
+      color: palette.textPrimary,
+      fontSize: 10,
+      fontWeight: "600",
+    },
     title: {
       fontFamily: fonts.body,
       fontSize: 12.5,
       lineHeight: 16,
-      color: palette.textPrimary,
-      flexShrink: 1,
+    },
+    subtitle: {
+      fontFamily: fonts.body,
+      fontSize: 11.5,
+      lineHeight: 16,
+      marginTop: 2,
     },
     previewOverlay: {
       flex: 1,
-      backgroundColor: "transparent",
       justifyContent: "center",
       alignItems: "center",
       padding: 16,
     },
     previewCard: {
-      backgroundColor: palette.surface,
       borderRadius: 10,
       padding: 10,
       gap: 6,
       minWidth: 200,
       maxWidth: 260,
       borderWidth: 1,
-      borderColor: palette.border,
       shadowColor: "#000",
       shadowOpacity: 0.15,
       shadowRadius: 6,
       shadowOffset: { width: 0, height: 4 },
       elevation: 4,
     },
-    previewTitle: {
-      fontSize: 14,
-      fontWeight: "700",
-    },
-    previewHost: {
-      fontSize: 12,
-    },
+    previewTitle: { fontSize: 14, fontWeight: "700" },
+    previewHost: { fontSize: 12 },
     previewActions: {
       flexDirection: "row",
       justifyContent: "flex-end",
       gap: 10,
       marginTop: 6,
     },
-    previewButton: {
-      paddingHorizontal: 10,
-      paddingVertical: 6,
-      borderRadius: 8,
-    },
-    previewCancel: {
-      backgroundColor: "rgba(255,255,255,0.08)",
-    },
-    previewOpen: {
-      backgroundColor: palette.accent,
-    },
-    previewButtonText: {
-      fontSize: 12,
-      color: "#fff",
-      fontWeight: "700",
-    },
+    previewButton: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
+    previewCancel: { backgroundColor: "rgba(255,255,255,0.08)" },
+    previewOpen: {},
+    previewButtonText: { fontSize: 12, fontWeight: "700" },
   });

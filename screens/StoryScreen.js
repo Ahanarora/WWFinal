@@ -1152,6 +1152,7 @@ const createStyles = (palette) =>
       gap: 8,
     },
     suggestionTitle: {
+      fontFamily: fonts.heading,
       fontSize: 16,
       fontWeight: "700",
       color: palette.textPrimary,

@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useUserData } from "../contexts/UserDataContext";
-import { getThemeColors } from "../styles/theme";
+import { getThemeColors, fonts } from "../styles/theme";
 import { formatUpdatedAt } from "../utils/formatTime";
 import { getLatestHeadlines } from "../utils/getLatestHeadlines";
 
@@ -156,11 +156,14 @@ const createStyles = (palette) =>
       gap: 4,
     },
     title: {
+      fontFamily: fonts.heading,
       fontSize: 18,
       fontWeight: "600",
       color: palette.textPrimary,
+      lineHeight: 24,
     },
     updated: {
+      fontFamily: fonts.body,
       fontSize: 12,
       color: palette.muted,
     },
@@ -169,10 +172,12 @@ const createStyles = (palette) =>
       borderRadius: 12,
     },
     overview: {
+      fontFamily: fonts.body,
       fontSize: 14,
       color: palette.textSecondary,
       paddingHorizontal: 16,
       paddingTop: 4,
+      lineHeight: 21,
     },
 
     imageWrap: { position: "relative", marginTop: 10 },
@@ -188,6 +193,7 @@ const createStyles = (palette) =>
       alignItems: "center",
     },
     placeholderText: {
+      fontFamily: fonts.body,
       fontSize: 12,
       color: palette.muted,
     },
@@ -206,6 +212,7 @@ const createStyles = (palette) =>
       fontSize: 12,
       color: palette.accent,
       fontWeight: "600",
+      fontFamily: fonts.body,
     },
 
     latestWrap: {
@@ -215,6 +222,7 @@ const createStyles = (palette) =>
       paddingBottom: 14,
     },
     latestLabel: {
+      fontFamily: fonts.body,
       fontSize: 11,
       color: palette.muted,
     },
@@ -230,8 +238,10 @@ const createStyles = (palette) =>
       backgroundColor: palette.accent,
     },
     bulletText: {
+      fontFamily: fonts.body,
       fontSize: 13,
       color: palette.textSecondary,
       flex: 1,
+      lineHeight: 20,
     },
   });

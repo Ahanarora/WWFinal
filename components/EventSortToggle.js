@@ -14,7 +14,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { colors, spacing, fonts } from "../styles/theme";
+import { spacing, fonts, getThemeColors } from "../styles/theme";
+import { useUserData } from "../contexts/UserDataContext";
 
 const SORT_LABELS = {
   chronological: "Oldest first",
@@ -22,24 +23,27 @@ const SORT_LABELS = {
 };
 
 export default function EventSortToggle({ sortOrder, onChange }) {
+  const { themeColors, darkMode } = useUserData();
+  const palette = themeColors || getThemeColors(darkMode);
   const [open, setOpen] = useState(false);
   const isChrono = sortOrder === "chronological";
+  const themedStyles = styles(palette);
 
   return (
     <>
-      <View style={styles.container}>
+      <View style={themedStyles.container}>
         <TouchableOpacity
           onPress={() => setOpen(true)}
-          style={styles.button}
+          style={themedStyles.button}
           hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
         >
-          <View style={styles.labelRow}>
+          <View style={themedStyles.labelRow}>
             <Ionicons
               name="swap-vertical-outline"
               size={16}
-              style={styles.icon}
+              style={themedStyles.icon}
             />
-            <Text style={styles.label}>
+            <Text style={themedStyles.label}>
               Sort timeline
             </Text>
           </View>
@@ -52,21 +56,24 @@ export default function EventSortToggle({ sortOrder, onChange }) {
         animationType="fade"
         onRequestClose={() => setOpen(false)}
       >
-        <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
-          <View style={styles.menu}>
+        <Pressable style={themedStyles.backdrop} onPress={() => setOpen(false)}>
+          <View style={themedStyles.menu}>
             {Object.entries(SORT_LABELS).map(([key, label]) => {
               const active = sortOrder === key;
               return (
                 <TouchableOpacity
                   key={key}
-                  style={[styles.menuItem, active && styles.menuItemActive]}
+                  style={[themedStyles.menuItem, active && themedStyles.menuItemActive]}
                   onPress={() => {
                     onChange(key);
                     setOpen(false);
                   }}
                 >
                   <Text
-                    style={[styles.menuItemText, active && styles.menuItemTextActive]}
+                    style={[
+                      themedStyles.menuItemText,
+                      active && themedStyles.menuItemTextActive,
+                    ]}
                   >
                     {label}
                   </Text>
@@ -80,58 +87,60 @@ export default function EventSortToggle({ sortOrder, onChange }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: spacing.md,
-    marginVertical: spacing.sm,
-    alignItems: "flex-end",
-  },
-  button: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-end",
-  },
-  labelRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  icon: {
-    marginRight: 6,
-    color: colors.textSecondary,
-  },
-  label: {
-    fontFamily: fonts.regular,
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  backdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.2)",
-    justifyContent: "center",
-    padding: spacing.lg,
-  },
-  menu: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: colors.border,
-    overflow: "hidden",
-  },
-  menuItem: {
-    paddingVertical: 12,
-    paddingHorizontal: spacing.md,
-  },
-  menuItemActive: {
-    backgroundColor: colors.highlight,
-  },
-  menuItemText: {
-    fontFamily: fonts.regular,
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  menuItemTextActive: {
-    fontFamily: fonts.medium || fonts.regular,
-    color: colors.textPrimary,
-  },
-});
+const styles = (palette) =>
+  StyleSheet.create({
+    container: {
+      paddingHorizontal: spacing.md,
+      marginVertical: spacing.sm,
+      alignItems: "flex-end",
+    },
+    button: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "flex-end",
+    },
+    labelRow: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    icon: {
+      marginRight: 6,
+      color: palette.textSecondary,
+    },
+    label: {
+      fontFamily: fonts.body,
+      fontSize: 12,
+      color: palette.textSecondary,
+    },
+    backdrop: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.2)",
+      justifyContent: "center",
+      padding: spacing.lg,
+    },
+    menu: {
+      backgroundColor: palette.surface,
+      borderRadius: 12,
+      paddingVertical: 4,
+      borderWidth: 1,
+      borderColor: palette.border,
+      overflow: "hidden",
+    },
+    menuItem: {
+      paddingVertical: 12,
+      paddingHorizontal: spacing.md,
+    },
+    menuItemActive: {
+      backgroundColor: palette.border,
+    },
+    menuItemText: {
+      fontFamily: fonts.body,
+      fontSize: 14,
+      color: palette.textSecondary,
+    },
+    menuItemTextActive: {
+      fontFamily: fonts.body,
+      color: palette.textPrimary,
+      fontWeight: "600",
+    },
+  });

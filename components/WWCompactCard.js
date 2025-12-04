@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useUserData } from "../contexts/UserDataContext";
-import { getThemeColors } from "../styles/theme";
+import { getThemeColors, fonts } from "../styles/theme";
 
 export default function WWCompactCard({ item, navigation, onPress }) {
   const { favorites, toggleFavorite, getUpdatesSinceLastVisit, themeColors } =
@@ -126,6 +126,7 @@ const createStyles = (palette) =>
       alignItems: "center",
     },
     placeholderText: {
+      fontFamily: fonts.body,
       fontSize: 11,
       color: palette.muted,
     },
@@ -134,16 +135,21 @@ const createStyles = (palette) =>
       gap: 4,
     },
     preview: {
+      fontFamily: fonts.body,
       fontSize: 13,
       color: palette.textSecondary,
       marginTop: -2,
+      lineHeight: 20,
     },
     title: {
+      fontFamily: fonts.heading,
       fontSize: 16,
       fontWeight: "600",
       color: palette.textPrimary,
+      lineHeight: 22,
     },
     updateLabel: {
+      fontFamily: fonts.body,
       fontSize: 12,
       color: palette.accent,
       fontWeight: "500",

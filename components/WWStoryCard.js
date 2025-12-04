@@ -13,7 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useUserData } from "../contexts/UserDataContext";
 import { formatUpdatedAt } from "../utils/formatTime";
 import { getLatestHeadlines } from "../utils/getLatestHeadlines";
-import { getThemeColors } from "../styles/theme";
+import { getThemeColors, fonts } from "../styles/theme";
 
 export default function WWStoryCard({ item, navigation, onPress }) {
   const { favorites, toggleFavorite, getUpdatesSinceLastVisit, themeColors } =
@@ -142,11 +142,14 @@ const createStyles = (palette) =>
       gap: 4,
     },
     title: {
+      fontFamily: fonts.heading,
       fontSize: 18,
       fontWeight: "600",
       color: palette.textPrimary,
+      lineHeight: 24,
     },
     updated: {
+      fontFamily: fonts.body,
       fontSize: 12,
       color: palette.muted,
     },
@@ -155,10 +158,12 @@ const createStyles = (palette) =>
       borderRadius: 12,
     },
     overview: {
+      fontFamily: fonts.body,
       fontSize: 14,
       color: palette.textSecondary,
       paddingHorizontal: 16,
       paddingTop: 4,
+      lineHeight: 21,
     },
     imageWrap: {
       position: "relative",
@@ -176,6 +181,7 @@ const createStyles = (palette) =>
       alignItems: "center",
     },
     placeholderText: {
+      fontFamily: fonts.body,
       color: palette.muted,
     },
     typeBadge: {
@@ -188,6 +194,7 @@ const createStyles = (palette) =>
       borderRadius: 8,
     },
     typeBadgeText: {
+      fontFamily: fonts.body,
       color: "#fff",
       fontSize: 10,
       fontWeight: "400",
@@ -198,6 +205,7 @@ const createStyles = (palette) =>
       fontSize: 12,
       color: palette.accent,
       fontWeight: "600",
+      fontFamily: fonts.body,
     },
     latestWrap: {
       marginTop: 10,
@@ -206,6 +214,7 @@ const createStyles = (palette) =>
       paddingBottom: 14,
     },
     latestLabel: {
+      fontFamily: fonts.body,
       fontSize: 11,
       textTransform: "uppercase",
       color: palette.muted,
@@ -222,9 +231,11 @@ const createStyles = (palette) =>
       marginTop: 6,
     },
     bulletText: {
+      fontFamily: fonts.body,
       fontSize: 13,
       color: palette.textSecondary,
       flex: 1,
+      lineHeight: 20,
     },
     bookmark: {
       alignSelf: "flex-end",

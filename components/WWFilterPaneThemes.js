@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from "react-native";
-import { getThemeColors } from "../styles/theme";
+import { getThemeColors, fonts } from "../styles/theme";
 
 export default function WWFilterPaneThemes({
   categories = [],
@@ -98,6 +98,7 @@ const createStyles = (palette) =>
       position: "relative",
     },
     categoryText: {
+      fontFamily: fonts.body,
       fontSize: 13,
       color: palette.textSecondary,
       fontWeight: "625",

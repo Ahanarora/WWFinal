@@ -18,7 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import { scoreContent } from "../utils/ranking";
-import { getThemeColors } from "../styles/theme";
+import { getThemeColors, fonts } from "../styles/theme";
 import { useUserData } from "../contexts/UserDataContext";
 
 import WWStoryCard from "../components/WWStoryCard";
@@ -399,7 +399,9 @@ const createStyles = (palette) =>
       alignItems: "center",
     },
     sortButtonText: {
+      fontFamily: fonts.body,
       fontSize: 14,
+      lineHeight: 21,
       color: palette.textSecondary,
       fontWeight: "500",
     },
@@ -409,8 +411,19 @@ const createStyles = (palette) =>
       alignItems: "center",
       justifyContent: "center",
     },
-    loadingText: { marginTop: 8, color: palette.textSecondary },
-    emptyText: { fontSize: 16, color: palette.textSecondary },
+    loadingText: {
+      marginTop: 8,
+      color: palette.textSecondary,
+      fontFamily: fonts.body,
+      fontSize: 14,
+      lineHeight: 21,
+    },
+    emptyText: {
+      fontSize: 16,
+      color: palette.textSecondary,
+      fontFamily: fonts.body,
+      lineHeight: 22,
+    },
     sortModalBackdrop: {
       flex: 1,
       backgroundColor: "rgba(0,0,0,0.3)",
@@ -427,7 +440,9 @@ const createStyles = (palette) =>
       paddingHorizontal: 18,
     },
     sortModalOptionText: {
-      fontSize: 16,
+      fontFamily: fonts.body,
+      fontSize: 15,
+      lineHeight: 22,
       color: palette.textPrimary,
     },
     sortSelectedOptionText: {

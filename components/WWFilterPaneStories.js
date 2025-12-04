@@ -7,7 +7,7 @@
 
 import React from "react";
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from "react-native";
-import { getThemeColors } from "../styles/theme";
+import { getThemeColors, fonts } from "../styles/theme";
 
 export default function WWFilterPaneStories({
   categories = [],
@@ -135,6 +135,7 @@ const createStyles = (palette) =>
       position: "relative",
     },
     categoryText: {
+      fontFamily: fonts.body,
       fontSize: 13,
       color: palette.textSecondary,
       fontWeight: "625",
@@ -162,6 +163,7 @@ const createStyles = (palette) =>
       alignItems: "center",
     },
     subcategoryText: {
+      fontFamily: fonts.body,
       fontSize: 13,
       color: palette.textSecondary,
       fontWeight: "400",

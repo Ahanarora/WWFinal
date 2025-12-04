@@ -20,7 +20,7 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 
 import { scoreContent } from "../utils/ranking";
-import { getThemeColors } from "../styles/theme";
+import { getThemeColors, fonts } from "../styles/theme";
 import { useUserData } from "../contexts/UserDataContext";
 import { setStorySearchCache } from "../utils/storyCache";
 
@@ -512,7 +512,13 @@ const createStyles = (palette) =>
       justifyContent: "center",
       alignItems: "center",
     },
-    loadingText: { marginTop: 8, color: palette.textSecondary },
+    loadingText: {
+      marginTop: 8,
+      color: palette.textSecondary,
+      fontFamily: fonts.body,
+      fontSize: 14,
+      lineHeight: 21,
+    },
 
     featuredSection: {
       paddingHorizontal: 16,
@@ -525,8 +531,10 @@ const createStyles = (palette) =>
       marginBottom: 8,
     },
     featuredHeader: {
-      fontSize: 18,
+      fontFamily: fonts.heading,
+      fontSize: 22,
       fontWeight: "600",
+      lineHeight: 26,
       color: palette.textPrimary,
     },
     sortButtonRow: {
@@ -549,7 +557,9 @@ const createStyles = (palette) =>
       paddingVertical: 6,
     },
     sortButtonText: {
+      fontFamily: fonts.body,
       fontSize: 14,
+      lineHeight: 21,
       color: palette.textSecondary,
       fontWeight: "500",
     },
@@ -580,7 +590,9 @@ const createStyles = (palette) =>
       paddingHorizontal: 18,
     },
     sortModalOptionText: {
-      fontSize: 16,
+      fontFamily: fonts.body,
+      fontSize: 15,
+      lineHeight: 22,
       color: palette.textPrimary,
     },
     sortSelectedOptionText: {

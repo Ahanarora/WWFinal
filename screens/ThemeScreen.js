@@ -24,10 +24,11 @@ import { normalizeAnalysis } from "../utils/normalizeAnalysis";
 import { useUserData } from "../contexts/UserDataContext";
 import { Ionicons } from "@expo/vector-icons";
 import CommentsSection from "../components/CommentsSection";
-import { getStorySearchCache } from "../utils/storyCache";
 import ShareButton from "../components/ShareButton";
 import { shareItem } from "../utils/share";
 import EventSortToggle from "../components/EventSortToggle";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../firebaseConfig";
 
 const PHASE_PALETTE = [
   "#EF4444", // red
@@ -40,6 +41,63 @@ const PHASE_PALETTE = [
   "#EC4899", // pink
   "#6366F1", // indigo
 ];
+
+const recencyWeight = (item) => {
+  const t =
+    item?.updatedAt ||
+    item?.publishedAt ||
+    item?.createdAt ||
+    item?.timestamp;
+  if (!t) return 0;
+  const ms =
+    typeof t.toDate === "function"
+      ? t.toDate().getTime()
+      : t.seconds
+      ? t.seconds * 1000
+      : new Date(t).getTime();
+  if (!ms || Number.isNaN(ms)) return 0;
+  const days = (Date.now() - ms) / 86400000;
+  if (days < 0) return 1;
+  const capped = Math.min(days, 120);
+  return Math.max(0, 1 - capped / 120);
+};
+
+const primaryCategory = (item) =>
+  item?.category ||
+  (Array.isArray(item?.allCategories) ? item.allCategories[0] : null) ||
+  item?.primaryCategory ||
+  item?.categories?.[0] ||
+  "";
+
+const tagSet = (item) => {
+  const tags = new Set();
+  const add = (val) => {
+    if (!val) return;
+    if (Array.isArray(val)) {
+      val.forEach((v) => v && tags.add(String(v).toLowerCase()));
+    } else tags.add(String(val).toLowerCase());
+  };
+  add(item?.tags);
+  add(item?.allCategories);
+  add(item?.category);
+  add(item?.subcategory);
+  return tags;
+};
+
+const scoreSimilarity = (base, candidate) => {
+  if (!base || !candidate) return 0;
+  const baseTags = tagSet(base);
+  const candTags = tagSet(candidate);
+  let shared = 0;
+  candTags.forEach((t) => {
+    if (baseTags.has(t)) shared += 1;
+  });
+  const sameCategory =
+    primaryCategory(base).toLowerCase() ===
+    primaryCategory(candidate).toLowerCase();
+  const recency = recencyWeight(candidate);
+  return shared * 3 + (sameCategory ? 4 : 0) + recency * 3;
+};
 
 function getFactCheckRgb(score) {
   if (score >= 85) return { bg: "#E9F9D0", text: "#3F6212" };
@@ -57,6 +115,11 @@ export default function ThemeScreen({ route, navigation }) {
 
   const [depth, setDepth] = useState(2);
   const [sortOrder, setSortOrder] = useState("chronological");
+  const [suggestionPool, setSuggestionPool] = useState(() => {
+    if (Array.isArray(allThemes) && allThemes.length) return allThemes;
+    if (Array.isArray(feed) && feed.length) return feed;
+    return [];
+  });
   const {
     user,
     favorites,
@@ -70,6 +133,35 @@ export default function ThemeScreen({ route, navigation }) {
   });
   const headerShownRef = useRef(true);
   const lastOffsetY = useRef(0);
+
+  useEffect(() => {
+    if (Array.isArray(allThemes) && allThemes.length) {
+      setSuggestionPool(allThemes);
+      return;
+    }
+    if (Array.isArray(feed) && feed.length) {
+      setSuggestionPool(feed);
+    }
+  }, [allThemes, feed]);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadPool = async () => {
+      if (suggestionPool.length) return;
+      try {
+        const snap = await getDocs(collection(db, "themes"));
+        if (!mounted) return;
+        const data = snap.docs.map((d) => ({ docId: d.id, ...d.data() }));
+        setSuggestionPool(data);
+      } catch (err) {
+        console.warn("Failed to load theme suggestions", err);
+      }
+    };
+    loadPool();
+    return () => {
+      mounted = false;
+    };
+  }, [suggestionPool.length]);
 
   const toggleHeader = useCallback(
     (show) => {
@@ -172,6 +264,84 @@ export default function ThemeScreen({ route, navigation }) {
   // ------------------------------
   // Render one theme block
   // ------------------------------
+  const buildSuggestions = (base) => {
+    if (!base) return { similar: [], moreCategory: [], categoryLabel: "" };
+    const baseId = base.id || base.docId;
+    const pool = (suggestionPool || []).filter(
+      (t) => (t.id || t.docId) && (t.id || t.docId) !== baseId
+    );
+    const categoryLabel = primaryCategory(base) || "this category";
+
+    const similar = pool
+      .map((item) => ({ item, score: scoreSimilarity(base, item) }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5)
+      .map((entry) => entry.item);
+
+    const normalizedCat = (categoryLabel || "").toLowerCase();
+    const moreCategory = pool
+      .filter((item) => {
+        if (!normalizedCat) return true;
+        return primaryCategory(item).toLowerCase() === normalizedCat;
+      })
+      .sort((a, b) => recencyWeight(b) - recencyWeight(a))
+      .slice(0, 5);
+
+    return { similar, moreCategory, categoryLabel };
+  };
+
+  const renderSuggestionsRow = (title, items, onPressItem) => {
+    if (!items?.length) return null;
+    return (
+      <View style={styles.suggestionBlock}>
+        <Text style={styles.suggestionTitle}>{title}</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.suggestionRow}
+        >
+          {items.map((itm) => (
+            <TouchableOpacity
+              key={itm.id || itm.docId}
+              style={styles.suggestionCard}
+              onPress={() => onPressItem(itm)}
+            >
+              <Text style={styles.suggestionType}>Theme</Text>
+              <Text style={styles.suggestionText} numberOfLines={2}>
+                {itm.title || "Untitled theme"}
+              </Text>
+              <Text style={styles.suggestionMeta} numberOfLines={1}>
+                {primaryCategory(itm) || "General"}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  };
+
+  const renderSuggestions = (base) => {
+    const { similar, moreCategory, categoryLabel } = buildSuggestions(base);
+    if (!similar.length && !moreCategory.length) return null;
+    const openTheme = (item) =>
+      navigation.push("Theme", {
+        theme: item,
+        index: 0,
+        allThemes: suggestionPool,
+      });
+
+    return (
+      <View style={styles.suggestionsSection}>
+        {renderSuggestionsRow("Continue reading", similar, openTheme)}
+        {renderSuggestionsRow(
+          `More from ${categoryLabel || "this category"}`,
+          moreCategory,
+          openTheme
+        )}
+      </View>
+    );
+  };
+
   const renderThemeBlock = (item, isFirst) => {
     const sortEvents = (events) => {
       if (!Array.isArray(events)) return [];
@@ -566,6 +736,8 @@ export default function ThemeScreen({ route, navigation }) {
         <View key={t.id}>
           {renderThemeBlock(t, i === 0)}
 
+          {renderSuggestions(t)}
+
           <CommentsSection type="theme" itemId={t.id} />
         </View>
       ))}
@@ -894,6 +1066,47 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
+  },
+  suggestionsSection: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    gap: 12,
+  },
+  suggestionBlock: {
+    gap: 8,
+  },
+  suggestionTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: colors.textPrimary,
+  },
+  suggestionRow: {
+    gap: 10,
+  },
+  suggestionCard: {
+    width: 200,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    marginRight: 8,
+  },
+  suggestionType: {
+    fontSize: 11,
+    textTransform: "uppercase",
+    color: colors.muted,
+    marginBottom: 4,
+  },
+  suggestionText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: colors.textPrimary,
+  },
+  suggestionMeta: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 6,
   },
   modalBackdrop: {
     flex: 1,

@@ -162,6 +162,12 @@ export default function StoryScreen({ route, navigation }) {
     visible: false,
     factCheck: null,
   });
+  const [faqModal, setFaqModal] = useState({
+    visible: false,
+    title: "",
+    faqs: [],
+  });
+  const [faqExpanded, setFaqExpanded] = useState({});
   const isFavoriteStory = (id) => favorites?.stories?.includes(id);
   const handleFavorite = (item) => {
     if (!user) {
@@ -623,17 +629,38 @@ export default function StoryScreen({ route, navigation }) {
                       </View>
                     )}
 
-                    <View style={styles.eventContent}>
-                      <Text style={styles.eventDate}>
-                        {formatDateLongOrdinal(e.date)}
-                      </Text>
+                <View style={styles.eventContent}>
+                  <Text style={styles.eventDate}>
+                    {formatDateLongOrdinal(e.date)}
+                  </Text>
 
-                      <Text style={styles.eventTitle}>{e.event}</Text>
+                  <View style={styles.eventTitleRow}>
+                    <Text style={styles.eventTitle}>{e.event}</Text>
+                    {Array.isArray(e.faqs) && e.faqs.length > 0 && (
+                      <TouchableOpacity
+                        style={styles.faqIcon}
+                        onPress={() =>
+                          setFaqModal({
+                            visible: true,
+                            title: e.event || "FAQs",
+                            faqs: e.faqs,
+                          })
+                        }
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Ionicons
+                          name="help-circle-outline"
+                          size={18}
+                          color={colors.accent}
+                        />
+                      </TouchableOpacity>
+                    )}
+                  </View>
 
-                      <RenderWithContext
-                        text={e.description}
-                        contexts={e.contexts || []}
-                        navigation={navigation}
+                  <RenderWithContext
+                    text={e.description}
+                    contexts={e.contexts || []}
+                    navigation={navigation}
                       />
 
                       {hasFactCheck && (
@@ -756,6 +783,68 @@ export default function StoryScreen({ route, navigation }) {
               onPress={() =>
                 setFactCheckModal({ visible: false, factCheck: null })
               }
+            >
+              <Text style={styles.modalCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+      <Modal
+        visible={faqModal.visible}
+        animationType="fade"
+        transparent
+        onRequestClose={() =>
+          setFaqModal({ visible: false, title: "", faqs: [] })
+        }
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => {
+            setFaqModal({ visible: false, title: "", faqs: [] });
+            setFaqExpanded({});
+          }}
+        >
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>
+              {faqModal.title || "Event FAQs"}
+            </Text>
+            {Array.isArray(faqModal.faqs) && faqModal.faqs.length ? (
+              faqModal.faqs.map((qa, idx) => (
+                <View key={idx} style={styles.faqRow}>
+                  <TouchableOpacity
+                    style={styles.faqQuestionRow}
+                    onPress={() =>
+                      setFaqExpanded((prev) => ({
+                        ...prev,
+                        [idx]: !prev[idx],
+                      }))
+                    }
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.modalScore}>
+                      {qa.question || "Question"}
+                    </Text>
+                    <Ionicons
+                      name={faqExpanded[idx] ? "chevron-up" : "chevron-down"}
+                      size={18}
+                      color={colors.textSecondary}
+                    />
+                  </TouchableOpacity>
+                  {faqExpanded[idx] && (
+                    <Text style={styles.faqAnswer}>{qa.answer || ""}</Text>
+                  )}
+                </View>
+              ))
+            ) : (
+              <Text style={styles.modalBody}>No FAQs available.</Text>
+            )}
+            <TouchableOpacity
+              style={styles.modalClose}
+              onPress={() => {
+                setFaqModal({ visible: false, title: "", faqs: [] });
+                setFaqExpanded({});
+              }}
             >
               <Text style={styles.modalCloseText}>Close</Text>
             </TouchableOpacity>
@@ -975,11 +1064,20 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
 
+  eventTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
   eventTitle: {
     fontFamily: fonts.heading,
     fontSize: 16,
     color: colors.textPrimary,
     fontWeight: "700",
+  },
+  faqIcon: {
+    padding: 4,
   },
 
   eventSources: {
@@ -1053,6 +1151,22 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: spacing.lg,
     gap: 8,
+  },
+  faqRow: {
+    marginTop: 6,
+    gap: 4,
+  },
+  faqQuestionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  faqAnswer: {
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
   },
   modalTitle: {
     fontFamily: fonts.heading,

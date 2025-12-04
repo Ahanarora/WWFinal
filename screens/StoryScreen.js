@@ -104,7 +104,7 @@ const scoreSimilarity = (base, candidate) => {
 };
 
 function getFactCheckRgb(score) {
-  if (score >= 85) return { bg: "#E9F9D0", text: "#3F6212" }; // lighter green
+  if (score >= 85) return { bg: "#E8FBE3", text: "#16A34A" }; // brighter green
   if (score >= 70) return { bg: "#FEF9C3", text: "#854D0E" }; // yellow
   if (score >= 50) return { bg: "#FFEDD5", text: "#9A3412" }; // orange
   return { bg: "#FEE2E2", text: "#991B1B" }; // red
@@ -673,27 +673,25 @@ export default function StoryScreen({ route, navigation }) {
 
                       {hasFactCheck && (
                         <View style={styles.factCheckContainer}>
-                          <TouchableOpacity
-                            activeOpacity={0.85}
-                            onPress={() =>
-                              setFactCheckModal({
-                                visible: true,
-                                factCheck: e.factCheck,
-                              })
-                            }
-                          >
-                            <Text
-                              style={[
-                                styles.factCheckBadge,
-                                {
-                                  backgroundColor: "#fff",
-                                  color: factCheckColors.text,
-                                  borderColor: factCheckColors.text,
-                                },
-                              ]}
-                            >
-                              {e.factCheck.confidenceScore}% fact-check confidence
-                            </Text>
+                      <TouchableOpacity
+                        activeOpacity={0.85}
+                        onPress={() =>
+                          setFactCheckModal({
+                            visible: true,
+                            factCheck: e.factCheck,
+                          })
+                        }
+                      >
+                        <Text
+                          style={[
+                            styles.factCheckBadge,
+                            {
+                              color: factCheckColors.text,
+                            },
+                          ]}
+                        >
+                          {e.factCheck.confidenceScore}% fact-check confidence
+                        </Text>
                           </TouchableOpacity>
                         </View>
                       )}
@@ -1111,17 +1109,18 @@ const createStyles = (palette) =>
     factCheckBadge: {
       fontSize: 11,
       fontWeight: "600",
-      paddingHorizontal: 8,
-      paddingVertical: 3,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
       borderRadius: 999,
       overflow: "hidden",
       alignSelf: "flex-start",
-      borderWidth: 1.25,
-      shadowColor: "#000",
+      backgroundColor: palette.surface,
+      shadowColor: "#0F172A",
       shadowOpacity: 0.12,
-      shadowRadius: 4,
-      shadowOffset: { width: 0, height: 2 },
-      elevation: 2,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 3 },
+      elevation: 3,
+      borderWidth: 0,
     },
 
     phaseEndIndicator: {

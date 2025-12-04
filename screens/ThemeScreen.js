@@ -706,9 +706,7 @@ export default function ThemeScreen({ route, navigation }) {
                               style={[
                                 styles.factCheckBadge,
                                 {
-                                  backgroundColor: "#fff",
                                   color: factCheckColors.text,
-                                  borderColor: factCheckColors.text,
                                 },
                               ]}
                             >
@@ -1165,16 +1163,17 @@ const createStyles = (palette) =>
   factCheckBadge: {
     fontSize: 11,
     fontWeight: "600",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 999,
     alignSelf: "flex-start",
-    borderWidth: 1.25,
-    shadowColor: "#000",
+    backgroundColor: palette.surface,
+    shadowColor: "#0F172A",
     shadowOpacity: 0.12,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+    borderWidth: 0,
   },
 
 

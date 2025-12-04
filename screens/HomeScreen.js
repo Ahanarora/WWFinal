@@ -103,6 +103,7 @@ export default function HomeScreen({ navigation }) {
   const [activeSubcategory, setActiveSubcategory] = useState("All");
   const [sortMode, setSortMode] = useState("relevance");
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [controlsVisible, setControlsVisible] = useState(true);
 
   const { themeColors } = useUserData() || {};
   const palette = themeColors || getThemeColors(false);
@@ -125,12 +126,19 @@ export default function HomeScreen({ navigation }) {
     ({ nativeEvent }) => {
       const y = nativeEvent?.contentOffset?.y || 0;
       const delta = y - lastOffsetY.current;
-      const threshold = 20;
-      if (delta > threshold) toggleHeader(false);
-      else if (delta < -threshold) toggleHeader(true);
+      const hideThreshold = 12;
+      const showThreshold = -6;
+
+      if (delta > hideThreshold) {
+        toggleHeader(false);
+        if (controlsVisible) setControlsVisible(false);
+      } else if (delta < showThreshold || y <= 0) {
+        toggleHeader(true);
+        if (!controlsVisible) setControlsVisible(true);
+      }
       lastOffsetY.current = y;
     },
-    [toggleHeader]
+    [toggleHeader, controlsVisible]
   );
 
   useEffect(
@@ -301,6 +309,20 @@ export default function HomeScreen({ navigation }) {
     return [...remaining].sort((a, b) => scoreContent(b) - scoreContent(a));
   }, [combinedItems, featuredItems, sortMode]);
 
+  const listData = useMemo(() => {
+    const sections = [{ _type: "controls" }];
+    if (featuredItems.length) sections.push({ _type: "featured" });
+    sections.push({ _type: "sort" });
+    return [...sections, ...regularCombined];
+  }, [featuredItems, regularCombined]);
+
+  const stickyHeaderIndices = useMemo(() => {
+    const indices = [0]; // controls
+    const sortIndex = featuredItems.length ? 2 : 1;
+    indices.push(sortIndex);
+    return indices;
+  }, [featuredItems.length]);
+
   // -------------------------------
   // LOADING
   // -------------------------------
@@ -326,6 +348,71 @@ export default function HomeScreen({ navigation }) {
   );
 
   const renderRegularItem = ({ item }) => {
+    if (item._type === "controls") {
+      return (
+        <View
+          style={[
+            styles.controlsContainer,
+            !controlsVisible && styles.controlsHidden,
+          ]}
+        >
+          <WWFilterPaneStories
+            categories={CATEGORIES}
+            subcategories={SUBCATEGORY_MAP}
+            activeCategory={activeCategory}
+            activeSubcategory={activeSubcategory}
+            onCategoryChange={(cat) => {
+              setActiveCategory(cat);
+              setActiveSubcategory("All");
+            }}
+            onSubcategoryChange={setActiveSubcategory}
+          />
+        </View>
+      );
+    }
+
+    if (item._type === "featured") {
+      if (!featuredItems.length) return null;
+      return (
+        <View style={styles.featuredSection}>
+          <View style={styles.featuredHeaderRow}>
+            <Text style={styles.featuredHeader}>Featured</Text>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.featuredRow}
+          >
+            {featuredItems.map(renderFeaturedCard)}
+          </ScrollView>
+        </View>
+      );
+    }
+
+    if (item._type === "sort") {
+      return (
+        <View
+          style={[
+            styles.sortButtonRow,
+            !controlsVisible && styles.controlsHidden,
+          ]}
+        >
+          <TouchableOpacity
+            style={styles.sortButton}
+            onPress={() => setShowSortMenu(true)}
+          >
+            <Ionicons
+              name="swap-vertical-outline"
+              size={16}
+              color={palette.textSecondary}
+              style={{ marginRight: 6 }}
+            />
+            <Text style={styles.sortButtonText}>Sort</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
     if (item.isCompactCard) {
       return <WWCompactCard item={item} navigation={navigation} />;
     }
@@ -340,58 +427,22 @@ export default function HomeScreen({ navigation }) {
     <View style={styles.container}>
       {/* MAIN FEED */}
       <FlatList
-        data={regularCombined}
-        keyExtractor={(item) => `${item.type}-${item.docId || item.id}`}
+        data={listData}
+        keyExtractor={(item, index) => {
+          if (item._type === "controls") return "controls";
+          if (item._type === "featured") return "featured";
+          if (item._type === "sort") return "sort";
+          return `${item.type}-${item.docId || item.id}-${index}`;
+        }}
         renderItem={renderRegularItem}
         onScroll={handleHeaderScroll}
         scrollEventThrottle={32}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-        contentContainerStyle={{ paddingBottom: 24 }}
-        ListHeaderComponent={
-          <View>
-            <WWFilterPaneStories
-              categories={CATEGORIES}
-              subcategories={SUBCATEGORY_MAP}
-              activeCategory={activeCategory}
-              activeSubcategory={activeSubcategory}
-              onCategoryChange={(cat) => {
-                setActiveCategory(cat);
-                setActiveSubcategory("All");
-              }}
-              onSubcategoryChange={setActiveSubcategory}
-            />
-
-            {featuredItems.length > 0 && (
-              <View style={styles.featuredSection}>
-                <View style={styles.featuredHeaderRow}>
-                  <Text style={styles.featuredHeader}>Featured</Text>
-                </View>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.featuredRow}
-                >
-                  {featuredItems.map(renderFeaturedCard)}
-                </ScrollView>
-              </View>
-            )}
-
-            <View style={styles.sortButtonRow}>
-              <TouchableOpacity
-                style={styles.sortButton}
-                onPress={() => setShowSortMenu(true)}
-              >
-                <Ionicons
-                  name="swap-vertical-outline"
-                  size={16}
-                  color={palette.textSecondary}
-                  style={{ marginRight: 6 }}
-                />
-                <Text style={styles.sortButtonText}>Sort</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+        ItemSeparatorComponent={({ leadingItem }) =>
+          leadingItem?._type ? null : <View style={styles.separator} />
         }
+        contentContainerStyle={{ paddingBottom: 24 }}
+        stickyHeaderIndices={stickyHeaderIndices}
+        showsVerticalScrollIndicator={false}
       />
       <Modal
         visible={showSortMenu}
@@ -443,6 +494,16 @@ const createStyles = (palette) =>
       flex: 1,
       backgroundColor: palette.background,
     },
+    controlsContainer: {
+      backgroundColor: palette.surface,
+      borderBottomWidth: 1,
+      borderColor: palette.border,
+    },
+    controlsHidden: {
+      height: 0,
+      opacity: 0,
+      overflow: "hidden",
+    },
 
     center: {
       flex: 1,
@@ -466,6 +527,14 @@ const createStyles = (palette) =>
       fontWeight: "600",
       color: palette.textPrimary,
     },
+    sortButtonRow: {
+      paddingHorizontal: 16,
+      paddingBottom: 2,
+      paddingTop: 24,
+      marginTop: 10,
+      flexDirection: "row",
+      justifyContent: "flex-end",
+    },
     sortButton: {
       flexDirection: "row",
       alignItems: "center",
@@ -474,11 +543,6 @@ const createStyles = (palette) =>
       fontSize: 14,
       color: palette.textSecondary,
       fontWeight: "500",
-    },
-    sortButtonRow: {
-      paddingHorizontal: 16,
-      paddingBottom: 12,
-      paddingTop: 8,
     },
     featuredRow: {
       paddingBottom: 4,

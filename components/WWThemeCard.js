@@ -57,7 +57,10 @@ export default function WWThemeCard({ item, navigation, onPress }) {
         </View>
         <TouchableOpacity
           style={styles.saveButton}
-          onPress={() => toggleFavorite("themes", item.docId, item)}
+          onPress={(e) => {
+            e?.stopPropagation?.();
+            toggleFavorite("themes", item.docId, item);
+          }}
         >
           <Ionicons
             name={isFav ? "bookmark" : "bookmark-outline"}

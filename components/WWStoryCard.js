@@ -59,7 +59,10 @@ export default function WWStoryCard({ item, navigation, onPress }) {
         </View>
         <TouchableOpacity
           style={styles.saveButton}
-          onPress={() => toggleFavorite("stories", item.docId, item)}
+          onPress={(e) => {
+            e?.stopPropagation?.();
+            toggleFavorite("stories", item.docId, item);
+          }}
         >
           <Ionicons
             name={isFav ? "bookmark" : "bookmark-outline"}

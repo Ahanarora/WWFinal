@@ -22,12 +22,13 @@ export default function WWHomeCard({ item, navigation, onPress }) {
   const palette = themeColors || getThemeColors(false);
   const styles = createStyles(palette);
 
-  const isFav =
-    item.type === "story"
-      ? favorites?.stories?.includes(item.docId)
-      : favorites?.themes?.includes(item.docId);
+  const cardType = (item.type || item._type || "").toLowerCase() || "story";
+  const isStory = cardType === "story";
+  const isFav = isStory
+    ? favorites?.stories?.includes(item.docId)
+    : favorites?.themes?.includes(item.docId);
 
-  const updates = getUpdatesSinceLastVisit(item.type + "s", item);
+  const updates = getUpdatesSinceLastVisit((isStory ? "story" : "theme") + "s", item);
   const headlines = getLatestHeadlines(item.timeline || []);
   const previewText =
     item.cardDescription ||
@@ -69,9 +70,10 @@ export default function WWHomeCard({ item, navigation, onPress }) {
         </View>
         <TouchableOpacity
           style={styles.saveButton}
-          onPress={() =>
-            toggleFavorite(item.type + "s", item.docId, item)
-          }
+          onPress={(e) => {
+            e?.stopPropagation?.();
+            toggleFavorite((isStory ? "story" : "theme") + "s", item.docId, item);
+          }}
         >
           <Ionicons
             name={isFav ? "bookmark" : "bookmark-outline"}
@@ -99,12 +101,12 @@ export default function WWHomeCard({ item, navigation, onPress }) {
           style={styles.typeIconBadge}
           onPress={() =>
             navigation.navigate("RootTabs", {
-              screen: item.type === "story" ? "StoriesTab" : "ThemesTab",
+              screen: isStory ? "StoriesTab" : "ThemesTab",
             })
           }
         >
           <Ionicons
-            name={item.type === "story" ? "newspaper-outline" : "compass-outline"}
+            name={isStory ? "newspaper-outline" : "compass-outline"}
             size={16}
             color="#fff"
           />

@@ -474,7 +474,7 @@ export default function ThemeScreen({ route, navigation }) {
               <Ionicons
                 name={isFavorite(item.id) ? "bookmark" : "bookmark-outline"}
                 size={24}
-                color={isFavorite(item.id) ? "#FACC15" : palette.muted}
+                color={isFavorite(item.id) ? palette.accent : palette.muted}
               />
             </TouchableOpacity>
           </View>

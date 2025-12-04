@@ -457,7 +457,7 @@ export default function StoryScreen({ route, navigation }) {
               <Ionicons
                 name={isFavoriteStory(item.id) ? "bookmark" : "bookmark-outline"}
                 size={24}
-                color={isFavoriteStory(item.id) ? "#FACC15" : palette.muted}
+                color={isFavoriteStory(item.id) ? palette.accent : palette.muted}
               />
             </TouchableOpacity>
           </View>

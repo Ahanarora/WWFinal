@@ -243,10 +243,14 @@ function AppNavigator({ user }) {
           <View style={styles.logoRow}>
             <Text style={[styles.logoWord, { color: textColor }]}>Wait</Text>
             <Text style={[styles.logoDots, { color: textColor }]}>...</Text>
-            <View style={[styles.logoOval, { borderColor: accentColor }]}>
-              <Text style={[styles.logoOvalText, { color: textColor }]}>
-                What?
-              </Text>
+            <View style={styles.logoOval}>
+              <Text style={[styles.logoOvalText, { color: textColor }]}>What?</Text>
+              <View
+                style={[
+                  styles.logoRedUnderline,
+                  { backgroundColor: accentColor },
+                ]}
+              />
             </View>
           </View>
           <View
@@ -429,6 +433,7 @@ export default function App() {
     TurretRoadExtraBold: require("./assets/fonts/TurretRoad-ExtraBold.ttf"),
     SourceSerif: require("./assets/fonts/SourceSerif4-Variable.ttf"),
     Lacquer: require("./assets/fonts/Lacquer-Regular.ttf"),
+    FreckleFace: require("./assets/fonts/FreckleFace-Regular.ttf"),
   });
 
   if (!fontsLoaded || authChecking) return null;
@@ -453,33 +458,26 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   logoWord: {
-    fontFamily: "Lacquer",
+    fontFamily: "FreckleFace",
     fontSize: 36,
     transform: [{ translateY: 14 }],
   },
   logoDots: {
-    fontFamily: "Lacquer",
+    fontFamily: "FreckleFace",
     fontSize: 36,
     marginHorizontal: 2,
     transform: [{ translateY: 14 }],
   },
   logoOval: {
-    borderWidth: 3,
-    borderColor: "#DC2626",
-    borderStyle: "solid",
-    borderRadius: 28,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
     justifyContent: "center",
     alignItems: "center",
-    transform: [
-      { rotate: "-4deg" },
-      { skewX: "-3deg" },
-      { translateY: 4 },
-    ],
+    transform: [{ translateY: 4 }],
   },
+
   logoOvalText: {
-    fontFamily: "Lacquer",
+    fontFamily: "FreckleFace",
     fontSize: 44,
     lineHeight: 46,
     transform: [{ translateY: 2 }],

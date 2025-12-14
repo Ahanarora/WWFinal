@@ -126,7 +126,11 @@ export default function RenderWithContext({
       <Text
         style={[
           styles.text,
-          { color: palette.textPrimary, fontFamily: fonts.body },
+          {
+            color: palette.textPrimary,
+            textDecorationColor: palette.textPrimary,
+            fontFamily: fonts.body,
+          },
           textStyle,
         ]}
       >
@@ -168,6 +172,8 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
     color: "#222",
+    textDecorationLine: "underline",
+    textDecorationStyle: "dotted",
   },
   link: {
     color: "#2563EB",

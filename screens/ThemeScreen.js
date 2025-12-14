@@ -30,6 +30,8 @@ import EventSortToggle from "../components/EventSortToggle";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import WWHomeCard from "../components/WWHomeCard";
+import PublisherPreviewCard from "../components/PublisherPreviewCard";
+
 
 const PHASE_PALETTE = [
   "#EF4444", // red
@@ -645,18 +647,42 @@ export default function ThemeScreen({ route, navigation }) {
                         },
                       ]}
                     >
-                      {e.imageUrl || e.image || e.thumbnail ? (
-                        <Image
-                          source={{
-                            uri: e.imageUrl || e.image || e.thumbnail,
-                          }}
-                          style={styles.eventImage}
-                        />
-                      ) : (
-                        <View style={styles.eventImagePlaceholder}>
-                          <Text style={styles.eventImageEmoji}>📰</Text>
-                        </View>
-                      )}
+                      {(() => {
+  const mode = e?.displayMode || e?.media?.type; // backward compatible
+  const sources = Array.isArray(e?.sources) ? e.sources : [];
+  const primaryIdx =
+    typeof e?.media?.sourceIndex === "number" ? e.media.sourceIndex : 0;
+  const primarySource = sources[primaryIdx];
+
+  const otherSources = sources.filter((_, idx) => idx !== primaryIdx);
+
+  // LINK PREVIEW MODE
+  if (mode === "link-preview" && primarySource?.link) {
+    return (
+      <View>
+        <PublisherPreviewCard source={primarySource} palette={palette} />
+        {otherSources.length > 0 ? (
+          <View style={styles.eventSources}>
+            <SourceLinks sources={otherSources} themeColors={palette} />
+          </View>
+        ) : null}
+      </View>
+    );
+  }
+
+  // IMAGE MODE (default)
+  const img = e?.imageUrl || e?.image || e?.thumbnail || e?.media?.imageUrl;
+  if (img) {
+    return <Image source={{ uri: img }} style={styles.eventImage} />;
+  }
+
+  return (
+    <View style={styles.eventImagePlaceholder}>
+      <Text style={styles.eventImageEmoji}>📰</Text>
+    </View>
+  );
+})()}
+
 
                       <View style={styles.eventContent}>
                         <Text style={styles.eventDate}>
@@ -715,11 +741,17 @@ export default function ThemeScreen({ route, navigation }) {
                             </TouchableOpacity>
                           </View>
                         )}
-                        {Array.isArray(e.sources) && e.sources.length > 0 && (
-                          <View style={styles.eventSources}>
-                            <SourceLinks sources={e.sources} themeColors={palette} />
-                          </View>
-                        )}
+                        {(() => {
+  const mode = e?.displayMode || e?.media?.type;
+  if (mode === "link-preview") return null;
+
+  return Array.isArray(e.sources) && e.sources.length > 0 ? (
+    <View style={styles.eventSources}>
+      <SourceLinks sources={e.sources} themeColors={palette} />
+    </View>
+  ) : null;
+})()}
+
                       </View>
                     </View>
                   </TouchableOpacity>

@@ -33,6 +33,8 @@ import ShareButton from "../components/ShareButton";
 import { shareItem } from "../utils/share";
 import EventSortToggle from "../components/EventSortToggle";
 import WWHomeCard from "../components/WWHomeCard";
+import PublisherPreviewCard from "../components/PublisherPreviewCard";
+
 
 const PHASE_PALETTE = [
   "#EF4444", // red
@@ -117,6 +119,7 @@ export default function StoryScreen({ route, navigation }) {
   const [feed, setFeed] = useState(story ? [story] : []);
   const [currentIndex, setCurrentIndex] = useState(index ?? 0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  // Suggestion source list (from props or cached search results)
   const [suggestionPool, setSuggestionPool] = useState(() => {
     if (Array.isArray(allStories) && allStories.length) return allStories;
     const cached = getStorySearchCache();
@@ -211,6 +214,7 @@ export default function StoryScreen({ route, navigation }) {
   useEffect(() => {
     let mounted = true;
     const loadPool = async () => {
+      // Lightweight fetch to ensure at least a few suggestions in the pool
       if (suggestionPool.length >= 5) return;
       try {
         const snap = await getDocs(collection(db, "stories"));
@@ -272,6 +276,7 @@ export default function StoryScreen({ route, navigation }) {
   // RENDER SINGLE STORY BLOCK (WITH PHASE HEADERS)
   // ---------------------------------------------------------
   const buildSuggestions = (base) => {
+    // Score stories by shared tags/category and recency
     if (!base) return { similar: [], moreCategory: [], categoryLabel: "" };
     const baseId = base.id || base.docId;
     const pool = (suggestionPool || []).filter(
@@ -622,18 +627,40 @@ export default function StoryScreen({ route, navigation }) {
                       },
                     ]}
                   >
-                    {e.imageUrl || e.image || e.thumbnail ? (
-                      <Image
-                        source={{
-                          uri: e.imageUrl || e.image || e.thumbnail,
-                        }}
-                        style={styles.eventImage}
-                      />
-                    ) : (
-                      <View style={styles.eventImagePlaceholder}>
-                        <Text style={styles.eventImageEmoji}>🗞️</Text>
-                      </View>
-                    )}
+                    {(() => {
+  const mode = e?.displayMode || e?.media?.type;
+  const sources = Array.isArray(e?.sources) ? e.sources : [];
+  const primaryIdx =
+    typeof e?.media?.sourceIndex === "number" ? e.media.sourceIndex : 0;
+  const primarySource = sources[primaryIdx];
+
+  const otherSources = sources.filter((_, idx) => idx !== primaryIdx);
+
+  if (mode === "link-preview" && primarySource?.link) {
+    return (
+      <View>
+        <PublisherPreviewCard source={primarySource} palette={palette} />
+        {otherSources.length > 0 ? (
+          <View style={styles.eventSources}>
+            <SourceLinks sources={otherSources} themeColors={palette} />
+          </View>
+        ) : null}
+      </View>
+    );
+  }
+
+  const img = e?.imageUrl || e?.image || e?.thumbnail || e?.media?.imageUrl;
+  if (img) {
+    return <Image source={{ uri: img }} style={styles.eventImage} />;
+  }
+
+  return (
+    <View style={styles.eventImagePlaceholder}>
+      <Text style={styles.eventImageEmoji}>🗞️</Text>
+    </View>
+  );
+})()}
+
 
                 <View style={styles.eventContent}>
                   <Text style={styles.eventDate}>
@@ -696,11 +723,17 @@ export default function StoryScreen({ route, navigation }) {
                         </View>
                       )}
 
-                      {Array.isArray(e.sources) && e.sources.length > 0 && (
-                        <View style={styles.eventSources}>
-                          <SourceLinks sources={e.sources} themeColors={palette} />
-                        </View>
-                      )}
+                      {(() => {
+  const mode = e?.displayMode || e?.media?.type;
+  if (mode === "link-preview") return null;
+
+  return Array.isArray(e.sources) && e.sources.length > 0 ? (
+    <View style={styles.eventSources}>
+      <SourceLinks sources={e.sources} themeColors={palette} />
+    </View>
+  ) : null;
+})()}
+
                     </View>
                   </View>
                 </Pressable>

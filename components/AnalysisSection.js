@@ -74,8 +74,8 @@ export default function AnalysisSection({
                             navigation={navigation}
                             textStyle={styles.itemTitle}
                             themeColors={palette}
-                            textStyle={styles.itemTitle}
-                          />
+                        
+                      />
                           <Text style={styles.itemArrow}>
                             {openSub[`${key}-${idx}`] ? "▲" : "▼"}
                           </Text>

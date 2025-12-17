@@ -1,7 +1,3 @@
-// ----------------------------------------
-// screens/EventReaderModal.js
-// Full-screen vertical event reader (Inshorts-style, fade-in + phases)
-// ----------------------------------------
 import React, { useRef, useState, useMemo } from "react";
 import {
   View,
@@ -19,6 +15,7 @@ import RenderWithContext from "../components/RenderWithContext";
 import SourceLinks from "../components/SourceLinks";
 import { formatDateLongOrdinal } from "../utils/formatTime";
 import { useUserData } from "../contexts/UserDataContext";
+import { normalizeSources } from "../utils/normalizeSources";
 
 function getFactCheckRgb(score) {
   if (score >= 85) return { bg: "#BBF7D0", text: "#166534" };
@@ -52,17 +49,24 @@ const EventCard = React.memo(function EventCard({
   } = event;
 
   const formattedDate = date ? formatDateLongOrdinal(date) : "";
+
+  const safeSources = useMemo(
+    () => normalizeSources(sources),
+    [sources]
+  );
+
   const hasFactCheck =
     factCheck &&
     typeof factCheck.confidenceScore === "number" &&
     !Number.isNaN(factCheck.confidenceScore);
+
   const factCheckColors = hasFactCheck
     ? getFactCheckRgb(factCheck.confidenceScore)
     : null;
 
   return (
     <View style={styles.cardInner}>
-      {/* STORY/THEME TITLE */}
+      {/* STORY / THEME TITLE */}
       {headerTitle ? (
         <Text style={styles.modalStoryTitle}>{headerTitle}</Text>
       ) : null}
@@ -78,25 +82,25 @@ const EventCard = React.memo(function EventCard({
       ) : null}
 
       {/* CONTENT */}
-          <View style={styles.content}>
-            {formattedDate ? <Text style={styles.date}>{formattedDate}</Text> : null}
-            {title ? <Text style={styles.title}>{title}</Text> : null}
+      <View style={styles.content}>
+        {formattedDate ? <Text style={styles.date}>{formattedDate}</Text> : null}
+        {title ? <Text style={styles.title}>{title}</Text> : null}
 
-            {description ? (
-              <View style={styles.body}>
-                <RenderWithContext
-                  text={description}
-                  contexts={contexts}
-                  navigation={navigation}
-                  themeColors={palette}
-                />
-              </View>
-            ) : null}
+        {description ? (
+          <View style={styles.body}>
+            <RenderWithContext
+              text={description}
+              contexts={contexts}
+              navigation={navigation}
+              themeColors={palette}
+            />
+          </View>
+        ) : null}
 
-        {/* SOURCES */}
-        {Array.isArray(sources) && sources.length > 0 && (
+        {/* SOURCES (NORMALIZED) */}
+        {safeSources.length > 0 && (
           <View style={styles.sources}>
-            <SourceLinks sources={sources} themeColors={palette} />
+            <SourceLinks sources={safeSources} themeColors={palette} />
           </View>
         )}
 
@@ -134,11 +138,14 @@ export default function EventReaderModal({ route, navigation }) {
     startIndex = 0,
     headerTitle = "",
   } = route.params || {};
+
   const { themeColors, darkMode } = useUserData();
   const palette = themeColors || getThemeColors(darkMode);
   const styles = useMemo(() => createStyles(palette), [palette]);
 
-  // Normalize event data
+  // --------------------------
+  // EVENT NORMALIZATION (BOUNDARY)
+  // --------------------------
   const safeEvents = useMemo(() => {
     if (!Array.isArray(rawEvents)) return [];
 
@@ -149,7 +156,7 @@ export default function EventReaderModal({ route, navigation }) {
         title: e?.event || "",
         description: e?.description || "",
         contexts: Array.isArray(e?.contexts) ? e.contexts : [],
-        sources: Array.isArray(e?.sources) ? e.sources : [],
+        sources: normalizeSources(e?.sources),
         imageUrl: e?.imageUrl || e?.image || e?.thumbnail || null,
         phaseTitle: e?.phaseTitle || null,
         factCheck: e?.factCheck || null,
@@ -162,12 +169,13 @@ export default function EventReaderModal({ route, navigation }) {
 
   const [isTransitioning, setIsTransitioning] = useState(false);
   const anim = useRef(new Animated.Value(1)).current;
+
   const [factCheckModal, setFactCheckModal] = useState({
     visible: false,
     factCheck: null,
   });
 
-  if (!safeEvents || safeEvents.length === 0) {
+  if (safeEvents.length === 0) {
     return (
       <View
         style={[
@@ -183,16 +191,18 @@ export default function EventReaderModal({ route, navigation }) {
   const currentEvent = safeEvents[index];
 
   // --------------------------
-  // SIMPLE FADE-IN TRANSITION (SINGLE CARD)
+  // FADE TRANSITION
   // --------------------------
   const startTransition = (targetIndex) => {
-    if (targetIndex === index) return;
-    if (targetIndex < 0 || targetIndex > safeEvents.length - 1) return;
-    if (isTransitioning) return;
+    if (
+      targetIndex === index ||
+      targetIndex < 0 ||
+      targetIndex > safeEvents.length - 1 ||
+      isTransitioning
+    )
+      return;
 
     setIsTransitioning(true);
-
-    // Immediately switch to the new event, but start from opacity 0
     setIndex(targetIndex);
     anim.setValue(0);
 
@@ -200,9 +210,7 @@ export default function EventReaderModal({ route, navigation }) {
       toValue: 1,
       duration: 160,
       useNativeDriver: true,
-    }).start(() => {
-      setIsTransitioning(false);
-    });
+    }).start(() => setIsTransitioning(false));
   };
 
   // --------------------------
@@ -211,11 +219,9 @@ export default function EventReaderModal({ route, navigation }) {
   const panResponder = useMemo(
     () =>
       PanResponder.create({
-        onMoveShouldSetPanResponder: (_, g) => {
-          // Only start on vertical gestures
-          return Math.abs(g.dy) > 10 && Math.abs(g.dy) > Math.abs(g.dx);
-        },
-        onPanResponderMove: () => {},
+        onMoveShouldSetPanResponder: (_, g) =>
+          Math.abs(g.dy) > 10 && Math.abs(g.dy) > Math.abs(g.dx),
+
         onPanResponderRelease: (_, g) => {
           if (isTransitioning) return;
 
@@ -223,24 +229,19 @@ export default function EventReaderModal({ route, navigation }) {
           const threshold = 80;
           const velocityThreshold = 0.3;
 
-          const isSwipeUp =
+          const swipeUp =
             dy < -threshold || (dy < 0 && Math.abs(vy) > velocityThreshold);
-          const isSwipeDown =
+          const swipeDown =
             dy > threshold || (dy > 0 && Math.abs(vy) > velocityThreshold);
 
-          // NEXT
-          if (isSwipeUp && index < safeEvents.length - 1) {
+          if (swipeUp && index < safeEvents.length - 1) {
             startTransition(index + 1);
             return;
           }
 
-          // PREVIOUS (or close if at first)
-          if (isSwipeDown) {
-            if (index > 0) {
-              startTransition(index - 1);
-            } else {
-              navigation.goBack();
-            }
+          if (swipeDown) {
+            if (index > 0) startTransition(index - 1);
+            else navigation.goBack();
           }
         },
       }),
@@ -254,26 +255,16 @@ export default function EventReaderModal({ route, navigation }) {
         backgroundColor={palette.background}
       />
 
-      {/* HANDLE */}
       <View style={styles.dragHandle} />
 
-      {/* COUNTER */}
       <View style={styles.counterRow}>
         <Text style={styles.counterText}>
           {index + 1} / {safeEvents.length}
         </Text>
       </View>
 
-      {/* SINGLE CARD (NO STACK) */}
       <View style={styles.cardStack} {...panResponder.panHandlers}>
-        <Animated.View
-          style={[
-            styles.cardLayer,
-            {
-              opacity: anim,
-            },
-          ]}
-        >
+        <Animated.View style={[styles.cardLayer, { opacity: anim }]}>
           <EventCard
             event={currentEvent}
             navigation={navigation}
@@ -287,6 +278,7 @@ export default function EventReaderModal({ route, navigation }) {
         </Animated.View>
       </View>
 
+      {/* FACT CHECK MODAL */}
       <Modal
         visible={factCheckModal.visible}
         animationType="fade"
@@ -298,30 +290,36 @@ export default function EventReaderModal({ route, navigation }) {
         <TouchableOpacity
           style={styles.modalBackdrop}
           activeOpacity={1}
-          onPress={() => setFactCheckModal({ visible: false, factCheck: null })}
+          onPress={() =>
+            setFactCheckModal({ visible: false, factCheck: null })
+          }
         >
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Fact-check details</Text>
-            {factCheckModal.factCheck ? (
+
+            {factCheckModal.factCheck && (
               <>
                 <Text style={styles.modalScore}>
                   {factCheckModal.factCheck.confidenceScore}% confidence
                 </Text>
-                {factCheckModal.factCheck.explanation ? (
+
+                {factCheckModal.factCheck.explanation && (
                   <Text style={styles.modalBody}>
                     {factCheckModal.factCheck.explanation}
                   </Text>
-                ) : null}
-                {factCheckModal.factCheck.lastCheckedAt ? (
+                )}
+
+                {factCheckModal.factCheck.lastCheckedAt && (
                   <Text style={styles.modalMeta}>
                     Last updated:{" "}
                     {new Date(
                       factCheckModal.factCheck.lastCheckedAt
                     ).toLocaleString()}
                   </Text>
-                ) : null}
+                )}
               </>
-            ) : null}
+            )}
+
             <TouchableOpacity
               style={styles.modalClose}
               onPress={() =>
@@ -347,7 +345,6 @@ const createStyles = (palette) =>
       backgroundColor: palette.background,
       paddingTop: 24,
     },
-
     dragHandle: {
       alignSelf: "center",
       width: 50,
@@ -356,23 +353,19 @@ const createStyles = (palette) =>
       backgroundColor: palette.border,
       marginBottom: 8,
     },
-
     counterRow: {
       alignItems: "center",
       marginBottom: 4,
     },
-
     counterText: {
       fontFamily: fonts.body,
       fontSize: 12,
       color: palette.textSecondary,
     },
-
     cardStack: {
       flex: 1,
       position: "relative",
     },
-
     cardLayer: {
       position: "absolute",
       top: 0,
@@ -381,89 +374,79 @@ const createStyles = (palette) =>
       bottom: 0,
       backgroundColor: palette.background,
     },
-
     cardInner: {
       flex: 1,
       backgroundColor: palette.surface,
     },
-
-  modalStoryTitle: {
-    fontFamily: fonts.heading,
-    fontSize: 22,
-    fontWeight: "600",
-    lineHeight: 26,
-    color: palette.textPrimary,
-    paddingHorizontal: spacing.md,
-    paddingBottom: 2,
-  },
-
-  modalPhaseTitle: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: palette.textSecondary,
-    paddingHorizontal: spacing.md,
-    paddingBottom: 8,
-  },
-
+    modalStoryTitle: {
+      fontFamily: fonts.heading,
+      fontSize: 22,
+      fontWeight: "600",
+      lineHeight: 26,
+      color: palette.textPrimary,
+      paddingHorizontal: spacing.md,
+      paddingBottom: 2,
+    },
+    modalPhaseTitle: {
+      fontFamily: fonts.body,
+      fontSize: 13,
+      color: palette.textSecondary,
+      paddingHorizontal: spacing.md,
+      paddingBottom: 8,
+    },
     image: {
       width: "100%",
       height: 220,
       backgroundColor: palette.border,
     },
-
     content: {
       flex: 1,
       paddingHorizontal: spacing.md,
       paddingTop: spacing.md,
       paddingBottom: spacing.lg,
     },
-
     date: {
       fontFamily: fonts.body,
       fontSize: 12,
       color: palette.textSecondary,
       marginBottom: 4,
     },
-
-  title: {
-    fontFamily: fonts.heading,
-    fontSize: 18,
-    fontWeight: "500",
-    lineHeight: 24,
-    color: palette.textPrimary,
-    marginBottom: spacing.sm,
-  },
-
+    title: {
+      fontFamily: fonts.heading,
+      fontSize: 18,
+      fontWeight: "500",
+      lineHeight: 24,
+      color: palette.textPrimary,
+      marginBottom: spacing.sm,
+    },
     body: {
       marginTop: 4,
       marginBottom: spacing.md,
     },
-
     sources: {
       marginTop: 8,
     },
-
-  factCheckBlock: {
-    marginTop: spacing.sm,
-    paddingTop: spacing.xs,
-    borderTopWidth: 0.5,
-    borderTopColor: palette.border,
-    gap: 6,
-  },
-  factCheckBadge: {
-    fontSize: 12,
-    fontWeight: "700",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    alignSelf: "flex-start",
-    backgroundColor: palette.surface,
-    shadowColor: "#0F172A",
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
-  },
+    factCheckBlock: {
+      marginTop: spacing.sm,
+      paddingTop: spacing.xs,
+      borderTopWidth: 0.5,
+      borderTopColor: palette.border,
+      gap: 6,
+    },
+    factCheckBadge: {
+      fontSize: 12,
+      fontWeight: "700",
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 999,
+      alignSelf: "flex-start",
+      backgroundColor: palette.surface,
+      shadowColor: "#0F172A",
+      shadowOpacity: 0.12,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 3 },
+      elevation: 3,
+    },
     modalBackdrop: {
       flex: 1,
       backgroundColor: "rgba(0,0,0,0.45)",

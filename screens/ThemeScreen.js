@@ -33,7 +33,7 @@ import WWHomeCard from "../components/WWHomeCard";
 import PublisherPreviewCard from "../components/PublisherPreviewCard";
 // Shared timeline contract (future-proofing)
 import { /* types only */ } from "@ww/shared";
-
+import { normalizeSources } from "../utils/normalizeSources"; // add once near imports
 
 const PHASE_PALETTE = [
   "#EF4444", // red
@@ -670,7 +670,7 @@ export default function ThemeScreen({ route, navigation }) {
                     >
                       {(() => {
   const mode = e?.displayMode || e?.media?.type; // backward compatible
-  const sources = Array.isArray(e?.sources) ? e.sources : [];
+const sources = normalizeSources(e?.sources);
   const primaryIdx =
     typeof e?.media?.sourceIndex === "number" ? e.media.sourceIndex : 0;
   const primarySource = sources[primaryIdx];

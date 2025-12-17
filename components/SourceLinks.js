@@ -1,7 +1,3 @@
-// ----------------------------------------
-// components/SourceLinks.js (GOOGLE FAVICONS VERSION)
-// ----------------------------------------
-
 import React, { useMemo, useState } from "react";
 import {
   View,
@@ -15,6 +11,7 @@ import {
   Pressable,
 } from "react-native";
 import { fonts, spacing, getThemeColors } from "../styles/theme";
+import { normalizeSources } from "../utils/normalizeSources";
 
 // ------------------------------
 // HELPERS
@@ -44,7 +41,13 @@ export default function SourceLinks({ sources = [], themeColors }) {
   const styles = useMemo(() => createStyles(palette), [palette]);
   const [preview, setPreview] = useState(null);
 
-  if (!Array.isArray(sources) || sources.length === 0) return null;
+  // ✅ CANONICAL NORMALIZATION (SINGLE ENTRY POINT)
+  const safeSources = useMemo(
+    () => normalizeSources(sources),
+    [sources]
+  );
+
+  if (safeSources.length === 0) return null;
 
   const openPreview = (source) => {
     if (!source?.link) return;
@@ -79,10 +82,9 @@ export default function SourceLinks({ sources = [], themeColors }) {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.container}
       >
-        {sources.map((s, i) => {
+        {safeSources.map((s, i) => {
           const publisher =
             s.sourceName ||
-            s.siteName ||
             (() => {
               try {
                 return new URL(s.link).hostname.replace(/^www\./, "");
@@ -95,7 +97,7 @@ export default function SourceLinks({ sources = [], themeColors }) {
 
           return (
             <FaviconCard
-              key={i}
+              key={`${s.link}-${i}`}
               s={s}
               palette={palette}
               styles={styles}
@@ -184,7 +186,6 @@ function FaviconCard({
   onPress,
 }) {
   const [stage, setStage] = useState("google");
-
   const faviconUrl = getGoogleFavicon(s.link);
 
   return (
@@ -310,8 +311,17 @@ const createStyles = (palette) =>
       gap: 10,
       marginTop: 6,
     },
-    previewButton: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
-    previewCancel: { backgroundColor: "rgba(255,255,255,0.08)" },
+    previewButton: {
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 8,
+    },
+    previewCancel: {
+      backgroundColor: "rgba(255,255,255,0.08)",
+    },
     previewOpen: {},
-    previewButtonText: { fontSize: 12, fontWeight: "700" },
+    previewButtonText: {
+      fontSize: 12,
+      fontWeight: "700",
+    },
   });

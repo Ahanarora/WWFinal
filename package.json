@@ -37,5 +37,8 @@
     "uuid": "^13.0.0",
     "@ww/shared": "*"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "@types/react": "~19.1.10"
+  }
 }

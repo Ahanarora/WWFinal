@@ -34,6 +34,8 @@ import { shareItem } from "../utils/share";
 import EventSortToggle from "../components/EventSortToggle";
 import WWHomeCard from "../components/WWHomeCard";
 import PublisherPreviewCard from "../components/PublisherPreviewCard";
+// Shared timeline contract (future-proofing)
+import { /* types only */ } from "@ww/shared";
 
 
 const PHASE_PALETTE = [
@@ -47,6 +49,22 @@ const PHASE_PALETTE = [
   "#EC4899", // pink
   "#6366F1", // indigo
 ];
+
+// Ensure backward compatibility with old stories
+const normalizeTimeline = (raw) => {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((block) => {
+    if (block && (block.type === "event" || block.type === "image")) {
+      return block;
+    }
+    // Old data → assume event
+    return {
+      ...block,
+      type: "event",
+    };
+  });
+};
+
 
 const recencyWeight = (item) => {
   const t =
@@ -353,7 +371,10 @@ export default function StoryScreen({ route, navigation }) {
       });
     };
 
-    const rawTimeline = sortEvents(item.timeline);
+    const rawTimeline = sortEvents(
+  normalizeTimeline(item.timeline)
+);
+
     const analysisForItem =
       item.id === story.id ? primaryAnalysis : normalizeAnalysis(item.analysis);
     const combinedContexts = [

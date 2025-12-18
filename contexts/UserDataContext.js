@@ -1,5 +1,3 @@
-//contexts/UserDataContext.js//
-
 import React, {
   createContext,
   useContext,
@@ -11,11 +9,36 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import { getThemeColors } from "../styles/theme";
 
+/**
+ * @typedef {"stories" | "themes"} ItemKind
+ */
+
+/**
+ * @typedef {{
+ *   user: any;
+ *   loading: boolean;
+ *   darkMode: boolean;
+ *   favorites: { stories: string[]; themes: string[] };
+ *   lastVisited: { stories: Record<string, number>; themes: Record<string, number> };
+ *   favoriteItems: { stories: Record<string, any>; themes: Record<string, any> };
+ *   savedItems: { stories: any[]; themes: any[] };
+ *   savedLoading: boolean;
+ *   savedUpdatesCount: number;
+ *   themeColors: any;
+ *
+ *   toggleDarkMode: () => void;
+ *   toggleFavorite: (type: ItemKind, id: string, itemData?: any) => void;
+ *   recordVisit: (type: ItemKind, id: string) => void;
+ *   getUpdatesSinceLastVisit: (type: ItemKind, item: any) => number;
+ * }} UserDataContextValue
+ */
+
 const initialFavorites = { stories: [], themes: [] };
 const initialVisited = { stories: {}, themes: {} };
 const initialFavoriteItems = { stories: {}, themes: {} };
 const initialSavedItems = { stories: [], themes: [] };
 
+/** @type {React.Context<UserDataContextValue>} */
 const UserDataContext = createContext({
   user: null,
   loading: true,
@@ -27,6 +50,7 @@ const UserDataContext = createContext({
   savedLoading: false,
   savedUpdatesCount: 0,
   themeColors: getThemeColors(false),
+
   toggleDarkMode: () => {},
   toggleFavorite: () => {},
   recordVisit: () => {},
@@ -70,14 +94,12 @@ export function UserDataProvider({ user, children }) {
       }
 
       setLoading(true);
-      if (!cancelled) {
-        setSavedLoading(true);
-        setSavedItems(initialSavedItems);
-        setSavedUpdatesCount(0);
-      }
+      setSavedLoading(true);
+
       try {
         const ref = doc(db, "users", currentUser.uid);
         const snap = await getDoc(ref);
+
         if (!cancelled) {
           if (snap.exists()) {
             const data = snap.data() || {};
@@ -101,12 +123,6 @@ export function UserDataProvider({ user, children }) {
               lastVisited: initialVisited,
               favoriteItems: initialFavoriteItems,
             });
-            if (!cancelled) {
-              setDarkMode(false);
-              setFavorites(initialFavorites);
-              setLastVisited(initialVisited);
-              setFavoriteItems(initialFavoriteItems);
-            }
           }
         }
       } catch (err) {
@@ -121,110 +137,6 @@ export function UserDataProvider({ user, children }) {
       cancelled = true;
     };
   }, [user]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const fetchSavedItems = async () => {
-      if (!user) {
-        if (!cancelled) {
-          setSavedItems(initialSavedItems);
-          setSavedUpdatesCount(0);
-          setSavedLoading(false);
-        }
-        return;
-      }
-
-      setSavedLoading(true);
-
-      const storyIds = favorites?.stories || [];
-      const themeIds = favorites?.themes || [];
-      const storyMap = favoriteItems?.stories || {};
-      const themeMap = favoriteItems?.themes || {};
-
-      const buildLocalList = (ids, map, kind) =>
-        ids
-          .map((id) => map[id])
-          .filter(Boolean)
-          .map((item) => ({
-            ...item,
-            id: item.id || item.docId || id,
-            _kind: kind,
-          }));
-
-      const localStories = buildLocalList(storyIds, storyMap, "story");
-      const localThemes = buildLocalList(themeIds, themeMap, "theme");
-
-      const needsStoryDocs = storyIds.filter((id) => {
-        const item = storyMap[id];
-        return !item || !Array.isArray(item.timeline);
-      });
-      const needsThemeDocs = themeIds.filter((id) => {
-        const item = themeMap[id];
-        return !item || !Array.isArray(item.timeline);
-      });
-
-      const fetchDocs = async (ids, collectionName, kind) => {
-        const docs = await Promise.all(
-          ids.map(async (id) => {
-            try {
-              const ref = doc(db, collectionName, id);
-              const snap = await getDoc(ref);
-              if (!snap.exists()) return null;
-              const data = snap.data() || {};
-              return { id, docId: data.docId || id, ...data, _kind: kind };
-            } catch (err) {
-              console.warn(`Failed to load saved ${kind} ${id}`, err);
-              return null;
-            }
-          })
-        );
-        return docs.filter(Boolean);
-      };
-
-      try {
-        const [fetchedStories, fetchedThemes] = await Promise.all([
-          fetchDocs(needsStoryDocs, "stories", "story"),
-          fetchDocs(needsThemeDocs, "themes", "theme"),
-        ]);
-
-        const orderItems = (ids, remote, local) =>
-          ids
-            .map((id) => {
-              const fromRemote = remote.find((item) => item.id === id);
-              const fromLocal = local.find((item) => item.id === id);
-              return fromRemote || fromLocal || null;
-            })
-            .filter(Boolean);
-
-        const mergedStories = orderItems(storyIds, fetchedStories, localStories);
-        const mergedThemes = orderItems(themeIds, fetchedThemes, localThemes);
-
-        if (!cancelled) {
-          setSavedItems({
-            stories: mergedStories,
-            themes: mergedThemes,
-          });
-        }
-      } catch (err) {
-        console.warn("Failed to load saved items", err);
-        if (!cancelled) {
-          setSavedItems({
-            stories: localStories,
-            themes: localThemes,
-          });
-        }
-      } finally {
-        if (!cancelled) setSavedLoading(false);
-      }
-    };
-
-    fetchSavedItems();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user, favorites, favoriteItems]);
 
   const persist = async (payload) => {
     if (!user) return;
@@ -246,32 +158,27 @@ export function UserDataProvider({ user, children }) {
   const toggleFavorite = useCallback(
     (type, id, itemData) => {
       if (!user || !type || !id) return;
+
       setFavorites((prev) => {
         const current = prev[type] || [];
         const exists = current.includes(id);
-        const updatedList = exists
-          ? current.filter((itemId) => itemId !== id)
+        const updated = exists
+          ? current.filter((x) => x !== id)
           : [...current, id];
-        const nextFavorites = { ...prev, [type]: updatedList };
+
+        const nextFavorites = { ...prev, [type]: updated };
+
         setFavoriteItems((prevItems) => {
-          const currentItems = prevItems[type] || {};
-          const nextItems = { ...currentItems };
-          if (exists) {
-            delete nextItems[id];
-          } else if (itemData) {
-            nextItems[id] = {
-              id,
-              title: itemData.title,
-              overview: itemData.overview,
-              imageUrl: itemData.imageUrl,
-              category: itemData.category,
-              _kind: type === "stories" ? "story" : "theme",
-            };
+          const items = { ...(prevItems[type] || {}) };
+          if (exists) delete items[id];
+          else if (itemData) {
+            items[id] = { ...itemData, id, _kind: type === "themes" ? "theme" : "story" };
           }
-          const combined = { ...prevItems, [type]: nextItems };
+          const combined = { ...prevItems, [type]: items };
           persist({ favorites: nextFavorites, favoriteItems: combined });
           return combined;
         });
+
         return nextFavorites;
       });
     },
@@ -282,11 +189,10 @@ export function UserDataProvider({ user, children }) {
     (type, id) => {
       if (!user || !type || !id) return;
       setLastVisited((prev) => {
-        const nextForType = {
-          ...(prev[type] || {}),
-          [id]: Date.now(),
+        const next = {
+          ...prev,
+          [type]: { ...(prev[type] || {}), [id]: Date.now() },
         };
-        const next = { ...prev, [type]: nextForType };
         persist({ lastVisited: next });
         return next;
       });
@@ -301,34 +207,13 @@ export function UserDataProvider({ user, children }) {
       if (!last) return 0;
 
       let count = 0;
-      const timeline = Array.isArray(item.timeline) ? item.timeline : [];
-      timeline.forEach((event) => {
-        const dateMs = timestampToMs(event?.date);
-        if (dateMs > last) count += 1;
+      (item.timeline || []).forEach((ev) => {
+        if (timestampToMs(ev?.date) > last) count += 1;
       });
-
       return count;
     },
     [lastVisited]
   );
-
-  useEffect(() => {
-    if (!user) {
-      setSavedUpdatesCount(0);
-      return;
-    }
-    const allSavedItems = [
-      ...(savedItems?.stories || []),
-      ...(savedItems?.themes || []),
-    ];
-    const totalUpdates = allSavedItems.reduce((sum, item) => {
-      const type = item?._kind === "theme" ? "themes" : "stories";
-      return sum + getUpdatesSinceLastVisit(type, item);
-    }, 0);
-    setSavedUpdatesCount(totalUpdates);
-  }, [savedItems, getUpdatesSinceLastVisit, user]);
-
-  const themeColors = getThemeColors(darkMode);
 
   const value = {
     user,
@@ -340,7 +225,7 @@ export function UserDataProvider({ user, children }) {
     savedItems,
     savedLoading,
     savedUpdatesCount,
-    themeColors,
+    themeColors: getThemeColors(darkMode),
     toggleDarkMode,
     toggleFavorite,
     recordVisit,

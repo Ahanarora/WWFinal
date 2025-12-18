@@ -1,5 +1,5 @@
 // ----------------------------------------
-// screens/StoryScreen.js
+// screens/StoryScreen.tsx
 // (RESTORED ORIGINAL + Analysis buttons + PHASES + Event Reader phases)
 // ----------------------------------------
 
@@ -31,26 +31,53 @@ import { shareItem } from "../utils/share";
 import EventSortToggle from "../components/EventSortToggle";
 import WWHomeCard from "../components/WWHomeCard";
 import PublisherPreviewCard from "../components/PublisherPreviewCard";
-// Shared timeline contract (future-proofing)
-import { /* types only */ } from "@ww/shared";
-import { normalizeSources } from "../utils/normalizeSources"; // ✅ boundary normalizer
+
+// Shared timeline contract
+import type { TimelineBlock, TimelineEventBlock, SourceItem } from "@ww/shared";
 import { normalizeTimelineBlocks } from "../utils/normalizeTimelineBlocks";
 
 
+type NavLike = any;
+type RouteLike = { params?: any };
+
+type WithOriginalIndex<T> = T & { _originalIndex?: number };
+
+
+// ------------------------------------------------------------------
+// Phase 2B: minimal typing scaffolding (NO behavior change)
+// ------------------------------------------------------------------
+
+// UI-extended event (CMS + enrichment allowed)
+type UITimelineEvent = TimelineEventBlock & {
+  factCheck?: {
+    confidenceScore?: number;
+    explanation?: string;
+    lastCheckedAt?: any;
+  };
+  faqs?: { question?: string; answer?: string }[];
+  contexts?: any[];
+  media?: {
+    type?: string | null;
+    imageUrl?: string | null;
+    sourceIndex?: number;
+  };
+};
+
+// ------------------------------------------------------------------
+
 const PHASE_PALETTE = [
-  "#EF4444", // red
-  "#3B82F6", // blue
-  "#FACC15", // yellow
-  "#22C55E", // green
-  "#F97316", // orange
-  "#A855F7", // purple
-  "#14B8A6", // teal
-  "#EC4899", // pink
-  "#6366F1", // indigo
+  "#EF4444",
+  "#3B82F6",
+  "#FACC15",
+  "#22C55E",
+  "#F97316",
+  "#A855F7",
+  "#14B8A6",
+  "#EC4899",
+  "#6366F1",
 ];
 
-
-const recencyWeight = (item) => {
+const recencyWeight = (item: any) => {
   const t =
     item?.updatedAt || item?.publishedAt || item?.createdAt || item?.timestamp;
   if (!t) return 0;
@@ -67,16 +94,16 @@ const recencyWeight = (item) => {
   return Math.max(0, 1 - capped / 120);
 };
 
-const primaryCategory = (item) =>
+const primaryCategory = (item: any) =>
   item?.category ||
   (Array.isArray(item?.allCategories) ? item.allCategories[0] : null) ||
   item?.primaryCategory ||
   item?.categories?.[0] ||
   "";
 
-const tagSet = (item) => {
-  const tags = new Set();
-  const add = (val) => {
+const tagSet = (item: any) => {
+  const tags = new Set<string>();
+  const add = (val: any) => {
     if (!val) return;
     if (Array.isArray(val)) {
       val.forEach((v) => v && tags.add(String(v).toLowerCase()));
@@ -89,7 +116,7 @@ const tagSet = (item) => {
   return tags;
 };
 
-const scoreSimilarity = (base, candidate) => {
+const scoreSimilarity = (base: any, candidate: any) => {
   if (!base || !candidate) return 0;
   const baseTags = tagSet(base);
   const candTags = tagSet(candidate);
@@ -104,23 +131,32 @@ const scoreSimilarity = (base, candidate) => {
   return shared * 3 + (sameCategory ? 4 : 0) + recency * 3;
 };
 
-function getFactCheckRgb(score) {
-  if (score >= 85) return { bg: "#E8FBE3", text: "#16A34A" }; // brighter green
-  if (score >= 70) return { bg: "#FEF9C3", text: "#854D0E" }; // yellow
-  if (score >= 50) return { bg: "#FFEDD5", text: "#9A3412" }; // orange
-  return { bg: "#FEE2E2", text: "#991B1B" }; // red
+function getFactCheckRgb(score?: number) {
+  if (score === undefined) return null;
+  if (score >= 85) return { bg: "#E8FBE3", text: "#16A34A" };
+  if (score >= 70) return { bg: "#FEF9C3", text: "#854D0E" };
+  if (score >= 50) return { bg: "#FFEDD5", text: "#9A3412" };
+  return { bg: "#FEE2E2", text: "#991B1B" };
 }
 
-export default function StoryScreen({ route, navigation }) {
+// ------------------------------------------------------------------
+
+export default function StoryScreen({
+  route,
+  navigation,
+}: {
+  route: RouteLike;
+  navigation: NavLike;
+}) {
   const { story, index, allStories } = route.params || {};
 
   // Endless scroll state
-  const [feed, setFeed] = useState(story ? [story] : []);
+  const [feed, setFeed] = useState<any[]>(story ? [story] : []);
   const [currentIndex, setCurrentIndex] = useState(index ?? 0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // Suggestion source list (from props or cached search results)
-  const [suggestionPool, setSuggestionPool] = useState(() => {
+  // Suggestion pool
+  const [suggestionPool, setSuggestionPool] = useState<any[]>(() => {
     if (Array.isArray(allStories) && allStories.length) return allStories;
     const cached = getStorySearchCache();
     return Array.isArray(cached) ? cached : [];
@@ -140,11 +176,12 @@ export default function StoryScreen({ route, navigation }) {
 
   const headerShownRef = useRef(true);
   const lastOffsetY = useRef(0);
+
   const palette = themeColors || getThemeColors(darkMode);
   const styles = useMemo(() => createStyles(palette), [palette]);
 
   const toggleHeader = useCallback(
-    (show) => {
+    (show: boolean) => {
       if (!navigation?.getParent) return;
       if (headerShownRef.current === show) return;
       navigation.getParent()?.setOptions({ headerShown: show });
@@ -154,7 +191,7 @@ export default function StoryScreen({ route, navigation }) {
   );
 
   const handleHeaderScroll = useCallback(
-    ({ nativeEvent }) => {
+    ({ nativeEvent }: any) => {
       const y = nativeEvent?.contentOffset?.y || 0;
       const delta = y - lastOffsetY.current;
       const threshold = 20;
@@ -167,24 +204,27 @@ export default function StoryScreen({ route, navigation }) {
 
   useEffect(() => () => toggleHeader(true), [toggleHeader]);
 
-  const [sortOrder, setSortOrder] = useState("chronological");
+  const [sortOrder, setSortOrder] = useState<"chronological" | "reverse">(
+    "chronological"
+  );
 
-  const [factCheckModal, setFactCheckModal] = useState({
-    visible: false,
-    factCheck: null,
-  });
+  const [factCheckModal, setFactCheckModal] = useState<{
+    visible: boolean;
+    factCheck: any;
+  }>({ visible: false, factCheck: null });
 
-  const [faqModal, setFaqModal] = useState({
-    visible: false,
-    title: "",
-    faqs: [],
-  });
+  const [faqModal, setFaqModal] = useState<{
+    visible: boolean;
+    title: string;
+    faqs: any[];
+  }>({ visible: false, title: "", faqs: [] });
 
-  const [faqExpanded, setFaqExpanded] = useState({});
+  const [faqExpanded, setFaqExpanded] = useState<Record<number, boolean>>({});
 
-  const isFavoriteStory = (id) => favorites?.stories?.includes(id);
+  const isFavoriteStory = (id: string) =>
+    favorites?.stories?.includes(id);
 
-  const handleFavorite = (item) => {
+  const handleFavorite = (item: any) => {
     if (!user) {
       alert("Sign in to save stories.");
       return;
@@ -195,25 +235,29 @@ export default function StoryScreen({ route, navigation }) {
     });
   };
 
-  if (!story)
+  if (!story) {
     return (
       <View style={styles.center}>
         <Text style={styles.error}>⚠️ No story found.</Text>
       </View>
     );
+  }
 
   const primaryAnalysis = normalizeAnalysis(story.analysis);
 
   useEffect(() => {
-    if (story?.id) {
-      recordVisit("stories", story.id);
-    }
+    if (story?.id) recordVisit("stories", story.id);
   }, [story?.id, recordVisit]);
 
   const primaryContexts = [
     ...(story.contexts || []),
     ...(primaryAnalysis?.contexts || []),
   ];
+
+
+// PART 2 / 3
+// (Continue from where PART 1 ended — do not paste alone.)
+// ----------------------------------------
 
   useEffect(() => {
     if (Array.isArray(allStories) && allStories.length) {
@@ -231,8 +275,8 @@ export default function StoryScreen({ route, navigation }) {
         if (!mounted) return;
         const data = snap.docs.map((d) => ({ docId: d.id, ...d.data() }));
         const merged = [...suggestionPool, ...data];
-        const deduped = [];
-        const seen = new Set();
+        const deduped: any[] = [];
+        const seen = new Set<string>();
         merged.forEach((item) => {
           const key = item.docId || item.id;
           if (!key || seen.has(key)) return;
@@ -283,11 +327,10 @@ export default function StoryScreen({ route, navigation }) {
       0);
 
   // ---------------------------------------------------------
-  // RENDER SINGLE STORY BLOCK (WITH PHASE HEADERS)
+  // Suggestions
   // ---------------------------------------------------------
-  const buildSuggestions = (base) => {
-    // Score stories by shared tags/category and recency
-    if (!base) return { similar: [], moreCategory: [], categoryLabel: "" };
+  const buildSuggestions = (base: any) => {
+    if (!base) return { similar: [] as any[] };
     const baseId = base.id || base.docId;
     const pool = (suggestionPool || []).filter(
       (s) => (s.id || s.docId) && (s.id || s.docId) !== baseId
@@ -300,7 +343,11 @@ export default function StoryScreen({ route, navigation }) {
     return { similar };
   };
 
-  const renderSuggestionsRow = (title, items, onPressItem) => {
+  const renderSuggestionsRow = (
+    title: string,
+    items: any[],
+    onPressItem: (itm: any) => void
+  ) => {
     if (!items?.length) return null;
     return (
       <View style={styles.suggestionBlock}>
@@ -331,10 +378,11 @@ export default function StoryScreen({ route, navigation }) {
     );
   };
 
-  const renderSuggestions = (base) => {
+  const renderSuggestions = (base: any) => {
     const { similar } = buildSuggestions(base);
     if (!similar.length) return null;
-    const openStory = (item) =>
+
+    const openStory = (item: any) =>
       navigation.push("Story", {
         story: item,
         index: 0,
@@ -348,24 +396,31 @@ export default function StoryScreen({ route, navigation }) {
     );
   };
 
-  const renderStoryBlock = (item) => {
-    const sortEvents = (events) => {
+  // ---------------------------------------------------------
+  // Render a single Story block (timeline + phases)
+  // ---------------------------------------------------------
+  const renderStoryBlock = (item: any) => {
+    const sortEvents = (events: any[]) => {
       if (!Array.isArray(events)) return [];
       const copy = [...events];
       return copy.sort((a, b) => {
         const aTime = a.timestamp || a.date || a.startedAt;
         const bTime = b.timestamp || b.date || b.startedAt;
         if (!aTime || !bTime) return 0;
-        const aMs = typeof aTime === "number" ? aTime : new Date(aTime).getTime();
-        const bMs = typeof bTime === "number" ? bTime : new Date(bTime).getTime();
+
+        const aMs =
+          typeof aTime === "number" ? aTime : new Date(aTime).getTime();
+        const bMs =
+          typeof bTime === "number" ? bTime : new Date(bTime).getTime();
         if (Number.isNaN(aMs) || Number.isNaN(bMs)) return 0;
+
         return sortOrder === "chronological" ? aMs - bMs : bMs - aMs;
       });
     };
 
-  const canonicalTimeline = normalizeTimelineBlocks(item.timeline);
-const rawTimeline = sortEvents(canonicalTimeline);
-
+    // Phase 2B: normalize legacy timeline → canonical blocks
+    const canonicalTimeline = normalizeTimelineBlocks(item.timeline) as TimelineBlock[];
+    const rawTimeline = sortEvents(canonicalTimeline as any[]) as TimelineBlock[];
 
     const analysisForItem =
       item.id === story.id ? primaryAnalysis : normalizeAnalysis(item.analysis);
@@ -375,16 +430,24 @@ const rawTimeline = sortEvents(canonicalTimeline);
       ...(analysisForItem?.contexts || []),
     ];
 
-    // Add original index to each event
-    const indexedTimeline = rawTimeline.map((evt, originalIndex) => ({
-      ...evt,
-      _originalIndex: originalIndex,
-    }));
+    // We only render event blocks in this screen
+    const eventBlocks = (rawTimeline || []).filter(
+      (b: any) => b && typeof b === "object" && b.type === "event"
+    ) as UITimelineEvent[];
 
-    // Depth filtering
+    // Add original index to each event
+    const indexedTimeline = (eventBlocks as UITimelineEvent[]).map(
+      (evt, originalIndex) =>
+        ({
+          ...evt,
+          _originalIndex: originalIndex,
+        } as WithOriginalIndex<UITimelineEvent>)
+    );
+
+    // Depth filtering (uses canonical significance)
     const filteredTimeline = indexedTimeline.filter((e) => {
       if (depth === 1) return e.significance === 3;
-      if (depth === 2) return e.significance >= 2;
+      if (depth === 2) return (e.significance || 1) >= 2;
       return true;
     });
 
@@ -392,7 +455,7 @@ const rawTimeline = sortEvents(canonicalTimeline);
     const rawPhases = Array.isArray(item.phases) ? item.phases : [];
     const timelineLength = indexedTimeline.length;
 
-    const phasesWithAccent = rawPhases.map((phase, idx) => {
+    const phasesWithAccent = rawPhases.map((phase: any, idx: number) => {
       const accentColor =
         phase?.accentColor ||
         phase?.color ||
@@ -418,34 +481,41 @@ const rawTimeline = sortEvents(canonicalTimeline);
       };
     });
 
-    const phaseStartLookup = phasesWithAccent.reduce((acc, phase) => {
-      if (typeof phase?.startIndex === "number") {
-        acc[phase.startIndex] = phase;
-      }
-      return acc;
-    }, {});
-
-    const phaseRangeLookup = phasesWithAccent.reduce((acc, phase) => {
-      if (
-        typeof phase?.startIndex === "number" &&
-        typeof phase?.endIndex === "number"
-      ) {
-        for (let idx = phase.startIndex; idx <= phase.endIndex; idx += 1) {
-          acc[idx] = phase;
+    const phaseStartLookup = phasesWithAccent.reduce(
+      (acc: Record<number, any>, phase: any) => {
+        if (typeof phase?.startIndex === "number") {
+          acc[phase.startIndex] = phase;
         }
-      }
-      return acc;
-    }, {});
+        return acc;
+      },
+      {}
+    );
 
-    const getPhaseForEventStart = (event) => {
+    const phaseRangeLookup = phasesWithAccent.reduce(
+      (acc: Record<number, any>, phase: any) => {
+        if (
+          typeof phase?.startIndex === "number" &&
+          typeof phase?.endIndex === "number"
+        ) {
+          for (let idx = phase.startIndex; idx <= phase.endIndex; idx += 1) {
+            acc[idx] = phase;
+          }
+        }
+        return acc;
+      },
+      {}
+    );
+
+    const getPhaseForEventStart = (event: WithOriginalIndex<UITimelineEvent>) => {
       if (!phasesWithAccent.length) return null;
       return phaseStartLookup[event._originalIndex] || null;
     };
 
+    // Modal expects event blocks, plus phaseTitle injected for phase headers
     const timelineForModal = filteredTimeline.map((evt) => {
       const phase = getPhaseForEventStart(evt);
       return {
-        ...evt,
+        ...(evt as any),
         phaseTitle: phase?.title ?? null,
       };
     });
@@ -562,7 +632,7 @@ const rawTimeline = sortEvents(canonicalTimeline);
         )}
 
         {/* DEPTH SLIDER */}
-        {feed[0].id === item.id && filteredTimeline.length > 0 && (
+        {feed[0]?.id === item.id && filteredTimeline.length > 0 && (
           <View style={styles.sliderBox}>
             <Text style={styles.sliderLabel}>Essential</Text>
             <View style={styles.sliderTrackWrap}>
@@ -586,7 +656,7 @@ const rawTimeline = sortEvents(canonicalTimeline);
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionTitle}>Timeline</Text>
-            {filteredTimeline.length > 0 && feed[0].id === item.id && (
+            {filteredTimeline.length > 0 && feed[0]?.id === item.id && (
               <EventSortToggle sortOrder={sortOrder} onChange={setSortOrder} />
             )}
           </View>
@@ -597,20 +667,18 @@ const rawTimeline = sortEvents(canonicalTimeline);
             const isPhaseEnd =
               activePhase && activePhase.endIndex === e._originalIndex;
 
+            const confidence = e?.factCheck?.confidenceScore;
             const hasFactCheck =
-              !!e.factCheck &&
-              typeof e.factCheck.confidenceScore === "number" &&
-              !Number.isNaN(e.factCheck.confidenceScore);
+              typeof confidence === "number" && !Number.isNaN(confidence);
 
             const factCheckColors = hasFactCheck
-              ? getFactCheckRgb(e.factCheck.confidenceScore)
+              ? getFactCheckRgb(confidence)
               : null;
 
-            // ---- Phase 1: canonical sources boundary (compute once per event)
             const mode = e?.media?.type || null;
 
-
-            const sources = e.sources;
+            // Canonical sources (still accept legacy shapes in runtime)
+            const sources = (Array.isArray((e as any).sources) ? (e as any).sources : []) as SourceItem[];
 
             const primaryIdx =
               typeof e?.media?.sourceIndex === "number" ? e.media.sourceIndex : 0;
@@ -619,7 +687,9 @@ const rawTimeline = sortEvents(canonicalTimeline);
             const otherSources = primarySource
               ? sources.filter((s) => s.link !== primarySource.link)
               : sources;
-            // ---- end boundary
+
+            const description = (e as any).description || "";
+            const contexts = (e as any).contexts || [];
 
             return (
               <View key={e._originalIndex ?? i} style={styles.eventBlock}>
@@ -652,107 +722,120 @@ const rawTimeline = sortEvents(canonicalTimeline);
                   android_disableSound={true}
                 >
                   <View
-  style={[
-    styles.eventCard,
-    activePhase && {
-      borderLeftWidth: 3,
-      borderLeftColor: activePhase.accentColor,
-      paddingLeft: spacing.md - 3,
-    },
-  ]}
->
-  <View style={styles.eventContent}>
-    <Text style={styles.eventDate}>{formatDateLongOrdinal(e.date)}</Text>
+                    style={[
+                      styles.eventCard,
+                      activePhase && {
+                        borderLeftWidth: 3,
+                        borderLeftColor: activePhase.accentColor,
+                        paddingLeft: spacing.md - 3,
+                      },
+                    ]}
+                  >
+                    <View style={styles.eventContent}>
+                      <Text style={styles.eventDate}>
+                        {formatDateLongOrdinal((e as any).date)}
+                      </Text>
 
-    <View style={styles.eventTitleRow}>
-      <Text style={styles.eventTitle}>{e.title}</Text>
+                      <View style={styles.eventTitleRow}>
+                        <Text style={styles.eventTitle}>{(e as any).title}</Text>
 
-      {Array.isArray(e.faqs) && e.faqs.length > 0 && (
-        <TouchableOpacity
-          style={styles.faqIcon}
-          onPress={() =>
-            setFaqModal({
-              visible: true,
-              title: e.title || "FAQs",
-              faqs: e.faqs,
-            })
-          }
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons
-            name="help-circle-outline"
-            size={18}
-            color={palette.accent}
-          />
-        </TouchableOpacity>
-      )}
-    </View>
+                        {Array.isArray((e as any).faqs) &&
+                          (e as any).faqs.length > 0 && (
+                            <TouchableOpacity
+                              style={styles.faqIcon}
+                              onPress={() =>
+                                setFaqModal({
+                                  visible: true,
+                                  title: (e as any).title || "FAQs",
+                                  faqs: (e as any).faqs,
+                                })
+                              }
+                              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            >
+                              <Ionicons
+                                name="help-circle-outline"
+                                size={18}
+                                color={palette.accent}
+                              />
+                            </TouchableOpacity>
+                          )}
+                      </View>
 
-    <RenderWithContext
-      text={e.description}
-      contexts={e.contexts || []}
-      navigation={navigation}
-      themeColors={palette}
-      textStyle={{ color: palette.textPrimary }}
-    />
+                      <RenderWithContext
+                        text={description}
+                        contexts={contexts}
+                        navigation={navigation}
+                        themeColors={palette}
+                        textStyle={{}}
+                      />
 
-    {hasFactCheck && (
-      <View style={styles.factCheckContainer}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={() =>
-            setFactCheckModal({
-              visible: true,
-              factCheck: e.factCheck,
-            })
-          }
-        >
-          <Text
-            style={[
-              styles.factCheckBadge,
-              { color: factCheckColors.text },
-            ]}
-          >
-            {e.factCheck.confidenceScore}% fact-check confidence
-          </Text>
-        </TouchableOpacity>
-      </View>
-    )}
+                      {hasFactCheck && factCheckColors && (
+                        <View style={styles.factCheckContainer}>
+                          <TouchableOpacity
+                            activeOpacity={0.85}
+                            onPress={() =>
+                              setFactCheckModal({
+                                visible: true,
+                                factCheck: (e as any).factCheck,
+                              })
+                            }
+                          >
+                            <Text
+                              style={[
+                                styles.factCheckBadge,
+                                { color: factCheckColors.text },
+                              ]}
+                            >
+                              {(e as any).factCheck.confidenceScore}% fact-check
+                              confidence
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
 
-    {/* SOURCES (non link-preview) */}
-    {mode !== "link-preview" && sources.length > 0 ? (
-      <View style={styles.eventSources}>
-        <SourceLinks sources={sources} themeColors={palette} />
-      </View>
-    ) : null}
+                      {/* SOURCES (non link-preview) */}
+                      {mode !== "link-preview" && sources.length > 0 ? (
+                        <View style={styles.eventSources}>
+                          <SourceLinks sources={sources} themeColors={palette} />
+                        </View>
+                      ) : null}
 
-    {/* LINK PREVIEW or IMAGE */}
-    {mode === "link-preview" && primarySource?.link ? (
-      <View>
-        <PublisherPreviewCard source={primarySource} palette={palette} />
-        {otherSources.length > 0 ? (
-          <View style={styles.eventSources}>
-            <SourceLinks sources={otherSources} themeColors={palette} />
-          </View>
-        ) : null}
-      </View>
-    ) : (() => {
-        const img = e?.media?.imageUrl;
+                      {/* LINK PREVIEW or IMAGE */}
+                      {mode === "link-preview" && primarySource?.link ? (
+                        <View>
+                          <PublisherPreviewCard
+                            source={primarySource}
+                            palette={palette}
+                          />
+                          {otherSources.length > 0 ? (
+                            <View style={styles.eventSources}>
+                              <SourceLinks
+                                sources={otherSources}
+                                themeColors={palette}
+                              />
+                            </View>
+                          ) : null}
+                        </View>
+                      ) : (() => {
+                          const img = e?.media?.imageUrl;
+                          if (img) {
+                            return (
+                              <Image
+                                source={{ uri: img }}
+                                style={styles.eventImage}
+                              />
+                            );
+                          }
+                          return (
+                            <View style={styles.eventImagePlaceholder}>
+                              <Text style={styles.eventImageEmoji}>🗞️</Text>
+                            </View>
+                          );
+                        })()}
+                    </View>
+                  </View>
+                </Pressable>
 
-
-        if (img) {
-          return <Image source={{ uri: img }} style={styles.eventImage} />;
-        }
-
-        return (
-          <View style={styles.eventImagePlaceholder}>
-            <Text style={styles.eventImageEmoji}>🗞️</Text>
-          </View>
-        );
-      })()}
-  </View>
-</View>
-</Pressable>
                 {/* PHASE END */}
                 {isPhaseEnd && (
                   <View style={styles.phaseEndIndicator}>
@@ -771,6 +854,12 @@ const rawTimeline = sortEvents(canonicalTimeline);
       </View>
     );
   };
+
+  // ----------------------------------------
+// screens/StoryScreen.tsx
+// PART 3 / 3
+// (Final part — after this you will replace the file ONCE)
+// ----------------------------------------
 
   return (
     <ScrollView
@@ -807,20 +896,25 @@ const rawTimeline = sortEvents(canonicalTimeline);
         <TouchableOpacity
           style={styles.modalBackdrop}
           activeOpacity={1}
-          onPress={() => setFactCheckModal({ visible: false, factCheck: null })}
+          onPress={() =>
+            setFactCheckModal({ visible: false, factCheck: null })
+          }
         >
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Fact-check details</Text>
-            {factCheckModal.factCheck ? (
+
+            {factCheckModal.factCheck && (
               <>
                 <Text style={styles.modalScore}>
                   {factCheckModal.factCheck.confidenceScore}% confidence
                 </Text>
+
                 {factCheckModal.factCheck.explanation ? (
                   <Text style={styles.modalBody}>
                     {factCheckModal.factCheck.explanation}
                   </Text>
                 ) : null}
+
                 {factCheckModal.factCheck.lastCheckedAt ? (
                   <Text style={styles.modalMeta}>
                     Last updated:{" "}
@@ -830,7 +924,8 @@ const rawTimeline = sortEvents(canonicalTimeline);
                   </Text>
                 ) : null}
               </>
-            ) : null}
+            )}
+
             <TouchableOpacity
               style={styles.modalClose}
               onPress={() =>
@@ -916,7 +1011,7 @@ const rawTimeline = sortEvents(canonicalTimeline);
 // ----------------------------------------
 // STYLES
 // ----------------------------------------
-const createStyles = (palette) =>
+const createStyles = (palette: any) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -932,6 +1027,14 @@ const createStyles = (palette) =>
       borderRadius: 4,
       marginBottom: spacing.lg,
     },
+
+empty: {
+  fontFamily: fonts.body,
+  fontSize: 14,
+  color: palette.textSecondary,
+  marginVertical: spacing.sm,
+},
+
 
     title: {
       fontFamily: fonts.heading,
@@ -963,12 +1066,6 @@ const createStyles = (palette) =>
       marginBottom: spacing.sm,
       letterSpacing: 1,
     },
-    subcategory: {
-      fontFamily: fonts.body,
-      color: palette.textPrimary,
-      marginBottom: spacing.sm,
-      textDecorationLine: "underline",
-    },
 
     updated: {
       fontFamily: fonts.body,
@@ -990,7 +1087,6 @@ const createStyles = (palette) =>
       paddingHorizontal: 8,
       borderRadius: 14,
       backgroundColor: palette.surface,
-      borderWidth: 0,
       shadowColor: "#0F172A",
       shadowOpacity: 0.08,
       shadowRadius: 8,
@@ -1188,12 +1284,14 @@ const createStyles = (palette) =>
       height: 6,
       borderRadius: 3,
     },
+
     modalBackdrop: {
       flex: 1,
       backgroundColor: "rgba(0,0,0,0.45)",
       justifyContent: "center",
       padding: spacing.md,
     },
+
     suggestionsSection: {
       paddingHorizontal: 16,
       paddingBottom: 16,
@@ -1215,6 +1313,7 @@ const createStyles = (palette) =>
       width: 260,
       marginRight: 8,
     },
+
     modalCard: {
       backgroundColor: palette.surface,
       borderRadius: 12,
@@ -1270,4 +1369,5 @@ const createStyles = (palette) =>
       fontSize: 14,
       fontWeight: "600",
     },
+    
   });

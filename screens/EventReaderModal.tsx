@@ -1,5 +1,5 @@
 // ----------------------------------------
-// screens/EventReaderModal.js
+// screens/EventReaderModal.tsx
 // Full-screen vertical event reader (Inshorts-style, fade-in + phases)
 // ----------------------------------------
 
@@ -20,8 +20,24 @@ import RenderWithContext from "../components/RenderWithContext";
 import SourceLinks from "../components/SourceLinks";
 import { formatDateLongOrdinal } from "../utils/formatTime";
 import { useUserData } from "../contexts/UserDataContext";
+import type { TimelineEventBlock } from "@ww/shared";
 
-function getFactCheckRgb(score) {
+// ----------------------------------------
+// Route + Nav (kept intentionally loose)
+// ----------------------------------------
+type EventReaderParams = {
+  events?: TimelineEventBlock[];
+  startIndex?: number;
+  headerTitle?: string;
+};
+
+type RouteLike = { params?: EventReaderParams };
+type NavLike = any;
+
+// ----------------------------------------
+// Utils
+// ----------------------------------------
+function getFactCheckRgb(score: number) {
   if (score >= 85) return { bg: "#BBF7D0", text: "#166534" };
   if (score >= 70) return { bg: "#FEF9C3", text: "#854D0E" };
   if (score >= 50) return { bg: "#FFEDD5", text: "#9A3412" };
@@ -29,8 +45,27 @@ function getFactCheckRgb(score) {
 }
 
 // ----------------------------------------
-// EVENT CARD (canonical consumer)
+// EVENT CARD (pure canonical consumer)
 // ----------------------------------------
+type EventCardProps = {
+  event: TimelineEventBlock & {
+    phaseTitle?: string | null;
+    media?: {
+      type?: string | null;
+      imageUrl?: string | null;
+      sourceIndex?: number;
+    };
+    factCheck?: any;
+    contexts?: any[];
+  };
+
+  navigation: any;
+  headerTitle?: string;
+  onOpenFactCheck?: (fc: any) => void;
+  palette: any;
+  styles: any;
+};
+
 const EventCard = React.memo(function EventCard({
   event,
   navigation,
@@ -38,7 +73,7 @@ const EventCard = React.memo(function EventCard({
   onOpenFactCheck,
   palette,
   styles,
-}) {
+}: EventCardProps) {
   if (!event) return null;
 
   const {
@@ -70,22 +105,18 @@ const EventCard = React.memo(function EventCard({
         backgroundColor={palette.background}
       />
 
-      {/* STORY TITLE */}
       {headerTitle ? (
         <Text style={styles.modalStoryTitle}>{headerTitle}</Text>
       ) : null}
 
-      {/* PHASE TITLE */}
       {phaseTitle ? (
         <Text style={styles.modalPhaseTitle}>{phaseTitle}</Text>
       ) : null}
 
-      {/* IMAGE */}
       {media?.imageUrl ? (
         <Image source={{ uri: media.imageUrl }} style={styles.image} />
       ) : null}
 
-      {/* CONTENT */}
       <View style={styles.content}>
         {formattedDate ? (
           <Text style={styles.date}>{formattedDate}</Text>
@@ -100,18 +131,17 @@ const EventCard = React.memo(function EventCard({
               contexts={contexts}
               navigation={navigation}
               themeColors={palette}
+              textStyle={{}}
             />
           </View>
         ) : null}
 
-        {/* SOURCES */}
-       {sources?.length > 0 ? (
+        {sources?.length > 0 ? (
           <View style={styles.sources}>
             <SourceLinks sources={sources} themeColors={palette} />
           </View>
         ) : null}
 
-        {/* FACT CHECK */}
         {hasFactCheck && (
           <View style={styles.factCheckBlock}>
             <TouchableOpacity
@@ -140,7 +170,13 @@ const EventCard = React.memo(function EventCard({
 // ----------------------------------------
 // MAIN MODAL
 // ----------------------------------------
-export default function EventReaderModal({ route, navigation }) {
+export default function EventReaderModal({
+  route,
+  navigation,
+}: {
+  route: RouteLike;
+  navigation: NavLike;
+}) {
   const {
     events: inputEvents = [],
     startIndex = 0,
@@ -155,9 +191,6 @@ export default function EventReaderModal({ route, navigation }) {
     [palette, darkMode]
   );
 
-  // ----------------------------------------
-  // Guard only — assume canonical input
-  // ----------------------------------------
   const events = useMemo(() => {
     if (!Array.isArray(inputEvents)) return [];
     return inputEvents.filter(
@@ -172,7 +205,10 @@ export default function EventReaderModal({ route, navigation }) {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const anim = useRef(new Animated.Value(1)).current;
 
-  const [factCheckModal, setFactCheckModal] = useState({
+  const [factCheckModal, setFactCheckModal] = useState<{
+    visible: boolean;
+    factCheck: any;
+  }>({
     visible: false,
     factCheck: null,
   });
@@ -192,10 +228,7 @@ export default function EventReaderModal({ route, navigation }) {
 
   const currentEvent = events[index];
 
-  // ----------------------------------------
-  // Fade transition
-  // ----------------------------------------
-  const startTransition = (nextIndex) => {
+  const startTransition = (nextIndex: number) => {
     if (
       nextIndex === index ||
       nextIndex < 0 ||
@@ -215,9 +248,6 @@ export default function EventReaderModal({ route, navigation }) {
     }).start(() => setIsTransitioning(false));
   };
 
-  // ----------------------------------------
-  // Vertical swipe
-  // ----------------------------------------
   const panResponder = useMemo(
     () =>
       PanResponder.create({
@@ -337,7 +367,7 @@ export default function EventReaderModal({ route, navigation }) {
 // ----------------------------------------
 // STYLES
 // ----------------------------------------
-const createStyles = (palette) =>
+const createStyles = (palette: any) =>
   StyleSheet.create({
     container: {
       flex: 1,

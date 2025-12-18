@@ -1,5 +1,5 @@
 // ----------------------------------------
-// screens/ThemeScreen.js
+// screens/ThemeScreen.tsx
 // PHASE SUPPORT + EventReader integration
 // ----------------------------------------
 
@@ -29,58 +29,90 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import WWHomeCard from "../components/WWHomeCard";
 import PublisherPreviewCard from "../components/PublisherPreviewCard";
-// Shared timeline contract (future-proofing)
-import { /* types only */ } from "@ww/shared";
-import { normalizeSources } from "../utils/normalizeSources"; // ✅ boundary normalizer
-import { getStorySearchCache } from "../utils/storyCache"; // used in Search navigation
+
+// Shared timeline contract
+import type {
+  TimelineBlock,
+  TimelineEventBlock,
+  SourceItem,
+} from "@ww/shared";
 import { normalizeTimelineBlocks } from "../utils/normalizeTimelineBlocks";
+import { getStorySearchCache } from "../utils/storyCache";
 
+// -------------------------------------------------
+// LOCAL TYPES (Phase 2B – UI widening only)
+// -------------------------------------------------
+type RouteLike = { params?: any };
+type NavLike = any;
 
+type WithOriginalIndex<T> = T & { _originalIndex: number };
+
+type UIThemeTimelineEvent = TimelineEventBlock & {
+  factCheck?: any;
+  faqs?: any[];
+  contexts?: any[];
+  media?: {
+    type?: string | null;
+    imageUrl?: string | null;
+    sourceIndex?: number;
+  };
+};
+
+// -------------------------------------------------
+// CONSTANTS
+// -------------------------------------------------
 const PHASE_PALETTE = [
-  "#EF4444", // red
-  "#3B82F6", // blue
-  "#FACC15", // yellow
-  "#22C55E", // green
-  "#F97316", // orange
-  "#A855F7", // purple
-  "#14B8A6", // teal
-  "#EC4899", // pink
-  "#6366F1", // indigo
+  "#EF4444",
+  "#3B82F6",
+  "#FACC15",
+  "#22C55E",
+  "#F97316",
+  "#A855F7",
+  "#14B8A6",
+  "#EC4899",
+  "#6366F1",
 ];
 
-
-
-const recencyWeight = (item) => {
+// -------------------------------------------------
+// SCORING / SIMILARITY HELPERS
+// -------------------------------------------------
+const recencyWeight = (item: any) => {
   const t =
     item?.updatedAt || item?.publishedAt || item?.createdAt || item?.timestamp;
   if (!t) return 0;
+
   const ms =
     typeof t.toDate === "function"
       ? t.toDate().getTime()
       : t.seconds
       ? t.seconds * 1000
       : new Date(t).getTime();
+
   if (!ms || Number.isNaN(ms)) return 0;
+
   const days = (Date.now() - ms) / 86400000;
   if (days < 0) return 1;
+
   const capped = Math.min(days, 120);
   return Math.max(0, 1 - capped / 120);
 };
 
-const primaryCategory = (item) =>
+const primaryCategory = (item: any) =>
   item?.category ||
   (Array.isArray(item?.allCategories) ? item.allCategories[0] : null) ||
   item?.primaryCategory ||
   item?.categories?.[0] ||
   "";
 
-const tagSet = (item) => {
-  const tags = new Set();
-  const add = (val) => {
+const tagSet = (item: any) => {
+  const tags = new Set<string>();
+  const add = (val: any) => {
     if (!val) return;
     if (Array.isArray(val)) {
       val.forEach((v) => v && tags.add(String(v).toLowerCase()));
-    } else tags.add(String(val).toLowerCase());
+    } else {
+      tags.add(String(val).toLowerCase());
+    }
   };
   add(item?.tags);
   add(item?.allCategories);
@@ -89,39 +121,57 @@ const tagSet = (item) => {
   return tags;
 };
 
-const scoreSimilarity = (base, candidate) => {
+const scoreSimilarity = (base: any, candidate: any) => {
   if (!base || !candidate) return 0;
+
   const baseTags = tagSet(base);
   const candTags = tagSet(candidate);
+
   let shared = 0;
   candTags.forEach((t) => {
     if (baseTags.has(t)) shared += 1;
   });
+
   const sameCategory =
     primaryCategory(base).toLowerCase() ===
     primaryCategory(candidate).toLowerCase();
+
   const recency = recencyWeight(candidate);
   return shared * 3 + (sameCategory ? 4 : 0) + recency * 3;
 };
 
-function getFactCheckRgb(score) {
+function getFactCheckRgb(score: number) {
   if (score >= 85) return { bg: "#E9F9D0", text: "#3F6212" };
   if (score >= 70) return { bg: "#FEF9C3", text: "#854D0E" };
   if (score >= 50) return { bg: "#FFEDD5", text: "#9A3412" };
   return { bg: "#FEE2E2", text: "#991B1B" };
 }
 
-export default function ThemeScreen({ route, navigation }) {
+// -------------------------------------------------
+// MAIN COMPONENT
+// -------------------------------------------------
+export default function ThemeScreen({
+  route,
+  navigation,
+}: {
+  route: RouteLike;
+  navigation: NavLike;
+}) {
   const { theme, index, allThemes } = route.params || {};
 
-  const [feed, setFeed] = useState(theme ? [theme] : []);
+  // Endless scroll
+  const [feed, setFeed] = useState<any[]>(theme ? [theme] : []);
   const [currentIndex, setCurrentIndex] = useState(index ?? 0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
+  // Timeline controls
   const [depth, setDepth] = useState(2);
-  const [sortOrder, setSortOrder] = useState("chronological");
+  const [sortOrder, setSortOrder] = useState<"chronological" | "reverse">(
+    "chronological"
+  );
 
-  const [suggestionPool, setSuggestionPool] = useState(() => {
+  // Suggestions pool
+  const [suggestionPool, setSuggestionPool] = useState<any[]>(() => {
     if (Array.isArray(allThemes) && allThemes.length) return allThemes;
     if (Array.isArray(feed) && feed.length) return feed;
     return [];
@@ -140,22 +190,33 @@ export default function ThemeScreen({ route, navigation }) {
   const palette = themeColors || getThemeColors(darkMode);
   const styles = useMemo(() => createStyles(palette), [palette]);
 
-  const [factCheckModal, setFactCheckModal] = useState({
+  const [factCheckModal, setFactCheckModal] = useState<{
+    visible: boolean;
+    factCheck: any;
+  }>({
     visible: false,
     factCheck: null,
   });
 
-  const [faqModal, setFaqModal] = useState({
+  const [faqModal, setFaqModal] = useState<{
+    visible: boolean;
+    title: string;
+    faqs: any[];
+  }>({
     visible: false,
     title: "",
     faqs: [],
   });
 
-  const [faqExpanded, setFaqExpanded] = useState({});
+  const [faqExpanded, setFaqExpanded] = useState<Record<number, boolean>>({});
 
   const headerShownRef = useRef(true);
   const lastOffsetY = useRef(0);
 
+  // (CONTINUES IN PART 2)
+  // -------------------------------------------------
+  // EFFECTS: suggestion pool hydration
+  // -------------------------------------------------
   useEffect(() => {
     if (Array.isArray(allThemes) && allThemes.length) {
       setSuggestionPool(allThemes);
@@ -175,8 +236,8 @@ export default function ThemeScreen({ route, navigation }) {
         if (!mounted) return;
         const data = snap.docs.map((d) => ({ docId: d.id, ...d.data() }));
         const merged = [...suggestionPool, ...data];
-        const deduped = [];
-        const seen = new Set();
+        const deduped: any[] = [];
+        const seen = new Set<string>();
         merged.forEach((item) => {
           const key = item.docId || item.id;
           if (!key || seen.has(key)) return;
@@ -194,8 +255,11 @@ export default function ThemeScreen({ route, navigation }) {
     };
   }, [suggestionPool.length]);
 
+  // -------------------------------------------------
+  // HEADER SHOW / HIDE
+  // -------------------------------------------------
   const toggleHeader = useCallback(
-    (show) => {
+    (show: boolean) => {
       if (!navigation?.getParent) return;
       if (headerShownRef.current === show) return;
       navigation.getParent()?.setOptions({ headerShown: show });
@@ -205,7 +269,7 @@ export default function ThemeScreen({ route, navigation }) {
   );
 
   const handleHeaderScroll = useCallback(
-    ({ nativeEvent }) => {
+    ({ nativeEvent }: any) => {
       const y = nativeEvent?.contentOffset?.y || 0;
       const delta = y - lastOffsetY.current;
       const threshold = 20;
@@ -218,22 +282,29 @@ export default function ThemeScreen({ route, navigation }) {
 
   useEffect(() => () => toggleHeader(true), [toggleHeader]);
 
-  if (!theme)
+  // -------------------------------------------------
+  // GUARDS
+  // -------------------------------------------------
+  if (!theme) {
     return (
       <View style={styles.center}>
         <Text style={styles.error}>⚠️ No theme found.</Text>
       </View>
     );
+  }
 
+  // -------------------------------------------------
+  // ANALYSIS + CONTEXTS
+  // -------------------------------------------------
   const primaryAnalysis = normalizeAnalysis(theme.analysis);
   const primaryContexts = [
     ...(theme.contexts || []),
     ...(primaryAnalysis?.contexts || []),
   ];
 
-  const isFavorite = (id) => favorites?.themes?.includes(id);
+  const isFavorite = (id: string) => favorites?.themes?.includes(id);
 
-  const handleFavorite = (item) => {
+  const handleFavorite = (item: any) => {
     if (!user) {
       alert("Sign in to save themes.");
       return;
@@ -244,9 +315,10 @@ export default function ThemeScreen({ route, navigation }) {
     });
   };
 
-  const updatesCount = (item) => getUpdatesSinceLastVisit("themes", item);
+  const updatesCount = (item: any) =>
+    getUpdatesSinceLastVisit("themes", item);
 
-  const renderUpdateBadge = (count) =>
+  const renderUpdateBadge = (count: number) =>
     count > 0 ? (
       <View style={styles.updateBadge}>
         <Text style={styles.updateBadgeText}>
@@ -267,9 +339,9 @@ export default function ThemeScreen({ route, navigation }) {
     }
   }, [theme?.id, recordVisit]);
 
-  // ------------------------------
-  // Endless scroll
-  // ------------------------------
+  // -------------------------------------------------
+  // ENDLESS SCROLL
+  // -------------------------------------------------
   const loadNextTheme = () => {
     if (isLoadingMore) return;
     if (!Array.isArray(allThemes) || currentIndex >= allThemes.length - 1)
@@ -295,10 +367,10 @@ export default function ThemeScreen({ route, navigation }) {
     setIsLoadingMore(false);
   };
 
-  // ------------------------------
-  // Render one theme block
-  // ------------------------------
-  const buildSuggestions = (base) => {
+  // -------------------------------------------------
+  // SUGGESTIONS
+  // -------------------------------------------------
+  const buildSuggestions = (base: any) => {
     if (!base) return { similar: [] };
     const baseId = base.id || base.docId;
     const pool = (suggestionPool || []).filter(
@@ -314,7 +386,11 @@ export default function ThemeScreen({ route, navigation }) {
     return { similar };
   };
 
-  const renderSuggestionsRow = (title, items, onPressItem) => {
+  const renderSuggestionsRow = (
+    title: string,
+    items: any[],
+    onPressItem: (item: any) => void
+  ) => {
     if (!items?.length) return null;
     return (
       <View style={styles.suggestionBlock}>
@@ -331,7 +407,10 @@ export default function ThemeScreen({ route, navigation }) {
               type: itm.type || "theme",
             };
             return (
-              <View key={normalized.docId} style={styles.suggestionCardWrapper}>
+              <View
+                key={normalized.docId}
+                style={styles.suggestionCardWrapper}
+              >
                 <WWHomeCard
                   item={normalized}
                   navigation={navigation}
@@ -345,15 +424,18 @@ export default function ThemeScreen({ route, navigation }) {
     );
   };
 
-  const renderSuggestions = (base) => {
+  const renderSuggestions = (base: any) => {
     const { similar } = buildSuggestions(base);
     if (!similar.length) return null;
-    const openTheme = (item) =>
-      navigation.push("Theme", {
-        theme: item,
-        index: 0,
-        allThemes: suggestionPool,
-      });
+
+    const openTheme = (item: any) =>
+  (navigation as any).push("Theme", {
+    theme: item,
+    index: 0,
+    allThemes: suggestionPool,
+  });
+
+
 
     return (
       <View style={styles.suggestionsSection}>
@@ -362,11 +444,14 @@ export default function ThemeScreen({ route, navigation }) {
     );
   };
 
-  const renderThemeBlock = (item, isFirst) => {
-    const sortEvents = (events) => {
+  // -------------------------------------------------
+  // RENDER ONE THEME BLOCK
+  // -------------------------------------------------
+  const renderThemeBlock = (item: any, isFirst: boolean) => {
+    const sortEvents = (events: TimelineBlock[]) => {
       if (!Array.isArray(events)) return [];
       const copy = [...events];
-      return copy.sort((a, b) => {
+      return copy.sort((a: any, b: any) => {
         const aTime = a.timestamp || a.date || a.startedAt;
         const bTime = b.timestamp || b.date || b.startedAt;
         if (!aTime || !bTime) return 0;
@@ -379,30 +464,38 @@ export default function ThemeScreen({ route, navigation }) {
       });
     };
 
-  const canonicalTimeline = normalizeTimelineBlocks(item.timeline);
-const rawTimeline = sortEvents(canonicalTimeline);
-
-
+    const canonicalTimeline = normalizeTimelineBlocks(
+      item.timeline
+    ) as TimelineBlock[];
+    const rawTimeline = sortEvents(canonicalTimeline) as TimelineBlock[];
 
     const analysisForItem =
-      item.id === theme.id ? primaryAnalysis : normalizeAnalysis(item.analysis);
+      item.id === theme.id
+        ? primaryAnalysis
+        : normalizeAnalysis(item.analysis);
 
     const combinedContexts = [
       ...(item.contexts || []),
       ...(analysisForItem?.contexts || []),
     ];
 
-    // Add original index
-    const indexedTimeline = rawTimeline.map((evt, originalIndex) => ({
-      ...evt,
-      _originalIndex: originalIndex,
-    }));
+    // Add original index (UI widening only)
+    const indexedTimeline = (rawTimeline as UIThemeTimelineEvent[]).map(
+      (evt, originalIndex) =>
+        ({
+          ...evt,
+          _originalIndex: originalIndex,
+        } as WithOriginalIndex<UIThemeTimelineEvent>)
+    );
 
-    // Phase definitions from CMS
+    // (CONTINUES IN PART 3)
+    // ------------------------------
+    // PHASES (from CMS)
+    // ------------------------------
     const rawPhases = Array.isArray(item.phases) ? item.phases : [];
     const timelineLength = indexedTimeline.length;
 
-    const phasesWithAccent = rawPhases.map((phase, idx) => {
+    const phasesWithAccent = rawPhases.map((phase: any, idx: number) => {
       const accentColor =
         phase?.accentColor ||
         phase?.color ||
@@ -428,38 +521,46 @@ const rawTimeline = sortEvents(canonicalTimeline);
       };
     });
 
-    const phaseStartLookup = phasesWithAccent.reduce((acc, phase) => {
-      if (typeof phase?.startIndex === "number") {
-        acc[phase.startIndex] = phase;
-      }
-      return acc;
-    }, {});
-
-    const phaseRangeLookup = phasesWithAccent.reduce((acc, phase) => {
-      if (
-        typeof phase?.startIndex === "number" &&
-        typeof phase?.endIndex === "number"
-      ) {
-        for (let idx = phase.startIndex; idx <= phase.endIndex; idx += 1) {
-          acc[idx] = phase;
+    const phaseStartLookup = phasesWithAccent.reduce(
+      (acc: Record<number, any>, phase: any) => {
+        if (typeof phase?.startIndex === "number") {
+          acc[phase.startIndex] = phase;
         }
-      }
-      return acc;
-    }, {});
+        return acc;
+      },
+      {}
+    );
 
-    const getPhaseForEventStart = (event) => {
+    const phaseRangeLookup = phasesWithAccent.reduce(
+      (acc: Record<number, any>, phase: any) => {
+        if (
+          typeof phase?.startIndex === "number" &&
+          typeof phase?.endIndex === "number"
+        ) {
+          for (let idx = phase.startIndex; idx <= phase.endIndex; idx += 1) {
+            acc[idx] = phase;
+          }
+        }
+        return acc;
+      },
+      {}
+    );
+
+    const getPhaseForEventStart = (event: WithOriginalIndex<any>) => {
       if (!phasesWithAccent.length) return null;
       return phaseStartLookup[event._originalIndex] || null;
     };
 
-    // Depth filtering
+    // ------------------------------
+    // DEPTH FILTERING
+    // ------------------------------
     const filteredTimeline = indexedTimeline.filter((e) => {
       if (depth === 1) return e.significance === 3;
       if (depth === 2) return e.significance >= 2;
       return true;
     });
 
-    // EventReader modal enriched timeline
+    // EventReader modal payload
     const timelineForModal = filteredTimeline.map((evt) => {
       const ph = getPhaseForEventStart(evt);
       return {
@@ -506,10 +607,11 @@ const rawTimeline = sortEvents(canonicalTimeline);
         <TouchableOpacity
           onPress={() =>
             item.category &&
-            navigation.navigate("Search", {
-              stories: getStorySearchCache(),
-              initialQuery: item.category,
-            })
+            (navigation as any).navigate("Search", {
+  stories: getStorySearchCache(),
+  initialQuery: item.category,
+})
+
           }
           disabled={!item.category}
         >
@@ -530,18 +632,19 @@ const rawTimeline = sortEvents(canonicalTimeline);
           </View>
         ) : null}
 
-        {/* ANALYSIS BUTTONS — only for first theme */}
+        {/* ANALYSIS BUTTONS */}
         {isFirst && hasAnyAnalysis && (
           <View style={styles.analysisButtonsRow}>
             {primaryAnalysis.stakeholders?.length > 0 && (
               <TouchableOpacity
                 style={styles.analysisButton}
                 onPress={() =>
-                  navigation.push("AnalysisModal", {
-                    type: "stakeholders",
-                    analysis: primaryAnalysis,
-                    contexts: primaryContexts,
-                  })
+                  (navigation as any).push("AnalysisModal", {
+  type: "faqs",
+  analysis: primaryAnalysis,
+  contexts: primaryContexts,
+})
+
                 }
               >
                 <Text style={styles.analysisButtonText}>Stakeholders</Text>
@@ -552,11 +655,12 @@ const rawTimeline = sortEvents(canonicalTimeline);
               <TouchableOpacity
                 style={styles.analysisButton}
                 onPress={() =>
-                  navigation.push("AnalysisModal", {
-                    type: "faqs",
-                    analysis: primaryAnalysis,
-                    contexts: primaryContexts,
-                  })
+                  (navigation as any).push("AnalysisModal", {
+  type: "faqs",
+  analysis: primaryAnalysis,
+  contexts: primaryContexts,
+})
+
                 }
               >
                 <Text style={styles.analysisButtonText}>FAQs</Text>
@@ -628,13 +732,9 @@ const rawTimeline = sortEvents(canonicalTimeline);
                 ? getFactCheckRgb(e.factCheck.confidenceScore)
                 : null;
 
-              // ---- canonical sources boundary (compute once per event)
-            const mode = e?.media?.type || null;
-
-
-
-              const sources = e.sources;
-
+              // ---- canonical sources boundary
+              const mode = e?.media?.type || null;
+              const sources = (e.sources || []) as SourceItem[];
 
               const primaryIdx =
                 typeof e?.media?.sourceIndex === "number"
@@ -649,7 +749,7 @@ const rawTimeline = sortEvents(canonicalTimeline);
 
               return (
                 <View key={e._originalIndex ?? i} style={styles.eventBlock}>
-                  {/* Phase Header (only at phase START index) */}
+                  {/* PHASE HEADER */}
                   {startingPhase && (
                     <View
                       style={[
@@ -668,121 +768,139 @@ const rawTimeline = sortEvents(canonicalTimeline);
                     </View>
                   )}
 
-                  {/* EVENT TAPPING */}
+                  {/* EVENT */}
                   <TouchableOpacity
                     activeOpacity={0.8}
                     onPress={() =>
-                      navigation.navigate("EventReader", {
-                        events: timelineForModal,
-                        startIndex: i,
-                        headerTitle: item.title,
-                      })
+                      (navigation as any).navigate("EventReader", {
+  events: timelineForModal,
+  startIndex: i,
+  headerTitle: item.title,
+})
+
                     }
                   >
                     <View
-  style={[
-    styles.eventCard,
-    activePhase && {
-      borderLeftWidth: 3,
-      borderLeftColor: activePhase.accentColor,
-      paddingLeft: spacing.md - 3,
-    },
-  ]}
->
-  {/* MEDIA / LINK PREVIEW */}
-  {mode === "link-preview" && primarySource?.link ? (
-    <View>
-      <PublisherPreviewCard source={primarySource} palette={palette} />
-      {otherSources.length > 0 ? (
-        <View style={styles.eventSources}>
-          <SourceLinks sources={otherSources} themeColors={palette} />
-        </View>
-      ) : null}
-    </View>
-  ) : (() => {
-      const img = e?.media?.imageUrl;
+                      style={[
+                        styles.eventCard,
+                        activePhase && {
+                          borderLeftWidth: 3,
+                          borderLeftColor: activePhase.accentColor,
+                          paddingLeft: spacing.md - 3,
+                        },
+                      ]}
+                    >
+                      {/* MEDIA */}
+                      {mode === "link-preview" && primarySource?.link ? (
+                        <View>
+                          <PublisherPreviewCard
+                            source={primarySource}
+                            palette={palette}
+                          />
+                          {otherSources.length > 0 ? (
+                            <View style={styles.eventSources}>
+                              <SourceLinks
+                                sources={otherSources}
+                                themeColors={palette}
+                              />
+                            </View>
+                          ) : null}
+                        </View>
+                      ) : (() => {
+                          const img = e?.media?.imageUrl;
+                          if (img) {
+                            return (
+                              <Image
+                                source={{ uri: img }}
+                                style={styles.eventImage}
+                              />
+                            );
+                          }
+                          return (
+                            <View style={styles.eventImagePlaceholder}>
+                              <Text style={styles.eventImageEmoji}>📰</Text>
+                            </View>
+                          );
+                        })()}
 
+                      <View style={styles.eventContent}>
+                        <Text style={styles.eventDate}>
+                          {formatDateLongOrdinal(e.date)}
+                        </Text>
 
-      if (img) {
-        return <Image source={{ uri: img }} style={styles.eventImage} />;
-      }
+                        <View style={styles.eventTitleRow}>
+                          <Text style={styles.eventTitle}>{e.title}</Text>
 
-      return (
-        <View style={styles.eventImagePlaceholder}>
-          <Text style={styles.eventImageEmoji}>📰</Text>
-        </View>
-      );
-    })()}
+                          {Array.isArray(e.faqs) && e.faqs.length > 0 && (
+                            <TouchableOpacity
+                              style={styles.faqIcon}
+                              onPress={() =>
+                                setFaqModal({
+                                  visible: true,
+                                  title: e.title || "FAQs",
+                                  faqs: e.faqs,
+                                })
+                              }
+                              hitSlop={{
+                                top: 8,
+                                bottom: 8,
+                                left: 8,
+                                right: 8,
+                              }}
+                            >
+                              <Ionicons
+                                name="help-circle-outline"
+                                size={18}
+                                color={palette.accent}
+                              />
+                            </TouchableOpacity>
+                          )}
+                        </View>
 
-  <View style={styles.eventContent}>
-    <Text style={styles.eventDate}>{formatDateLongOrdinal(e.date)}</Text>
+                        <RenderWithContext
+                          text={e.description}
+                          contexts={e.contexts || []}
+                          navigation={navigation}
+                          themeColors={palette}
+                          textStyle={{ color: palette.textPrimary }}
+                        />
 
-    <View style={styles.eventTitleRow}>
-      <Text style={styles.eventTitle}>{e.title}</Text>
+                        {hasFactCheck && (
+                          <View style={styles.factCheckContainer}>
+                            <TouchableOpacity
+                              activeOpacity={0.85}
+                              onPress={() =>
+                                setFactCheckModal({
+                                  visible: true,
+                                  factCheck: e.factCheck,
+                                })
+                              }
+                            >
+                              <Text
+                                style={[
+                                  styles.factCheckBadge,
+                                  { color: factCheckColors.text },
+                                ]}
+                              >
+                                {e.factCheck.confidenceScore}% fact-check
+                                confidence
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
 
-      {Array.isArray(e.faqs) && e.faqs.length > 0 && (
-        <TouchableOpacity
-          style={styles.faqIcon}
-          onPress={() =>
-            setFaqModal({
-              visible: true,
-              title: e.title || "FAQs",
-              faqs: e.faqs,
-            })
-          }
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons
-            name="help-circle-outline"
-            size={18}
-            color={palette.accent}
-          />
-        </TouchableOpacity>
-      )}
-    </View>
-
-    <RenderWithContext
-      text={e.description}
-      contexts={e.contexts || []}
-      navigation={navigation}
-      themeColors={palette}
-      textStyle={{ color: palette.textPrimary }}
-    />
-
-    {hasFactCheck && (
-      <View style={styles.factCheckContainer}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={() =>
-            setFactCheckModal({
-              visible: true,
-              factCheck: e.factCheck,
-            })
-          }
-        >
-          <Text
-            style={[
-              styles.factCheckBadge,
-              { color: factCheckColors.text },
-            ]}
-          >
-            {e.factCheck.confidenceScore}% fact-check confidence
-          </Text>
-        </TouchableOpacity>
-      </View>
-    )}
-
-    {/* SOURCES (non link-preview) */}
-    {mode !== "link-preview" && sources.length > 0 ? (
-      <View style={styles.eventSources}>
-        <SourceLinks sources={sources} themeColors={palette} />
-      </View>
-    ) : null}
-  </View>
-</View>
+                        {mode !== "link-preview" && sources.length > 0 ? (
+                          <View style={styles.eventSources}>
+                            <SourceLinks
+                              sources={sources}
+                              themeColors={palette}
+                            />
+                          </View>
+                        ) : null}
+                      </View>
+                    </View>
                   </TouchableOpacity>
 
-                  {/* Phase end dot */}
                   {isPhaseEnd && (
                     <View style={styles.phaseEndIndicator}>
                       <View
@@ -803,7 +921,7 @@ const rawTimeline = sortEvents(canonicalTimeline);
   };
 
   // ------------------------------
-  // MAIN
+  // MAIN RENDER
   // ------------------------------
   return (
     <ScrollView
@@ -894,7 +1012,9 @@ const rawTimeline = sortEvents(canonicalTimeline);
           }}
         >
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{faqModal.title || "Event FAQs"}</Text>
+            <Text style={styles.modalTitle}>
+              {faqModal.title || "Event FAQs"}
+            </Text>
 
             {Array.isArray(faqModal.faqs) && faqModal.faqs.length ? (
               faqModal.faqs.map((qa, idx) => (
@@ -944,386 +1064,343 @@ const rawTimeline = sortEvents(canonicalTimeline);
   );
 }
 
-
 // ----------------------------------------
 // STYLES
 // ----------------------------------------
-const createStyles = (palette) =>
+const createStyles = (palette: any) =>
   StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: palette.background,
-    padding: spacing.md,
-  },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  error: { color: "red" },
+    container: {
+      flex: 1,
+      backgroundColor: palette.background,
+      padding: spacing.md,
+    },
+    center: { flex: 1, justifyContent: "center", alignItems: "center" },
+    error: { color: "red" },
 
-  coverImage: {
-    width: "100%",
-    height: 240,
-    borderRadius: 6,
-    marginBottom: spacing.lg,
-  },
+    coverImage: {
+      width: "100%",
+      height: 240,
+      borderRadius: 6,
+      marginBottom: spacing.lg,
+    },
 
-  title: {
-    fontFamily: fonts.heading,
-    fontSize: 30,
-    fontWeight: "600",
-    lineHeight: 34,
-    color: palette.textPrimary,
-    marginBottom: spacing.sm,
-  },
-  themeHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.md,
-  },
-  themeActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  actionButton: {
-    padding: 10,
-    borderRadius: 14,
-  },
+    title: {
+      fontFamily: fonts.heading,
+      fontSize: 30,
+      fontWeight: "600",
+      lineHeight: 34,
+      color: palette.textPrimary,
+      marginBottom: spacing.sm,
+    },
+    themeHeaderRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: spacing.md,
+    },
+    themeActions: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+    },
+    actionButton: {
+      padding: 10,
+      borderRadius: 14,
+    },
+empty: {
+  fontFamily: fonts.body,
+  fontSize: 14,
+  color: palette.textSecondary,
+  marginVertical: spacing.sm,
+},
 
-  category: {
-    fontFamily: fonts.body,
-    color: palette.textSecondary,
-    marginBottom: spacing.sm,
-    letterSpacing: 1,
-  },
-  subcategory: {
-    fontFamily: fonts.body,
-    color: palette.textPrimary,
-    marginBottom: spacing.sm,
-    textDecorationLine: "underline",
-  },
+    category: {
+      fontFamily: fonts.body,
+      color: palette.textSecondary,
+      marginBottom: spacing.sm,
+      letterSpacing: 1,
+    },
 
-  updated: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: "#6B7280",
-    marginBottom: spacing.md,
-  },
+    updated: {
+      fontFamily: fonts.body,
+      fontSize: 13,
+      color: "#6B7280",
+      marginBottom: spacing.md,
+    },
 
-  // ANALYSIS BUTTONS
-  analysisButtonsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 6,
-    marginBottom: spacing.md,
-    marginTop: spacing.sm,
-  },
-  analysisButton: {
-    flex: 1,
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    borderRadius: 14,
-    backgroundColor: "#fff",
-    borderWidth: 0,
-    shadowColor: "#0F172A",
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  analysisButtonText: {
-    color: palette.textPrimary,
-    fontFamily: fonts.body,
-    fontSize: 13,
-    fontWeight: "600",
-  },
+    analysisButtonsRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      gap: 6,
+      marginBottom: spacing.md,
+      marginTop: spacing.sm,
+    },
+    analysisButton: {
+      flex: 1,
+      paddingVertical: 6,
+      paddingHorizontal: 8,
+      borderRadius: 14,
+      backgroundColor: palette.surface,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    analysisButtonText: {
+      color: palette.textPrimary,
+      fontFamily: fonts.body,
+      fontSize: 13,
+      fontWeight: "600",
+    },
 
-  // SLIDER
-  sliderBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: spacing.md,
-  },
-  sliderTrackWrap: {
-    flex: 1,
-    position: "relative",
-    justifyContent: "center",
-  },
-  slider: { flex: 1, height: 40 },
-  sliderLabel: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: palette.textSecondary,
-    width: 60,
-    textAlign: "center",
-  },
+    sliderBox: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: spacing.md,
+    },
+    sliderTrackWrap: {
+      flex: 1,
+      position: "relative",
+      justifyContent: "center",
+    },
+    slider: { flex: 1, height: 40 },
+    sliderLabel: {
+      fontFamily: fonts.body,
+      fontSize: 12,
+      color: palette.textSecondary,
+      width: 60,
+      textAlign: "center",
+    },
 
-  // TIMELINE
-  section: { marginBottom: spacing.lg },
-  sectionHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: spacing.sm,
-  },
-  sectionTitle: {
-    fontFamily: fonts.heading,
-    fontSize: 22,
-    fontWeight: "600",
-    lineHeight: 26,
-    borderBottomWidth: 1,
-    borderColor: palette.border,
-    paddingBottom: 4,
-  },
+    section: { marginBottom: spacing.lg },
+    sectionHeaderRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: spacing.sm,
+    },
+    sectionTitle: {
+      fontFamily: fonts.heading,
+      fontSize: 22,
+      fontWeight: "600",
+      lineHeight: 26,
+      borderBottomWidth: 1,
+      borderColor: palette.border,
+      paddingBottom: 4,
+    },
 
-  // PHASES
-  phaseHeader: {
-    marginBottom: 12,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    borderLeftWidth: 4,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 4,
-  },
-  phaseTitle: {
-    fontFamily: fonts.heading,
-    fontSize: 15,
-    color: "#111827",
-    textAlign: "center",
-  },
-  phaseSubtitle: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: "#6B7280",
-    textAlign: "center",
-  },
+    phaseHeader: {
+      marginBottom: 12,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
+      backgroundColor: palette.surface,
+      borderRadius: 12,
+      borderLeftWidth: 4,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 4,
+    },
+    phaseTitle: {
+      fontFamily: fonts.heading,
+      fontSize: 15,
+      color: palette.textPrimary,
+      textAlign: "center",
+    },
+    phaseSubtitle: {
+      fontFamily: fonts.body,
+      fontSize: 13,
+      color: palette.textSecondary,
+      textAlign: "center",
+    },
 
-  overviewBlock: {
-    marginBottom: spacing.lg,
-  },
-  cardHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: spacing.xs,
-  },
-  overviewHeading: {
-    fontFamily: fonts.heading,
-    fontSize: 18,
-    fontWeight: "500",
-    lineHeight: 22,
-    color: palette.textPrimary,
-  },
-  updateBadge: {
-    backgroundColor: "#FEE2E2",
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    alignSelf: "flex-start",
-    marginTop: spacing.xs,
-  },
-  updateBadgeText: {
-    fontSize: 11,
-    color: palette.accent,
-    fontWeight: "600",
-  },
+    overviewBlock: {
+      marginBottom: spacing.lg,
+    },
 
-  eventBlock: {
-    marginBottom: spacing.lg,
-  },
+    updateBadge: {
+      backgroundColor: "#FEE2E2",
+      borderRadius: 12,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      alignSelf: "flex-start",
+      marginTop: spacing.xs,
+    },
+    updateBadgeText: {
+      fontSize: 11,
+      color: palette.accent,
+      fontWeight: "600",
+    },
 
-  eventCard: {
-    backgroundColor: palette.surface,
-    borderRadius: 16,
-    padding: spacing.md,
-    shadowColor: "#0F172A",
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
-    gap: spacing.sm,
-  },
-  eventImage: {
-    width: "100%",
-    height: 190,
-    borderRadius: 12,
-    backgroundColor: "#e5e7eb",
-  },
-  eventImagePlaceholder: {
-    width: "100%",
-    height: 190,
-    borderRadius: 12,
-    backgroundColor: "#e5e7eb",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  eventImageEmoji: {
-    fontSize: 26,
-  },
-  eventContent: {
-    gap: 6,
-  },
-  eventTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 8,
-  },
+    eventBlock: {
+      marginBottom: spacing.lg,
+    },
 
-  eventDate: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: palette.textPrimary,
-    fontWeight: "500",
-    fontStyle: "italic",
-    marginBottom: 4,
-  },
+    eventCard: {
+      backgroundColor: palette.surface,
+      borderRadius: 16,
+      padding: spacing.md,
+      gap: spacing.sm,
+    },
+    eventImage: {
+      width: "100%",
+      height: 190,
+      borderRadius: 12,
+      backgroundColor: palette.border,
+    },
+    eventImagePlaceholder: {
+      width: "100%",
+      height: 190,
+      borderRadius: 12,
+      backgroundColor: palette.border,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    eventImageEmoji: {
+      fontSize: 26,
+    },
+    eventContent: {
+      gap: 6,
+    },
+    eventTitleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 8,
+    },
 
-  eventTitle: {
-    fontFamily: fonts.heading,
-    fontSize: 18,
-    color: palette.textPrimary,
-    fontWeight: "500",
-    lineHeight: 24,
-  },
-  faqIcon: {
-    padding: 4,
-  },
-  faqRow: {
-    marginTop: 6,
-    gap: 4,
-  },
-  faqQuestionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
-  },
-  faqAnswer: {
-    fontFamily: fonts.body,
-    fontSize: 14,
-    color: palette.textSecondary,
-    lineHeight: 20,
-  },
+    eventDate: {
+      fontFamily: fonts.body,
+      fontSize: 13,
+      color: palette.textPrimary,
+      fontWeight: "500",
+      fontStyle: "italic",
+      marginBottom: 4,
+    },
 
-  factCheckContainer: {
-    marginTop: spacing.sm,
-    paddingTop: spacing.xs,
-    borderTopWidth: 0.5,
-    borderTopColor: "#E5E7EB",
-    gap: 4,
-  },
-  factCheckBadge: {
-    fontSize: 11,
-    fontWeight: "600",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    alignSelf: "flex-start",
-    backgroundColor: palette.surface,
-    shadowColor: "#0F172A",
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
-    borderWidth: 0,
-  },
+    eventTitle: {
+      fontFamily: fonts.heading,
+      fontSize: 18,
+      color: palette.textPrimary,
+      fontWeight: "500",
+      lineHeight: 24,
+    },
 
+    faqIcon: {
+      padding: 4,
+    },
 
-  eventSources: {
-    marginTop: spacing.sm,
-  },
-  phaseEndIndicator: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: spacing.xs,
-    marginBottom: spacing.md,
-    paddingLeft: spacing.sm,
-  },
-  phaseEndDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  faqRow: {
-    marginTop: 6,
-    gap: 4,
-  },
-  suggestionsSection: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    gap: 12,
-  },
-  suggestionBlock: {
-    gap: 8,
-  },
-  suggestionTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: palette.textPrimary,
-  },
-  suggestionRow: {
-    gap: 12,
-  },
-  suggestionCardWrapper: {
-    width: 260,
-    marginRight: 8,
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "center",
-    padding: spacing.md,
-  },
-  faqRow: {
-    marginTop: 6,
-    gap: 4,
-  },
-  modalCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: spacing.lg,
-    gap: 8,
-  },
-  modalTitle: {
-    fontFamily: fonts.heading,
-    fontSize: 18,
-    color: palette.textPrimary,
-  },
-  modalScore: {
-    fontFamily: fonts.heading,
-    fontSize: 16,
-    color: palette.textPrimary,
-  },
-  modalBody: {
-    fontFamily: fonts.body,
-    fontSize: 14,
-    color: palette.textSecondary,
-    lineHeight: 20,
-  },
-  modalMeta: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: palette.textSecondary,
-  },
-  modalClose: {
-    alignSelf: "flex-end",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  modalCloseText: {
-    color: palette.textPrimary,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-});
+    faqRow: {
+      marginTop: 6,
+      gap: 4,
+    },
+    faqQuestionRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 10,
+    },
+    faqAnswer: {
+      fontFamily: fonts.body,
+      fontSize: 14,
+      color: palette.textSecondary,
+      lineHeight: 20,
+    },
+
+    factCheckContainer: {
+      marginTop: spacing.sm,
+      paddingTop: spacing.xs,
+      borderTopWidth: 0.5,
+      borderTopColor: palette.border,
+      gap: 4,
+    },
+    factCheckBadge: {
+      fontSize: 11,
+      fontWeight: "600",
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 999,
+      alignSelf: "flex-start",
+      backgroundColor: palette.surface,
+    },
+
+    eventSources: {
+      marginTop: spacing.sm,
+    },
+
+    phaseEndIndicator: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginTop: spacing.xs,
+      marginBottom: spacing.md,
+      paddingLeft: spacing.sm,
+    },
+    phaseEndDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+    },
+
+    suggestionsSection: {
+      paddingHorizontal: 16,
+      paddingBottom: 16,
+      gap: 12,
+    },
+    suggestionBlock: {
+      gap: 8,
+    },
+    suggestionTitle: {
+      fontSize: 16,
+      fontWeight: "700",
+      color: palette.textPrimary,
+    },
+    suggestionRow: {
+      gap: 12,
+    },
+    suggestionCardWrapper: {
+      width: 260,
+      marginRight: 8,
+    },
+
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.45)",
+      justifyContent: "center",
+      padding: spacing.md,
+    },
+    modalCard: {
+      backgroundColor: palette.surface,
+      borderRadius: 12,
+      padding: spacing.lg,
+      gap: 8,
+    },
+    modalTitle: {
+      fontFamily: fonts.heading,
+      fontSize: 18,
+      color: palette.textPrimary,
+    },
+    modalScore: {
+      fontFamily: fonts.heading,
+      fontSize: 16,
+      color: palette.textPrimary,
+    },
+    modalBody: {
+      fontFamily: fonts.body,
+      fontSize: 14,
+      color: palette.textSecondary,
+      lineHeight: 20,
+    },
+    modalMeta: {
+      fontFamily: fonts.body,
+      fontSize: 12,
+      color: palette.textSecondary,
+    },
+    modalClose: {
+      alignSelf: "flex-end",
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
+    modalCloseText: {
+      color: palette.textPrimary,
+      fontSize: 14,
+      fontWeight: "600",
+    },
+  });

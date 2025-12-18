@@ -1,6 +1,4 @@
-//screens/SearchScreen.js
-
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,6 +10,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { formatUpdatedAt } from "../utils/formatTime";
 import { getStorySearchCache } from "../utils/storyCache";
+import { normalizeTimelineBlocks } from "../utils/normalizeTimelineBlocks";
 
 const getTimestampMs = (value) => {
   if (!value) return 0;
@@ -23,8 +22,11 @@ const getTimestampMs = (value) => {
 
 const collectTimelineText = (timeline) => {
   if (!Array.isArray(timeline) || timeline.length === 0) return "";
-  return timeline
-    .map((evt) => `${evt.event || ""} ${evt.description || ""}`)
+
+  const canonical = normalizeTimelineBlocks(timeline);
+
+  return canonical
+    .map((evt) => `${evt.title || ""} ${evt.description || ""}`)
     .join(" ")
     .toLowerCase();
 };
@@ -32,6 +34,7 @@ const collectTimelineText = (timeline) => {
 export default function SearchScreen({ route, navigation }) {
   const stories = route.params?.stories || getStorySearchCache() || [];
   const initialQuery = route.params?.initialQuery || "";
+
   const [query, setQuery] = useState(initialQuery);
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [results, setResults] = useState([]);
@@ -55,17 +58,22 @@ export default function SearchScreen({ route, navigation }) {
         const overview = (story.overview || "").toLowerCase();
         const analysisSummary = (story.analysis?.summary || "").toLowerCase();
         const timelineText = collectTimelineText(story.timeline);
+
         let score = 0;
         if (title.includes(debouncedQuery)) score += 3;
         if (overview.includes(debouncedQuery)) score += 1;
         if (analysisSummary.includes(debouncedQuery)) score += 1;
         if (timelineText.includes(debouncedQuery)) score += 2;
+
         return { story, score };
       })
       .filter((entry) => entry.score > 0)
       .sort((a, b) => {
         if (b.score !== a.score) return b.score - a.score;
-        return getTimestampMs(b.story.updatedAt) - getTimestampMs(a.story.updatedAt);
+        return (
+          getTimestampMs(b.story.updatedAt) -
+          getTimestampMs(a.story.updatedAt)
+        );
       })
       .map((entry) => entry.story);
 
@@ -75,6 +83,7 @@ export default function SearchScreen({ route, navigation }) {
   const renderItem = ({ item }) => {
     const previewSource = item.overview || item.analysis?.summary || "";
     const preview = previewSource.slice(0, 160);
+
     return (
       <TouchableOpacity
         style={styles.card}
@@ -107,7 +116,7 @@ export default function SearchScreen({ route, navigation }) {
           autoFocus
         />
         {query.length > 0 && (
-          <TouchableOpacity onPress={() => setQuery("")}> 
+          <TouchableOpacity onPress={() => setQuery("")}>
             <Ionicons name="close-circle" size={18} color="#9CA3AF" />
           </TouchableOpacity>
         )}

@@ -18,10 +18,7 @@ import Slider from "@react-native-community/slider";
 import { colors, fonts, spacing, getThemeColors } from "../styles/theme";
 import SourceLinks from "../components/SourceLinks";
 import RenderWithContext from "../components/RenderWithContext";
-import {
-  formatUpdatedAt,
-  formatDateLongOrdinal,
-} from "../utils/formatTime";
+import { formatUpdatedAt, formatDateLongOrdinal } from "../utils/formatTime";
 import { normalizeAnalysis } from "../utils/normalizeAnalysis";
 import CommentsSection from "../components/CommentsSection";
 import { useUserData } from "../contexts/UserDataContext";
@@ -36,7 +33,8 @@ import WWHomeCard from "../components/WWHomeCard";
 import PublisherPreviewCard from "../components/PublisherPreviewCard";
 // Shared timeline contract (future-proofing)
 import { /* types only */ } from "@ww/shared";
-import { normalizeSources } from "../utils/normalizeSources"; // add once near imports
+import { normalizeSources } from "../utils/normalizeSources"; // ✅ boundary normalizer
+import { normalizeTimelineBlocks } from "../utils/normalizeTimelineBlocks";
 
 
 const PHASE_PALETTE = [
@@ -51,28 +49,10 @@ const PHASE_PALETTE = [
   "#6366F1", // indigo
 ];
 
-// Ensure backward compatibility with old stories
-const normalizeTimeline = (raw) => {
-  if (!Array.isArray(raw)) return [];
-  return raw.map((block) => {
-    if (block && (block.type === "event" || block.type === "image")) {
-      return block;
-    }
-    // Old data → assume event
-    return {
-      ...block,
-      type: "event",
-    };
-  });
-};
-
 
 const recencyWeight = (item) => {
   const t =
-    item?.updatedAt ||
-    item?.publishedAt ||
-    item?.createdAt ||
-    item?.timestamp;
+    item?.updatedAt || item?.publishedAt || item?.createdAt || item?.timestamp;
   if (!t) return 0;
   const ms =
     typeof t.toDate === "function"
@@ -138,6 +118,7 @@ export default function StoryScreen({ route, navigation }) {
   const [feed, setFeed] = useState(story ? [story] : []);
   const [currentIndex, setCurrentIndex] = useState(index ?? 0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+
   // Suggestion source list (from props or cached search results)
   const [suggestionPool, setSuggestionPool] = useState(() => {
     if (Array.isArray(allStories) && allStories.length) return allStories;
@@ -147,6 +128,7 @@ export default function StoryScreen({ route, navigation }) {
 
   // Depth slider
   const [depth, setDepth] = useState(2);
+
   const {
     user,
     favorites,
@@ -155,6 +137,7 @@ export default function StoryScreen({ route, navigation }) {
     themeColors,
     darkMode,
   } = useUserData();
+
   const headerShownRef = useRef(true);
   const lastOffsetY = useRef(0);
   const palette = themeColors || getThemeColors(darkMode);
@@ -183,18 +166,24 @@ export default function StoryScreen({ route, navigation }) {
   );
 
   useEffect(() => () => toggleHeader(true), [toggleHeader]);
+
   const [sortOrder, setSortOrder] = useState("chronological");
+
   const [factCheckModal, setFactCheckModal] = useState({
     visible: false,
     factCheck: null,
   });
+
   const [faqModal, setFaqModal] = useState({
     visible: false,
     title: "",
     faqs: [],
   });
+
   const [faqExpanded, setFaqExpanded] = useState({});
+
   const isFavoriteStory = (id) => favorites?.stories?.includes(id);
+
   const handleFavorite = (item) => {
     if (!user) {
       alert("Sign in to save stories.");
@@ -214,11 +203,13 @@ export default function StoryScreen({ route, navigation }) {
     );
 
   const primaryAnalysis = normalizeAnalysis(story.analysis);
+
   useEffect(() => {
     if (story?.id) {
       recordVisit("stories", story.id);
     }
   }, [story?.id, recordVisit]);
+
   const primaryContexts = [
     ...(story.contexts || []),
     ...(primaryAnalysis?.contexts || []),
@@ -373,11 +364,13 @@ export default function StoryScreen({ route, navigation }) {
     };
 
     const rawTimeline = sortEvents(
-  normalizeTimeline(item.timeline)
+  normalizeTimelineBlocks(item.timeline)
 );
+
 
     const analysisForItem =
       item.id === story.id ? primaryAnalysis : normalizeAnalysis(item.analysis);
+
     const combinedContexts = [
       ...(item.contexts || []),
       ...(analysisForItem?.contexts || []),
@@ -399,6 +392,7 @@ export default function StoryScreen({ route, navigation }) {
     // Phases from CMS
     const rawPhases = Array.isArray(item.phases) ? item.phases : [];
     const timelineLength = indexedTimeline.length;
+
     const phasesWithAccent = rawPhases.map((phase, idx) => {
       const accentColor =
         phase?.accentColor ||
@@ -489,7 +483,9 @@ export default function StoryScreen({ route, navigation }) {
             </TouchableOpacity>
           </View>
         </View>
+
         <Text style={styles.updated}>{formatUpdatedAt(item.updatedAt)}</Text>
+
         <TouchableOpacity
           onPress={() =>
             item.category &&
@@ -601,13 +597,29 @@ export default function StoryScreen({ route, navigation }) {
             const activePhase = phaseRangeLookup[e._originalIndex];
             const isPhaseEnd =
               activePhase && activePhase.endIndex === e._originalIndex;
+
             const hasFactCheck =
               !!e.factCheck &&
               typeof e.factCheck.confidenceScore === "number" &&
               !Number.isNaN(e.factCheck.confidenceScore);
+
             const factCheckColors = hasFactCheck
               ? getFactCheckRgb(e.factCheck.confidenceScore)
               : null;
+
+            // ---- Phase 1: canonical sources boundary (compute once per event)
+            const mode = e?.media?.type || e?.displayMode || null;
+
+            const sources = e.sources;
+
+            const primaryIdx =
+              typeof e?.media?.sourceIndex === "number" ? e.media.sourceIndex : 0;
+
+            const primarySource = sources[primaryIdx] || sources[0] || null;
+            const otherSources = primarySource
+              ? sources.filter((s) => s.link !== primarySource.link)
+              : sources;
+            // ---- end boundary
 
             return (
               <View key={e._originalIndex ?? i} style={styles.eventBlock}>
@@ -640,26 +652,82 @@ export default function StoryScreen({ route, navigation }) {
                   android_disableSound={true}
                 >
                   <View
-                    style={[
-                      styles.eventCard,
-                      activePhase && {
-                        borderLeftWidth: 3,
-                        borderLeftColor: activePhase.accentColor,
-                        paddingLeft: spacing.md - 3,
-                      },
-                    ]}
-                  >
-                    {(() => {
-  const mode = e?.displayMode || e?.media?.type;
-const sources = normalizeSources(e?.sources);
-  const primaryIdx =
-    typeof e?.media?.sourceIndex === "number" ? e.media.sourceIndex : 0;
-  const primarySource = sources[primaryIdx];
+  style={[
+    styles.eventCard,
+    activePhase && {
+      borderLeftWidth: 3,
+      borderLeftColor: activePhase.accentColor,
+      paddingLeft: spacing.md - 3,
+    },
+  ]}
+>
+  <View style={styles.eventContent}>
+    <Text style={styles.eventDate}>{formatDateLongOrdinal(e.date)}</Text>
 
-  const otherSources = sources.filter((_, idx) => idx !== primaryIdx);
+    <View style={styles.eventTitleRow}>
+      <Text style={styles.eventTitle}>{e.title}</Text>
 
-  if (mode === "link-preview" && primarySource?.link) {
-    return (
+      {Array.isArray(e.faqs) && e.faqs.length > 0 && (
+        <TouchableOpacity
+          style={styles.faqIcon}
+          onPress={() =>
+            setFaqModal({
+              visible: true,
+              title: e.title || "FAQs",
+              faqs: e.faqs,
+            })
+          }
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons
+            name="help-circle-outline"
+            size={18}
+            color={palette.accent}
+          />
+        </TouchableOpacity>
+      )}
+    </View>
+
+    <RenderWithContext
+      text={e.description}
+      contexts={e.contexts || []}
+      navigation={navigation}
+      themeColors={palette}
+      textStyle={{ color: palette.textPrimary }}
+    />
+
+    {hasFactCheck && (
+      <View style={styles.factCheckContainer}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() =>
+            setFactCheckModal({
+              visible: true,
+              factCheck: e.factCheck,
+            })
+          }
+        >
+          <Text
+            style={[
+              styles.factCheckBadge,
+              { color: factCheckColors.text },
+            ]}
+          >
+            {e.factCheck.confidenceScore}% fact-check confidence
+          </Text>
+        </TouchableOpacity>
+      </View>
+    )}
+
+    {/* SOURCES (non link-preview) */}
+    {mode !== "link-preview" && sources.length > 0 ? (
+      <View style={styles.eventSources}>
+        <SourceLinks sources={sources} themeColors={palette} />
+      </View>
+    ) : null}
+
+    {/* LINK PREVIEW or IMAGE */}
+    {mode === "link-preview" && primarySource?.link ? (
       <View>
         <PublisherPreviewCard source={primarySource} palette={palette} />
         {otherSources.length > 0 ? (
@@ -668,98 +736,23 @@ const sources = normalizeSources(e?.sources);
           </View>
         ) : null}
       </View>
-    );
-  }
+    ) : (() => {
+        const img =
+          e?.imageUrl || e?.image || e?.thumbnail || e?.media?.imageUrl;
 
-  const img = e?.imageUrl || e?.image || e?.thumbnail || e?.media?.imageUrl;
-  if (img) {
-    return <Image source={{ uri: img }} style={styles.eventImage} />;
-  }
+        if (img) {
+          return <Image source={{ uri: img }} style={styles.eventImage} />;
+        }
 
-  return (
-    <View style={styles.eventImagePlaceholder}>
-      <Text style={styles.eventImageEmoji}>🗞️</Text>
-    </View>
-  );
-})()}
-
-
-                <View style={styles.eventContent}>
-                  <Text style={styles.eventDate}>
-                    {formatDateLongOrdinal(e.date)}
-                  </Text>
-
-                  <View style={styles.eventTitleRow}>
-                    <Text style={styles.eventTitle}>{e.event}</Text>
-                    {Array.isArray(e.faqs) && e.faqs.length > 0 && (
-                      <TouchableOpacity
-                        style={styles.faqIcon}
-                        onPress={() =>
-                          setFaqModal({
-                            visible: true,
-                            title: e.event || "FAQs",
-                            faqs: e.faqs,
-                          })
-                        }
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <Ionicons
-                          name="help-circle-outline"
-                          size={18}
-                          color={palette.accent}
-                        />
-                      </TouchableOpacity>
-                    )}
-                  </View>
-
-                      <RenderWithContext
-                        text={e.description}
-                        contexts={e.contexts || []}
-                        navigation={navigation}
-                        themeColors={palette}
-                        textStyle={{ color: palette.textPrimary }}
-                      />
-
-                      {hasFactCheck && (
-                        <View style={styles.factCheckContainer}>
-                      <TouchableOpacity
-                        activeOpacity={0.85}
-                        onPress={() =>
-                          setFactCheckModal({
-                            visible: true,
-                            factCheck: e.factCheck,
-                          })
-                        }
-                      >
-                        <Text
-                          style={[
-                            styles.factCheckBadge,
-                            {
-                              color: factCheckColors.text,
-                            },
-                          ]}
-                        >
-                          {e.factCheck.confidenceScore}% fact-check confidence
-                        </Text>
-                          </TouchableOpacity>
-                        </View>
-                      )}
-
-                      {(() => {
-  const mode = e?.displayMode || e?.media?.type;
-  if (mode === "link-preview") return null;
-
-  return Array.isArray(e.sources) && e.sources.length > 0 ? (
-    <View style={styles.eventSources}>
-      <SourceLinks sources={e.sources} themeColors={palette} />
-    </View>
-  ) : null;
-})()}
-
-                    </View>
-                  </View>
-                </Pressable>
-
+        return (
+          <View style={styles.eventImagePlaceholder}>
+            <Text style={styles.eventImageEmoji}>🗞️</Text>
+          </View>
+        );
+      })()}
+  </View>
+</View>
+</Pressable>
                 {/* PHASE END */}
                 {isPhaseEnd && (
                   <View style={styles.phaseEndIndicator}>
@@ -786,8 +779,7 @@ const sources = normalizeSources(e?.sources);
         handleHeaderScroll({ nativeEvent });
         const pad = 300;
         if (
-          nativeEvent.layoutMeasurement.height +
-            nativeEvent.contentOffset.y >=
+          nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y >=
           nativeEvent.contentSize.height - pad
         ) {
           loadNextStory();
@@ -798,12 +790,12 @@ const sources = normalizeSources(e?.sources);
       {feed.map((s) => (
         <View key={s.id}>
           {renderStoryBlock(s)}
-
           {renderSuggestions(s)}
-
           <CommentsSection type="story" itemId={s.id} />
         </View>
       ))}
+
+      {/* FACT CHECK MODAL */}
       <Modal
         visible={factCheckModal.visible}
         animationType="fade"
@@ -850,6 +842,8 @@ const sources = normalizeSources(e?.sources);
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* FAQ MODAL */}
       <Modal
         visible={faqModal.visible}
         animationType="fade"
@@ -870,6 +864,7 @@ const sources = normalizeSources(e?.sources);
             <Text style={styles.modalTitle}>
               {faqModal.title || "Event FAQs"}
             </Text>
+
             {Array.isArray(faqModal.faqs) && faqModal.faqs.length ? (
               faqModal.faqs.map((qa, idx) => (
                 <View key={idx} style={styles.faqRow}>
@@ -892,6 +887,7 @@ const sources = normalizeSources(e?.sources);
                       color={palette.textSecondary}
                     />
                   </TouchableOpacity>
+
                   {faqExpanded[idx] && (
                     <Text style={styles.faqAnswer}>{qa.answer || ""}</Text>
                   )}
@@ -900,6 +896,7 @@ const sources = normalizeSources(e?.sources);
             ) : (
               <Text style={styles.modalBody}>No FAQs available.</Text>
             )}
+
             <TouchableOpacity
               style={styles.modalClose}
               onPress={() => {

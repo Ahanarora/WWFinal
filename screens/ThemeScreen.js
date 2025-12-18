@@ -2,6 +2,7 @@
 // screens/ThemeScreen.js
 // PHASE SUPPORT + EventReader integration
 // ----------------------------------------
+
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   View,
@@ -16,10 +17,7 @@ import Slider from "@react-native-community/slider";
 import { colors, fonts, spacing, getThemeColors } from "../styles/theme";
 import SourceLinks from "../components/SourceLinks";
 import RenderWithContext from "../components/RenderWithContext";
-import {
-  formatUpdatedAt,
-  formatDateLongOrdinal,
-} from "../utils/formatTime";
+import { formatUpdatedAt, formatDateLongOrdinal } from "../utils/formatTime";
 import { normalizeAnalysis } from "../utils/normalizeAnalysis";
 import { useUserData } from "../contexts/UserDataContext";
 import { Ionicons } from "@expo/vector-icons";
@@ -33,7 +31,10 @@ import WWHomeCard from "../components/WWHomeCard";
 import PublisherPreviewCard from "../components/PublisherPreviewCard";
 // Shared timeline contract (future-proofing)
 import { /* types only */ } from "@ww/shared";
-import { normalizeSources } from "../utils/normalizeSources"; // add once near imports
+import { normalizeSources } from "../utils/normalizeSources"; // ✅ boundary normalizer
+import { getStorySearchCache } from "../utils/storyCache"; // used in Search navigation
+import { normalizeTimelineBlocks } from "../utils/normalizeTimelineBlocks";
+
 
 const PHASE_PALETTE = [
   "#EF4444", // red
@@ -47,28 +48,11 @@ const PHASE_PALETTE = [
   "#6366F1", // indigo
 ];
 
-// Ensure backward compatibility with old stories
-const normalizeTimeline = (raw) => {
-  if (!Array.isArray(raw)) return [];
-  return raw.map((block) => {
-    if (block && (block.type === "event" || block.type === "image")) {
-      return block;
-    }
-    // Old data → assume event
-    return {
-      ...block,
-      type: "event",
-    };
-  });
-};
 
 
 const recencyWeight = (item) => {
   const t =
-    item?.updatedAt ||
-    item?.publishedAt ||
-    item?.createdAt ||
-    item?.timestamp;
+    item?.updatedAt || item?.publishedAt || item?.createdAt || item?.timestamp;
   if (!t) return 0;
   const ms =
     typeof t.toDate === "function"
@@ -136,11 +120,13 @@ export default function ThemeScreen({ route, navigation }) {
 
   const [depth, setDepth] = useState(2);
   const [sortOrder, setSortOrder] = useState("chronological");
+
   const [suggestionPool, setSuggestionPool] = useState(() => {
     if (Array.isArray(allThemes) && allThemes.length) return allThemes;
     if (Array.isArray(feed) && feed.length) return feed;
     return [];
   });
+
   const {
     user,
     favorites,
@@ -150,18 +136,23 @@ export default function ThemeScreen({ route, navigation }) {
     themeColors,
     darkMode,
   } = useUserData();
+
   const palette = themeColors || getThemeColors(darkMode);
   const styles = useMemo(() => createStyles(palette), [palette]);
+
   const [factCheckModal, setFactCheckModal] = useState({
     visible: false,
     factCheck: null,
   });
+
   const [faqModal, setFaqModal] = useState({
     visible: false,
     title: "",
     faqs: [],
   });
+
   const [faqExpanded, setFaqExpanded] = useState({});
+
   const headerShownRef = useRef(true);
   const lastOffsetY = useRef(0);
 
@@ -239,7 +230,9 @@ export default function ThemeScreen({ route, navigation }) {
     ...(theme.contexts || []),
     ...(primaryAnalysis?.contexts || []),
   ];
+
   const isFavorite = (id) => favorites?.themes?.includes(id);
+
   const handleFavorite = (item) => {
     if (!user) {
       alert("Sign in to save themes.");
@@ -250,8 +243,8 @@ export default function ThemeScreen({ route, navigation }) {
       _kind: "theme",
     });
   };
-  const updatesCount = (item) =>
-    getUpdatesSinceLastVisit("themes", item);
+
+  const updatesCount = (item) => getUpdatesSinceLastVisit("themes", item);
 
   const renderUpdateBadge = (count) =>
     count > 0 ? (
@@ -261,6 +254,7 @@ export default function ThemeScreen({ route, navigation }) {
         </Text>
       </View>
     ) : null;
+
   const hasAnyAnalysis =
     (primaryAnalysis.stakeholders?.length ?? 0) +
       (primaryAnalysis.faqs?.length ?? 0) +
@@ -376,19 +370,23 @@ export default function ThemeScreen({ route, navigation }) {
         const aTime = a.timestamp || a.date || a.startedAt;
         const bTime = b.timestamp || b.date || b.startedAt;
         if (!aTime || !bTime) return 0;
-        const aMs = typeof aTime === "number" ? aTime : new Date(aTime).getTime();
-        const bMs = typeof bTime === "number" ? bTime : new Date(bTime).getTime();
+        const aMs =
+          typeof aTime === "number" ? aTime : new Date(aTime).getTime();
+        const bMs =
+          typeof bTime === "number" ? bTime : new Date(bTime).getTime();
         if (Number.isNaN(aMs) || Number.isNaN(bMs)) return 0;
         return sortOrder === "chronological" ? aMs - bMs : bMs - aMs;
       });
     };
 
     const rawTimeline = sortEvents(
-  normalizeTimeline(item.timeline)
+  normalizeTimelineBlocks(item.timeline)
 );
+
 
     const analysisForItem =
       item.id === theme.id ? primaryAnalysis : normalizeAnalysis(item.analysis);
+
     const combinedContexts = [
       ...(item.contexts || []),
       ...(analysisForItem?.contexts || []),
@@ -403,8 +401,8 @@ export default function ThemeScreen({ route, navigation }) {
     // Phase definitions from CMS
     const rawPhases = Array.isArray(item.phases) ? item.phases : [];
     const timelineLength = indexedTimeline.length;
+
     const phasesWithAccent = rawPhases.map((phase, idx) => {
-      // CMS can now optionally send phase.endIndex to mark where the phase ends.
       const accentColor =
         phase?.accentColor ||
         phase?.color ||
@@ -449,7 +447,7 @@ export default function ThemeScreen({ route, navigation }) {
       return acc;
     }, {});
 
-    const getPhaseForEvent = (event) => {
+    const getPhaseForEventStart = (event) => {
       if (!phasesWithAccent.length) return null;
       return phaseStartLookup[event._originalIndex] || null;
     };
@@ -463,7 +461,7 @@ export default function ThemeScreen({ route, navigation }) {
 
     // EventReader modal enriched timeline
     const timelineForModal = filteredTimeline.map((evt) => {
-      const ph = getPhaseForEvent(evt);
+      const ph = getPhaseForEventStart(evt);
       return {
         ...evt,
         phaseTitle: ph?.title ?? null,
@@ -502,7 +500,9 @@ export default function ThemeScreen({ route, navigation }) {
             </TouchableOpacity>
           </View>
         </View>
+
         <Text style={styles.updated}>{formatUpdatedAt(item.updatedAt)}</Text>
+
         <TouchableOpacity
           onPress={() =>
             item.category &&
@@ -601,9 +601,7 @@ export default function ThemeScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* ------------------------------
-            TIMELINE WITH PHASE HEADERS
-           ------------------------------ */}
+        {/* TIMELINE */}
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionTitle}>Timeline</Text>
@@ -616,32 +614,53 @@ export default function ThemeScreen({ route, navigation }) {
             <Text style={styles.empty}>No events for this depth.</Text>
           ) : (
             filteredTimeline.map((e, i) => {
-              const phase = getPhaseForEvent(e);
+              const startingPhase = getPhaseForEventStart(e);
               const activePhase = phaseRangeLookup[e._originalIndex];
               const isPhaseEnd =
                 activePhase && activePhase.endIndex === e._originalIndex;
+
               const hasFactCheck =
                 !!e.factCheck &&
                 typeof e.factCheck.confidenceScore === "number" &&
                 !Number.isNaN(e.factCheck.confidenceScore);
+
               const factCheckColors = hasFactCheck
                 ? getFactCheckRgb(e.factCheck.confidenceScore)
                 : null;
 
+              // ---- canonical sources boundary (compute once per event)
+             const mode = e?.media?.type || e?.displayMode || null;
+
+
+              const sources = Array.isArray(e.sources) ? e.sources : [];
+
+              const primaryIdx =
+                typeof e?.media?.sourceIndex === "number"
+                  ? e.media.sourceIndex
+                  : 0;
+
+              const primarySource = sources[primaryIdx] || sources[0] || null;
+              const otherSources = primarySource
+                ? sources.filter((s) => s.link !== primarySource.link)
+                : sources;
+              // ---- end boundary
+
               return (
                 <View key={e._originalIndex ?? i} style={styles.eventBlock}>
-                  {/* Phase Header */}
-                  {phase && (
+                  {/* Phase Header (only at phase START index) */}
+                  {startingPhase && (
                     <View
                       style={[
                         styles.phaseHeader,
-                        { borderLeftColor: phase.accentColor },
+                        { borderLeftColor: startingPhase.accentColor },
                       ]}
                     >
-                      <Text style={styles.phaseTitle}>{phase.title}</Text>
-                      {phase.description ? (
+                      <Text style={styles.phaseTitle}>
+                        {startingPhase.title}
+                      </Text>
+                      {startingPhase.description ? (
                         <Text style={styles.phaseSubtitle}>
-                          {phase.description}
+                          {startingPhase.description}
                         </Text>
                       ) : null}
                     </View>
@@ -659,123 +678,109 @@ export default function ThemeScreen({ route, navigation }) {
                     }
                   >
                     <View
-                      style={[
-                        styles.eventCard,
-                        activePhase && {
-                          borderLeftWidth: 3,
-                          borderLeftColor: activePhase.accentColor,
-                          paddingLeft: spacing.md - 3,
-                        },
-                      ]}
-                    >
-                      {(() => {
-  const mode = e?.displayMode || e?.media?.type; // backward compatible
-const sources = normalizeSources(e?.sources);
-  const primaryIdx =
-    typeof e?.media?.sourceIndex === "number" ? e.media.sourceIndex : 0;
-  const primarySource = sources[primaryIdx];
+  style={[
+    styles.eventCard,
+    activePhase && {
+      borderLeftWidth: 3,
+      borderLeftColor: activePhase.accentColor,
+      paddingLeft: spacing.md - 3,
+    },
+  ]}
+>
+  {/* MEDIA / LINK PREVIEW */}
+  {mode === "link-preview" && primarySource?.link ? (
+    <View>
+      <PublisherPreviewCard source={primarySource} palette={palette} />
+      {otherSources.length > 0 ? (
+        <View style={styles.eventSources}>
+          <SourceLinks sources={otherSources} themeColors={palette} />
+        </View>
+      ) : null}
+    </View>
+  ) : (() => {
+      const img =
+        e?.imageUrl || e?.image || e?.thumbnail || e?.media?.imageUrl;
 
-  const otherSources = sources.filter((_, idx) => idx !== primaryIdx);
+      if (img) {
+        return <Image source={{ uri: img }} style={styles.eventImage} />;
+      }
 
-  // LINK PREVIEW MODE
-  if (mode === "link-preview" && primarySource?.link) {
-    return (
-      <View>
-        <PublisherPreviewCard source={primarySource} palette={palette} />
-        {otherSources.length > 0 ? (
-          <View style={styles.eventSources}>
-            <SourceLinks sources={otherSources} themeColors={palette} />
-          </View>
-        ) : null}
+      return (
+        <View style={styles.eventImagePlaceholder}>
+          <Text style={styles.eventImageEmoji}>📰</Text>
+        </View>
+      );
+    })()}
+
+  <View style={styles.eventContent}>
+    <Text style={styles.eventDate}>{formatDateLongOrdinal(e.date)}</Text>
+
+    <View style={styles.eventTitleRow}>
+      <Text style={styles.eventTitle}>{e.title}</Text>
+
+      {Array.isArray(e.faqs) && e.faqs.length > 0 && (
+        <TouchableOpacity
+          style={styles.faqIcon}
+          onPress={() =>
+            setFaqModal({
+              visible: true,
+              title: e.title || "FAQs",
+              faqs: e.faqs,
+            })
+          }
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons
+            name="help-circle-outline"
+            size={18}
+            color={palette.accent}
+          />
+        </TouchableOpacity>
+      )}
+    </View>
+
+    <RenderWithContext
+      text={e.description}
+      contexts={e.contexts || []}
+      navigation={navigation}
+      themeColors={palette}
+      textStyle={{ color: palette.textPrimary }}
+    />
+
+    {hasFactCheck && (
+      <View style={styles.factCheckContainer}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() =>
+            setFactCheckModal({
+              visible: true,
+              factCheck: e.factCheck,
+            })
+          }
+        >
+          <Text
+            style={[
+              styles.factCheckBadge,
+              { color: factCheckColors.text },
+            ]}
+          >
+            {e.factCheck.confidenceScore}% fact-check confidence
+          </Text>
+        </TouchableOpacity>
       </View>
-    );
-  }
+    )}
 
-  // IMAGE MODE (default)
-  const img = e?.imageUrl || e?.image || e?.thumbnail || e?.media?.imageUrl;
-  if (img) {
-    return <Image source={{ uri: img }} style={styles.eventImage} />;
-  }
-
-  return (
-    <View style={styles.eventImagePlaceholder}>
-      <Text style={styles.eventImageEmoji}>📰</Text>
-    </View>
-  );
-})()}
-
-
-                      <View style={styles.eventContent}>
-                        <Text style={styles.eventDate}>
-                          {formatDateLongOrdinal(e.date)}
-                        </Text>
-                        <View style={styles.eventTitleRow}>
-                          <Text style={styles.eventTitle}>{e.event}</Text>
-                          {Array.isArray(e.faqs) && e.faqs.length > 0 && (
-                            <TouchableOpacity
-                              style={styles.faqIcon}
-                              onPress={() =>
-                                setFaqModal({
-                                  visible: true,
-                                  title: e.event || "FAQs",
-                                  faqs: e.faqs,
-                                })
-                              }
-                              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                            >
-                          <Ionicons
-                            name="help-circle-outline"
-                            size={18}
-                            color={palette.accent}
-                          />
-                            </TouchableOpacity>
-                          )}
-                        </View>
-                        <RenderWithContext
-                          text={e.description}
-                          contexts={e.contexts || []}
-                          navigation={navigation}
-                          themeColors={palette}
-                          textStyle={{ color: palette.textPrimary }}
-                        />
-                        {hasFactCheck && (
-                          <View style={styles.factCheckContainer}>
-                            <TouchableOpacity
-                              activeOpacity={0.85}
-                              onPress={() =>
-                                setFactCheckModal({
-                                  visible: true,
-                                  factCheck: e.factCheck,
-                                })
-                              }
-                            >
-                              <Text
-                              style={[
-                                styles.factCheckBadge,
-                                {
-                                  color: factCheckColors.text,
-                                },
-                              ]}
-                            >
-                                {e.factCheck.confidenceScore}% fact-check confidence
-                              </Text>
-                            </TouchableOpacity>
-                          </View>
-                        )}
-                        {(() => {
-  const mode = e?.displayMode || e?.media?.type;
-  if (mode === "link-preview") return null;
-
-  return Array.isArray(e.sources) && e.sources.length > 0 ? (
-    <View style={styles.eventSources}>
-      <SourceLinks sources={e.sources} themeColors={palette} />
-    </View>
-  ) : null;
-})()}
-
-                      </View>
-                    </View>
+    {/* SOURCES (non link-preview) */}
+    {mode !== "link-preview" && sources.length > 0 ? (
+      <View style={styles.eventSources}>
+        <SourceLinks sources={sources} themeColors={palette} />
+      </View>
+    ) : null}
+  </View>
+</View>
                   </TouchableOpacity>
+
+                  {/* Phase end dot */}
                   {isPhaseEnd && (
                     <View style={styles.phaseEndIndicator}>
                       <View
@@ -806,8 +811,7 @@ const sources = normalizeSources(e?.sources);
         handleHeaderScroll({ nativeEvent });
         const pad = 300;
         if (
-          nativeEvent.layoutMeasurement.height +
-            nativeEvent.contentOffset.y >=
+          nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y >=
           nativeEvent.contentSize.height - pad
         ) {
           loadNextTheme();
@@ -817,12 +821,12 @@ const sources = normalizeSources(e?.sources);
       {feed.map((t, i) => (
         <View key={t.id}>
           {renderThemeBlock(t, i === 0)}
-
           {renderSuggestions(t)}
-
           <CommentsSection type="theme" itemId={t.id} />
         </View>
       ))}
+
+      {/* FACT CHECK MODAL */}
       <Modal
         visible={factCheckModal.visible}
         animationType="fade"
@@ -869,6 +873,8 @@ const sources = normalizeSources(e?.sources);
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* FAQ MODAL */}
       <Modal
         visible={faqModal.visible}
         animationType="fade"
@@ -886,9 +892,8 @@ const sources = normalizeSources(e?.sources);
           }}
         >
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>
-              {faqModal.title || "Event FAQs"}
-            </Text>
+            <Text style={styles.modalTitle}>{faqModal.title || "Event FAQs"}</Text>
+
             {Array.isArray(faqModal.faqs) && faqModal.faqs.length ? (
               faqModal.faqs.map((qa, idx) => (
                 <View key={idx} style={styles.faqRow}>
@@ -911,6 +916,7 @@ const sources = normalizeSources(e?.sources);
                       color={palette.textSecondary}
                     />
                   </TouchableOpacity>
+
                   {faqExpanded[idx] && (
                     <Text style={styles.faqAnswer}>{qa.answer || ""}</Text>
                   )}
@@ -919,6 +925,7 @@ const sources = normalizeSources(e?.sources);
             ) : (
               <Text style={styles.modalBody}>No FAQs available.</Text>
             )}
+
             <TouchableOpacity
               style={styles.modalClose}
               onPress={() => {
@@ -934,6 +941,7 @@ const sources = normalizeSources(e?.sources);
     </ScrollView>
   );
 }
+
 
 // ----------------------------------------
 // STYLES

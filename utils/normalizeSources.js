@@ -8,7 +8,12 @@ export function normalizeSourceItem(s) {
   return {
     title: typeof src.title === "string" ? src.title : "",
     link: typeof src.link === "string" ? src.link : "",
-    sourceName: typeof src.sourceName === "string" ? src.sourceName : (typeof src.siteName === "string" ? src.siteName : ""),
+    sourceName:
+      typeof src.sourceName === "string"
+        ? src.sourceName
+        : typeof src.siteName === "string"
+        ? src.siteName
+        : "",
     imageUrl: src.imageUrl ?? null,
     pubDate: src.pubDate ?? null,
     provider: typeof src.provider === "string" ? src.provider : DEFAULT_PROVIDER,

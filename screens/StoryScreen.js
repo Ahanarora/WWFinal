@@ -363,9 +363,8 @@ export default function StoryScreen({ route, navigation }) {
       });
     };
 
-    const rawTimeline = sortEvents(
-  normalizeTimelineBlocks(item.timeline)
-);
+  const canonicalTimeline = normalizeTimelineBlocks(item.timeline);
+const rawTimeline = sortEvents(canonicalTimeline);
 
 
     const analysisForItem =
@@ -608,7 +607,8 @@ export default function StoryScreen({ route, navigation }) {
               : null;
 
             // ---- Phase 1: canonical sources boundary (compute once per event)
-            const mode = e?.media?.type || e?.displayMode || null;
+            const mode = e?.media?.type || null;
+
 
             const sources = e.sources;
 
@@ -737,8 +737,8 @@ export default function StoryScreen({ route, navigation }) {
         ) : null}
       </View>
     ) : (() => {
-        const img =
-          e?.imageUrl || e?.image || e?.thumbnail || e?.media?.imageUrl;
+        const img = e?.media?.imageUrl;
+
 
         if (img) {
           return <Image source={{ uri: img }} style={styles.eventImage} />;

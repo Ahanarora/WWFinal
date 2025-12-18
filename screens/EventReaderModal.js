@@ -105,7 +105,7 @@ const EventCard = React.memo(function EventCard({
         ) : null}
 
         {/* SOURCES */}
-        {Array.isArray(sources) && sources.length > 0 ? (
+       {sources?.length > 0 ? (
           <View style={styles.sources}>
             <SourceLinks sources={sources} themeColors={palette} />
           </View>

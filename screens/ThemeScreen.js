@@ -379,9 +379,9 @@ export default function ThemeScreen({ route, navigation }) {
       });
     };
 
-    const rawTimeline = sortEvents(
-  normalizeTimelineBlocks(item.timeline)
-);
+  const canonicalTimeline = normalizeTimelineBlocks(item.timeline);
+const rawTimeline = sortEvents(canonicalTimeline);
+
 
 
     const analysisForItem =
@@ -629,10 +629,12 @@ export default function ThemeScreen({ route, navigation }) {
                 : null;
 
               // ---- canonical sources boundary (compute once per event)
-             const mode = e?.media?.type || e?.displayMode || null;
+            const mode = e?.media?.type || null;
 
 
-              const sources = Array.isArray(e.sources) ? e.sources : [];
+
+              const sources = e.sources;
+
 
               const primaryIdx =
                 typeof e?.media?.sourceIndex === "number"
@@ -698,8 +700,8 @@ export default function ThemeScreen({ route, navigation }) {
       ) : null}
     </View>
   ) : (() => {
-      const img =
-        e?.imageUrl || e?.image || e?.thumbnail || e?.media?.imageUrl;
+      const img = e?.media?.imageUrl;
+
 
       if (img) {
         return <Image source={{ uri: img }} style={styles.eventImage} />;

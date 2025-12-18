@@ -37,8 +37,6 @@ import type { TimelineBlock, TimelineEventBlock, SourceItem } from "@ww/shared";
 import { normalizeTimelineBlocks } from "../utils/normalizeTimelineBlocks";
 
 
-type NavLike = any;
-type RouteLike = { params?: any };
 
 type WithOriginalIndex<T> = T & { _originalIndex?: number };
 
@@ -141,14 +139,17 @@ function getFactCheckRgb(score?: number) {
 
 // ------------------------------------------------------------------
 
-export default function StoryScreen({
-  route,
-  navigation,
-}: {
-  route: RouteLike;
-  navigation: NavLike;
-}) {
-  const { story, index, allStories } = route.params || {};
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "../navigation/types";
+
+type Props = NativeStackScreenProps<RootStackParamList, "Story">;
+
+export default function StoryScreen({ route, navigation }: Props) {
+  const { storyId } = route.params;
+// TEMP bridge until Story is fetched by ID
+const { story, index, allStories } =
+  (route.params as any) || {};
+
 
   // Endless scroll state
   const [feed, setFeed] = useState<any[]>(story ? [story] : []);
@@ -383,11 +384,10 @@ export default function StoryScreen({
     if (!similar.length) return null;
 
     const openStory = (item: any) =>
-      navigation.push("Story", {
-        story: item,
-        index: 0,
-        allStories: suggestionPool,
-      });
+     navigation.push("Story", {
+  storyId: item.id,
+});
+
 
     return (
       <View style={styles.suggestionsSection}>
@@ -559,9 +559,9 @@ export default function StoryScreen({
           onPress={() =>
             item.category &&
             navigation.navigate("Search", {
-              stories: getStorySearchCache(),
-              initialQuery: item.category,
-            })
+  query: item.category,
+})
+
           }
           disabled={!item.category}
         >
@@ -589,10 +589,11 @@ export default function StoryScreen({
                 style={styles.analysisButton}
                 onPress={() =>
                   navigation.push("AnalysisModal", {
-                    type: "stakeholders",
-                    analysis: primaryAnalysis,
-                    contexts: primaryContexts,
-                  })
+  title: "Stakeholders",
+  content: "",
+  factCheck: null,
+})
+
                 }
               >
                 <Text style={styles.analysisButtonText}>Stakeholders</Text>
@@ -604,10 +605,11 @@ export default function StoryScreen({
                 style={styles.analysisButton}
                 onPress={() =>
                   navigation.push("AnalysisModal", {
-                    type: "faqs",
-                    analysis: primaryAnalysis,
-                    contexts: primaryContexts,
-                  })
+  title: "Stakeholders",
+  content: "",
+  factCheck: null,
+})
+
                 }
               >
                 <Text style={styles.analysisButtonText}>FAQs</Text>
@@ -618,11 +620,12 @@ export default function StoryScreen({
               <TouchableOpacity
                 style={styles.analysisButton}
                 onPress={() =>
-                  navigation.push("AnalysisModal", {
-                    type: "future",
-                    analysis: primaryAnalysis,
-                    contexts: primaryContexts,
-                  })
+                 navigation.push("AnalysisModal", {
+  title: "Stakeholders",
+  content: "",
+  factCheck: null,
+})
+
                 }
               >
                 <Text style={styles.analysisButtonText}>Future?</Text>
@@ -713,11 +716,11 @@ export default function StoryScreen({
                 {/* EVENT CARD */}
                 <Pressable
                   onPress={() =>
-                    navigation.navigate("EventReader", {
-                      events: timelineForModal,
-                      startIndex: i,
-                      headerTitle: item.title || "Story",
-                    })
+                   navigation.navigate("EventReader", {
+  storyId: item.id,
+  initialIndex: i,
+})
+
                   }
                   android_disableSound={true}
                 >

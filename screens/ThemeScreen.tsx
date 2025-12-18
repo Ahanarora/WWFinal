@@ -29,6 +29,7 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import WWHomeCard from "../components/WWHomeCard";
 import PublisherPreviewCard from "../components/PublisherPreviewCard";
+import { normalizeSources } from "../utils/normalizeSources";
 
 // Shared timeline contract
 import type {
@@ -37,13 +38,16 @@ import type {
   SourceItem,
 } from "@ww/shared";
 import { normalizeTimelineBlocks } from "../utils/normalizeTimelineBlocks";
-import { getStorySearchCache } from "../utils/storyCache";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "../navigation/types";
+
+type Props = NativeStackScreenProps<RootStackParamList, "Theme">;
+
 
 // -------------------------------------------------
 // LOCAL TYPES (Phase 2B – UI widening only)
 // -------------------------------------------------
-type RouteLike = { params?: any };
-type NavLike = any;
+
 
 type WithOriginalIndex<T> = T & { _originalIndex: number };
 
@@ -150,14 +154,10 @@ function getFactCheckRgb(score: number) {
 // -------------------------------------------------
 // MAIN COMPONENT
 // -------------------------------------------------
-export default function ThemeScreen({
-  route,
-  navigation,
-}: {
-  route: RouteLike;
-  navigation: NavLike;
-}) {
-  const { theme, index, allThemes } = route.params || {};
+export default function ThemeScreen({ route, navigation }: Props) {
+
+ const { theme, index, allThemes } = (route.params || {}) as any;
+
 
   // Endless scroll
   const [feed, setFeed] = useState<any[]>(theme ? [theme] : []);
@@ -429,11 +429,9 @@ export default function ThemeScreen({
     if (!similar.length) return null;
 
     const openTheme = (item: any) =>
-  (navigation as any).push("Theme", {
-    theme: item,
-    index: 0,
-    allThemes: suggestionPool,
-  });
+  navigation.push("Theme", {
+    themeId: item.id,
+  } as any);
 
 
 
@@ -480,13 +478,20 @@ export default function ThemeScreen({
     ];
 
     // Add original index (UI widening only)
-    const indexedTimeline = (rawTimeline as UIThemeTimelineEvent[]).map(
-      (evt, originalIndex) =>
-        ({
-          ...evt,
-          _originalIndex: originalIndex,
-        } as WithOriginalIndex<UIThemeTimelineEvent>)
-    );
+   
+    // Only event blocks are rendered here (Phase 2B)
+const eventBlocks = (rawTimeline || []).filter(
+  (b: any) => b && typeof b === "object" && b.type === "event"
+) as UIThemeTimelineEvent[];
+
+
+const indexedTimeline = eventBlocks.map(
+  (evt, originalIndex) => ({
+    ...evt,
+    _originalIndex: originalIndex,
+     } as WithOriginalIndex<UIThemeTimelineEvent>)
+);
+
 
     // (CONTINUES IN PART 3)
     // ------------------------------
@@ -556,18 +561,12 @@ export default function ThemeScreen({
     // ------------------------------
     const filteredTimeline = indexedTimeline.filter((e) => {
       if (depth === 1) return e.significance === 3;
-      if (depth === 2) return e.significance >= 2;
+      if (depth === 2) return (e.significance || 1) >= 2;
       return true;
     });
 
     // EventReader modal payload
-    const timelineForModal = filteredTimeline.map((evt) => {
-      const ph = getPhaseForEventStart(evt);
-      return {
-        ...evt,
-        phaseTitle: ph?.title ?? null,
-      };
-    });
+  
 
     return (
       <View key={item.id} style={{ marginBottom: 0 }}>
@@ -607,10 +606,10 @@ export default function ThemeScreen({
         <TouchableOpacity
           onPress={() =>
             item.category &&
-            (navigation as any).navigate("Search", {
-  stories: getStorySearchCache(),
-  initialQuery: item.category,
-})
+            navigation.navigate("Search", {
+  query: item.category,
+} as any});
+
 
           }
           disabled={!item.category}
@@ -640,7 +639,7 @@ export default function ThemeScreen({
                 style={styles.analysisButton}
                 onPress={() =>
                   (navigation as any).push("AnalysisModal", {
-  type: "faqs",
+  type: "stakeholders",
   analysis: primaryAnalysis,
   contexts: primaryContexts,
 })
@@ -734,7 +733,8 @@ export default function ThemeScreen({
 
               // ---- canonical sources boundary
               const mode = e?.media?.type || null;
-              const sources = (e.sources || []) as SourceItem[];
+              const sources = normalizeSources((e as any).sources) as SourceItem[];
+
 
               const primaryIdx =
                 typeof e?.media?.sourceIndex === "number"
@@ -772,11 +772,11 @@ export default function ThemeScreen({
                   <TouchableOpacity
                     activeOpacity={0.8}
                     onPress={() =>
-                      (navigation as any).navigate("EventReader", {
-  events: timelineForModal,
-  startIndex: i,
-  headerTitle: item.title,
-})
+                      navigation.navigate("EventReader", {
+  themeId: item.id,
+  initialIndex: i,
+} as any);
+
 
                     }
                   >
@@ -1404,3 +1404,4 @@ empty: {
       fontWeight: "600",
     },
   });
+

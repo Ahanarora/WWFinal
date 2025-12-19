@@ -16,12 +16,12 @@ import {
   Modal,
   TouchableOpacity,
 } from "react-native";
-
 import { fonts, spacing, getThemeColors } from "../styles/theme";
 import RenderWithContext from "../components/RenderWithContext";
 import SourceLinks from "../components/SourceLinks";
 import { formatDateLongOrdinal } from "../utils/formatTime";
 import { useUserData } from "../contexts/UserDataContext";
+import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/types";
 
@@ -42,23 +42,12 @@ type FactCheck = {
   lastCheckedAt?: string | number;
 };
 
-type UIEventBlock = TimelineEventBlock & {
-  phaseTitle?: string | null;
-  contexts?: string[];
-  media?: {
-    imageUrl?: string | null;
-  };
-  factCheck?: FactCheck;
-};
-
-
 type Props = {
   visible: boolean;
-  events: UIEventBlock[];
+  events: TimelineEventBlock[];
   initialIndex?: number;
-  headerTitle?: string;
   onClose: () => void;
-  navigation: Navigation;
+  onOpenFactCheck?: (fc: unknown) => void;
 };
 
 
@@ -74,122 +63,6 @@ function getFactCheckRgb(score: number) {
 }
 
 // ----------------------------------------
-// Event Card
-// ----------------------------------------
-
-type EventCardProps = {
-  event: UIEventBlock;
-  headerTitle?: string;
-  palette: ThemeColors & { isDark: boolean };
-  styles: ReturnType<typeof createStyles>;
-  navigation: Navigation;
-  onOpenFactCheck: (fc: FactCheck) => void;
-};
-
-
-const EventCard = React.memo(function EventCard({
-  event,
-  headerTitle,
-  palette,
-  styles,
-  navigation,
-  onOpenFactCheck,
-}: EventCardProps) {
-
-  const {
-    date,
-    title,
-    description,
-    contexts,
-    sources,
-    media,
-    phaseTitle,
-    factCheck,
-  } = event;
-
-
-  const formattedDate = date ? formatDateLongOrdinal(date) : "";
-
-  const hasFactCheck =
-    factCheck &&
-    typeof factCheck.confidenceScore === "number" &&
-    !Number.isNaN(factCheck.confidenceScore);
-
-  const factCheckColors = hasFactCheck
-    ? getFactCheckRgb(factCheck.confidenceScore)
-    : null;
-
-  return (
-    <View style={styles.cardInner}>
-      <StatusBar
-        barStyle={palette.isDark ? "light-content" : "dark-content"}
-        backgroundColor={palette.background}
-      />
-
-      {headerTitle ? (
-        <Text style={styles.modalStoryTitle}>{headerTitle}</Text>
-      ) : null}
-
-      {phaseTitle ? (
-        <Text style={styles.modalPhaseTitle}>{phaseTitle}</Text>
-      ) : null}
-
-      {media?.imageUrl ? (
-        <Image source={{ uri: media.imageUrl }} style={styles.image} />
-      ) : null}
-
-      <View style={styles.content}>
-        {formattedDate ? (
-          <Text style={styles.date}>{formattedDate}</Text>
-        ) : null}
-
-        {title ? <Text style={styles.title}>{title}</Text> : null}
-
-        {description ? (
-          <View style={styles.body}>
-            <RenderWithContext
-  text={description}
-  contexts={contexts}
-  navigation={navigation}
-  themeColors={palette}
-  textStyle={{}}
-/>
-
-          </View>
-        ) : null}
-
-        {sources?.length ? (
-          <View style={styles.sources}>
-            <SourceLinks sources={sources} themeColors={palette} />
-          </View>
-        ) : null}
-
-        {hasFactCheck && factCheckColors && (
-          <View style={styles.factCheckBlock}>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={() => onOpenFactCheck(factCheck)}
-            >
-              <Text
-                style={[
-                  styles.factCheckBadge,
-                  {
-                    backgroundColor: factCheckColors.bg,
-                    color: factCheckColors.text,
-                  },
-                ]}
-              >
-                {factCheck.confidenceScore}% fact-check confidence
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-    </View>
-  );
-});
-
-// ----------------------------------------
 // Main Modal
 // ----------------------------------------
 
@@ -197,11 +70,11 @@ export default function EventReaderModal({
   visible,
   events,
   initialIndex = 0,
-  headerTitle,
   onClose,
-  navigation,
+  onOpenFactCheck,
 }: Props) {
 
+  const navigation = useNavigation<Navigation>();
   const { themeColors, darkMode } = useUserData();
 
   const palette: ThemeColors & { isDark: boolean } = {
@@ -230,6 +103,112 @@ export default function EventReaderModal({
     visible: boolean;
     factCheck: FactCheck | null;
   }>({ visible: false, factCheck: null });
+
+  const handleOpenFactCheck = (fc: FactCheck) => {
+    setFactCheckModal({ visible: true, factCheck: fc });
+    onOpenFactCheck?.(fc);
+  };
+
+  const renderEventCard = (event: TimelineEventBlock) => {
+    const contexts: string[] = [];
+
+
+    const media =
+      "media" in event && event.media && typeof event.media === "object"
+        ? (event.media as { imageUrl?: string | null; type?: string | null })
+        : null;
+
+    const factCheck =
+      "factCheck" in event &&
+      event.factCheck &&
+      typeof event.factCheck === "object"
+        ? (event as { factCheck?: FactCheck | null }).factCheck ?? null
+        : null;
+
+    const phaseTitle =
+      "phaseTitle" in event
+        ? (event as { phaseTitle?: string | null }).phaseTitle ?? null
+        : null;
+
+    const hasFactCheck =
+      !!factCheck &&
+      typeof factCheck.confidenceScore === "number" &&
+      !Number.isNaN(factCheck.confidenceScore);
+
+    const factCheckColors = hasFactCheck
+      ? getFactCheckRgb(factCheck.confidenceScore)
+      : null;
+
+    const mediaImage = media?.imageUrl;
+    const sources = Array.isArray(event.sources) ? event.sources : [];
+    const formattedDate = event.date
+      ? formatDateLongOrdinal(event.date)
+      : "";
+
+    return (
+      <View style={styles.cardInner}>
+        <StatusBar
+          barStyle={palette.isDark ? "light-content" : "dark-content"}
+          backgroundColor={palette.background}
+        />
+
+        {phaseTitle ? (
+          <Text style={styles.modalPhaseTitle}>{phaseTitle}</Text>
+        ) : null}
+
+        {mediaImage ? (
+          <Image source={{ uri: mediaImage }} style={styles.image} />
+        ) : null}
+
+        <View style={styles.content}>
+          {formattedDate ? (
+            <Text style={styles.date}>{formattedDate}</Text>
+          ) : null}
+
+          {event.title ? <Text style={styles.title}>{event.title}</Text> : null}
+
+          {event.description ? (
+            <View style={styles.body}>
+              <RenderWithContext
+                text={event.description}
+                contexts={contexts}
+                navigation={navigation}
+                themeColors={palette}
+                textStyle={{}}
+              />
+            </View>
+          ) : null}
+
+          {sources?.length ? (
+            <View style={styles.sources}>
+              <SourceLinks sources={sources} themeColors={palette} />
+            </View>
+          ) : null}
+
+          {hasFactCheck && factCheckColors && factCheck ? (
+            <View style={styles.factCheckBlock}>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => handleOpenFactCheck(factCheck)}
+              >
+                <Text
+                  style={[
+                    styles.factCheckBadge,
+                    {
+                      backgroundColor: factCheckColors.bg,
+                      color: factCheckColors.text,
+                    },
+                  ]}
+                >
+                  {factCheck.confidenceScore}% fact-check confidence
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+        </View>
+      </View>
+    );
+  };
 
   const startTransition = (next: number) => {
     if (
@@ -295,17 +274,7 @@ export default function EventReaderModal({
 
         <View style={styles.cardStack} {...panResponder.panHandlers}>
           <Animated.View style={[styles.cardLayer, { opacity: anim }]}>
-           <EventCard
-  event={safeEvents[index]}
-  headerTitle={headerTitle}
-  palette={palette}
-  styles={styles}
-  navigation={navigation}
-  onOpenFactCheck={(fc) =>
-    setFactCheckModal({ visible: true, factCheck: fc })
-  }
-/>
-
+            {renderEventCard(safeEvents[index])}
           </Animated.View>
         </View>
 

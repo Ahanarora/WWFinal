@@ -1,3 +1,5 @@
+// src/navigation/types.ts
+
 export type RootStackParamList = {
   Login: undefined;
 
@@ -6,7 +8,11 @@ export type RootStackParamList = {
   Story: { storyId: string };
   Theme: { themeId: string };
 
-  Search: { query?: string };
+  EventReader: {
+    storyId?: string;
+    themeId?: string;
+    initialIndex?: number;
+  };
 
   AnalysisModal: {
     title: string;
@@ -14,10 +20,8 @@ export type RootStackParamList = {
     factCheck?: unknown;
   };
 
-  EventReader: {
-    storyId?: string;
-    themeId?: string;
-    initialIndex?: number;
+  Search: {
+    query?: string;
   };
 
   WhatIsWaitWhat: undefined;

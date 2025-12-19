@@ -102,7 +102,7 @@ export function renderLinkedText(text, navigation) {
                     data.title || data.name || data.id
                   );
 
-                  // Use Stack route names from App.js
+                  // Use Stack route names from App.tsx
                   const screen = n.linkType === "story" ? "Story" : "Theme";
 
                   // Your choice: PUSH (stack of stories/themes)

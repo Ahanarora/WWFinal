@@ -51,14 +51,16 @@ import LoginScreen from "./screens/LoginScreen";
 import { getStorySearchCache } from "./utils/storyCache";
 import { UserDataProvider, useUserData } from "./contexts/UserDataContext";
 
-import type { RootStackParamList } from "./navigation/types";
+
 
 // ----------------------------------------
 // Navigation setup
 // ----------------------------------------
 
 const Tab = createBottomTabNavigator();
-const Stack = createNativeStackNavigator<RootStackParamList>();
+const Stack = createNativeStackNavigator();
+
+
 
 const prefix = Linking.createURL("/");
 const linking = {
@@ -90,8 +92,12 @@ const linking = {
 // ----------------------------------------
 
 function Tabs() {
-  const { themeColors, savedUpdatesCount } = useUserData();
-  const palette = themeColors || getThemeColors(false);
+  const userData = useUserData();
+if (!userData) return null;
+
+const { themeColors, savedUpdatesCount } = userData;
+const palette = themeColors || getThemeColors(false);
+
 
   return (
     <Tab.Navigator id={undefined}
@@ -119,10 +125,10 @@ function Tabs() {
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontFamily: fonts.navigation,
-          fontWeight: "500",
-        },
+  fontSize: 12,
+  fontWeight: "500",
+},
+
       })}
     >
       <Tab.Screen name="HomeTab" component={HomeScreen} options={{ title: "Home" }} />
@@ -174,7 +180,7 @@ const DarkNavTheme = {
 // ----------------------------------------
 
 function AppNavigator({ user }: { user: any }) {
-  const navigationRef = useNavigationContainerRef<RootStackParamList>();
+  const navigationRef = useNavigationContainerRef();
   const { darkMode, toggleDarkMode, themeColors } = useUserData();
   const palette = themeColors || getThemeColors(darkMode);
 
@@ -191,7 +197,8 @@ headerShadowVisible: true,
     headerRight: () => (
       <TouchableOpacity
         onPress={() =>
-          navigationRef.current?.navigate("Search", { query: "" })
+          (navigationRef.current as any)?.navigate("Search", { query: "" })
+
         }
         style={{ paddingLeft: 12 }}
       >
@@ -271,7 +278,14 @@ export default function App() {
     FreckleFace: require("./assets/fonts/FreckleFace-Regular.ttf"),
   });
 
-  if (!fontsLoaded || authChecking) return null;
+  if (!fontsLoaded || authChecking) {
+  return (
+    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <Text>Loading app…</Text>
+    </View>
+  );
+}
+
 
   return (
     <UserDataProvider user={user}>
@@ -319,3 +333,4 @@ const styles = StyleSheet.create({
     zIndex: -1,
   },
 });
+

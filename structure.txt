@@ -1,5 +1,5 @@
 .
-├── App.js
+├── App.tsx
 ├── android
 │   ├── app
 │   │   ├── build.gradle

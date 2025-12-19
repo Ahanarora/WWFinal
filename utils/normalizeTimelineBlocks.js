@@ -1,4 +1,4 @@
-js
+
 // utils/normalizeTimelineBlocks.js
 import { normalizeSources } from "./normalizeSources";
 

@@ -1,7 +1,7 @@
 // ----------------------------------------
 // screens/EventReaderModal.tsx
 // Full-screen vertical event reader (Inshorts-style)
-// Phase 2B — ZERO any, canonical TimelineEventBlock consumer
+// Phase 2B — Navigation-driven modal screen
 // ----------------------------------------
 
 import React, { useRef, useState, useMemo } from "react";
@@ -13,28 +13,26 @@ import {
   Image,
   StatusBar,
   Animated,
-  Modal,
   TouchableOpacity,
 } from "react-native";
+
 import { fonts, spacing, getThemeColors } from "../styles/theme";
 import RenderWithContext from "../components/RenderWithContext";
 import SourceLinks from "../components/SourceLinks";
 import { formatDateLongOrdinal } from "../utils/formatTime";
 import { useUserData } from "../contexts/UserDataContext";
-import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import type { RootStackParamList } from "../navigation/types";
-
 
 import type { TimelineEventBlock } from "@ww/shared";
-type ThemeColors = ReturnType<typeof getThemeColors>;
-
-type Navigation = NativeStackNavigationProp<RootStackParamList>;
-
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "../navigation/types";
 
 // ----------------------------------------
 // Types
 // ----------------------------------------
+
+type Props = NativeStackScreenProps<RootStackParamList, "EventReader">;
+
+type ThemeColors = ReturnType<typeof getThemeColors>;
 
 type FactCheck = {
   confidenceScore: number;
@@ -42,14 +40,19 @@ type FactCheck = {
   lastCheckedAt?: string | number;
 };
 
-type Props = {
-  visible: boolean;
-  events: TimelineEventBlock[];
-  initialIndex?: number;
-  onClose: () => void;
-  onOpenFactCheck?: (fc: unknown) => void;
+/**
+ * UI-only extensions (NOT part of @ww/shared canonical model)
+ * Phase 2B rule: UI may extend, but shared types remain pure.
+ */
+type EventUIExtensions = {
+  media?: {
+    imageUrl?: string | null;
+  };
+  factCheck?: FactCheck;
+  phaseTitle?: string;
 };
 
+type EventWithUI = TimelineEventBlock & EventUIExtensions;
 
 // ----------------------------------------
 // Utils
@@ -63,18 +66,12 @@ function getFactCheckRgb(score: number) {
 }
 
 // ----------------------------------------
-// Main Modal
+// Screen
 // ----------------------------------------
 
-export default function EventReaderModal({
-  visible,
-  events,
-  initialIndex = 0,
-  onClose,
-  onOpenFactCheck,
-}: Props) {
+export default function EventReaderModal({ route, navigation }: Props) {
+  const { events = [], initialIndex = 0 } = route.params ?? {};
 
-  const navigation = useNavigation<Navigation>();
   const { themeColors, darkMode } = useUserData();
 
   const palette: ThemeColors & { isDark: boolean } = {
@@ -85,7 +82,7 @@ export default function EventReaderModal({
   const styles = useMemo(() => createStyles(palette), [palette]);
 
   const safeEvents = useMemo(
-    () => events.filter((e): e is TimelineEventBlock => Boolean(e)),
+    () => events.filter((e): e is EventWithUI => Boolean(e)),
     [events]
   );
 
@@ -106,29 +103,14 @@ export default function EventReaderModal({
 
   const handleOpenFactCheck = (fc: FactCheck) => {
     setFactCheckModal({ visible: true, factCheck: fc });
-    onOpenFactCheck?.(fc);
   };
 
-  const renderEventCard = (event: TimelineEventBlock) => {
+  const renderEventCard = (event: EventWithUI) => {
     const contexts: string[] = [];
 
-
-    const media =
-      "media" in event && event.media && typeof event.media === "object"
-        ? (event.media as { imageUrl?: string | null; type?: string | null })
-        : null;
-
-    const factCheck =
-      "factCheck" in event &&
-      event.factCheck &&
-      typeof event.factCheck === "object"
-        ? (event as { factCheck?: FactCheck | null }).factCheck ?? null
-        : null;
-
-    const phaseTitle =
-      "phaseTitle" in event
-        ? (event as { phaseTitle?: string | null }).phaseTitle ?? null
-        : null;
+    const media = event.media ?? null;
+    const factCheck = event.factCheck ?? null;
+    const phaseTitle = event.phaseTitle ?? null;
 
     const hasFactCheck =
       !!factCheck &&
@@ -139,8 +121,6 @@ export default function EventReaderModal({
       ? getFactCheckRgb(factCheck.confidenceScore)
       : null;
 
-    const mediaImage = media?.imageUrl;
-    const sources = Array.isArray(event.sources) ? event.sources : [];
     const formattedDate = event.date
       ? formatDateLongOrdinal(event.date)
       : "";
@@ -156,8 +136,8 @@ export default function EventReaderModal({
           <Text style={styles.modalPhaseTitle}>{phaseTitle}</Text>
         ) : null}
 
-        {mediaImage ? (
-          <Image source={{ uri: mediaImage }} style={styles.image} />
+        {media?.imageUrl ? (
+          <Image source={{ uri: media.imageUrl }} style={styles.image} />
         ) : null}
 
         <View style={styles.content}>
@@ -165,7 +145,9 @@ export default function EventReaderModal({
             <Text style={styles.date}>{formattedDate}</Text>
           ) : null}
 
-          {event.title ? <Text style={styles.title}>{event.title}</Text> : null}
+          {event.title ? (
+            <Text style={styles.title}>{event.title}</Text>
+          ) : null}
 
           {event.description ? (
             <View style={styles.body}>
@@ -179,13 +161,13 @@ export default function EventReaderModal({
             </View>
           ) : null}
 
-          {sources?.length ? (
+          {event.sources?.length ? (
             <View style={styles.sources}>
-              <SourceLinks sources={sources} themeColors={palette} />
+              <SourceLinks sources={event.sources} themeColors={palette} />
             </View>
           ) : null}
 
-          {hasFactCheck && factCheckColors && factCheck ? (
+          {hasFactCheck && factCheck && factCheckColors ? (
             <View style={styles.factCheckBlock}>
               <TouchableOpacity
                 activeOpacity={0.85}
@@ -252,87 +234,66 @@ export default function EventReaderModal({
             startTransition(index + 1);
           } else if (swipeDown) {
             if (index > 0) startTransition(index - 1);
-            else onClose();
+            else navigation.goBack();
           }
         },
       }),
-    [index, transitioning, safeEvents.length, onClose]
+    [index, transitioning, safeEvents.length, navigation]
   );
 
-  if (!safeEvents.length) return null;
+  if (!safeEvents.length) {
+    return (
+      <View style={[styles.container, { justifyContent: "center" }]}>
+        <Text style={{ color: palette.textSecondary }}>
+          No events available
+        </Text>
+      </View>
+    );
+  }
 
   return (
-    <Modal visible={visible} animationType="fade">
-      <View style={styles.container}>
-        <View style={styles.dragHandle} />
+    <View style={styles.container}>
+      <View style={styles.dragHandle} />
 
-        <View style={styles.counterRow}>
-          <Text style={styles.counterText}>
-            {index + 1} / {safeEvents.length}
-          </Text>
-        </View>
-
-        <View style={styles.cardStack} {...panResponder.panHandlers}>
-          <Animated.View style={[styles.cardLayer, { opacity: anim }]}>
-            {renderEventCard(safeEvents[index])}
-          </Animated.View>
-        </View>
-
-        {/* FACT CHECK MODAL */}
-        <Modal
-          visible={factCheckModal.visible}
-          animationType="fade"
-          transparent
-          onRequestClose={() =>
-            setFactCheckModal({ visible: false, factCheck: null })
-          }
-        >
-          <TouchableOpacity
-            style={styles.modalBackdrop}
-            activeOpacity={1}
-            onPress={() =>
-              setFactCheckModal({ visible: false, factCheck: null })
-            }
-          >
-            <View style={styles.modalCard}>
-              <Text style={styles.modalTitle}>Fact-check details</Text>
-
-              {factCheckModal.factCheck && (
-                <>
-                  <Text style={styles.modalScore}>
-                    {factCheckModal.factCheck.confidenceScore}% confidence
-                  </Text>
-
-                  {factCheckModal.factCheck.explanation ? (
-                    <Text style={styles.modalBody}>
-                      {factCheckModal.factCheck.explanation}
-                    </Text>
-                  ) : null}
-
-                  {factCheckModal.factCheck.lastCheckedAt ? (
-                    <Text style={styles.modalMeta}>
-                      Last updated:{" "}
-                      {new Date(
-                        factCheckModal.factCheck.lastCheckedAt
-                      ).toLocaleString()}
-                    </Text>
-                  ) : null}
-                </>
-              )}
-
-              <TouchableOpacity
-                style={styles.modalClose}
-                onPress={() =>
-                  setFactCheckModal({ visible: false, factCheck: null })
-                }
-              >
-                <Text style={styles.modalCloseText}>Close</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        </Modal>
+      <View style={styles.counterRow}>
+        <Text style={styles.counterText}>
+          {index + 1} / {safeEvents.length}
+        </Text>
       </View>
-    </Modal>
+
+      <View style={styles.cardStack} {...panResponder.panHandlers}>
+        <Animated.View style={[styles.cardLayer, { opacity: anim }]}>
+          {renderEventCard(safeEvents[index])}
+        </Animated.View>
+      </View>
+
+      {factCheckModal.visible && factCheckModal.factCheck && (
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Fact-check details</Text>
+
+            <Text style={styles.modalScore}>
+              {factCheckModal.factCheck.confidenceScore}% confidence
+            </Text>
+
+            {factCheckModal.factCheck.explanation ? (
+              <Text style={styles.modalBody}>
+                {factCheckModal.factCheck.explanation}
+              </Text>
+            ) : null}
+
+            <TouchableOpacity
+              style={styles.modalClose}
+              onPress={() =>
+                setFactCheckModal({ visible: false, factCheck: null })
+              }
+            >
+              <Text style={styles.modalCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -367,13 +328,6 @@ const createStyles = (palette: ThemeColors & { isDark: boolean }) =>
       backgroundColor: palette.background,
     },
     cardInner: { flex: 1, backgroundColor: palette.surface },
-    modalStoryTitle: {
-      fontFamily: fonts.heading,
-      fontSize: 22,
-      fontWeight: "600",
-      color: palette.textPrimary,
-      paddingHorizontal: spacing.md,
-    },
     modalPhaseTitle: {
       fontFamily: fonts.body,
       fontSize: 13,
@@ -415,7 +369,7 @@ const createStyles = (palette: ThemeColors & { isDark: boolean }) =>
       borderRadius: 999,
     },
     modalBackdrop: {
-      flex: 1,
+      ...StyleSheet.absoluteFillObject,
       backgroundColor: "rgba(0,0,0,0.45)",
       justifyContent: "center",
       padding: spacing.md,
@@ -440,11 +394,6 @@ const createStyles = (palette: ThemeColors & { isDark: boolean }) =>
     modalBody: {
       fontFamily: fonts.body,
       fontSize: 13,
-      color: palette.textSecondary,
-    },
-    modalMeta: {
-      fontFamily: fonts.body,
-      fontSize: 12,
       color: palette.textSecondary,
     },
     modalClose: {

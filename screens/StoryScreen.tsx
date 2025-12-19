@@ -145,7 +145,8 @@ import type { RootStackParamList } from "../navigation/types";
 type Props = NativeStackScreenProps<RootStackParamList, "Story">;
 
 export default function StoryScreen({ route, navigation }: Props) {
-  const { storyId } = route.params;
+  const { id: storyId } = route.params;
+
 // TEMP bridge until Story is fetched by ID
 const { story, index, allStories } =
   (route.params as any) || {};
@@ -385,8 +386,9 @@ const { story, index, allStories } =
 
     const openStory = (item: any) =>
      navigation.push("Story", {
-  storyId: item.id,
+  id: item.id,
 });
+
 
 
     return (
@@ -418,9 +420,17 @@ const { story, index, allStories } =
       });
     };
 
-    // Phase 2B: normalize legacy timeline → canonical blocks
-    const canonicalTimeline = normalizeTimelineBlocks(item.timeline) as TimelineBlock[];
-    const rawTimeline = sortEvents(canonicalTimeline as any[]) as TimelineBlock[];
+const timelineBlocks = normalizeTimelineBlocks(
+  item.timeline
+) as TimelineBlock[];
+
+const rawTimeline = [...timelineBlocks].sort((a: any, b: any) => {
+  if (!a.date || !b.date) return 0;
+  const aMs = new Date(a.date).getTime();
+  const bMs = new Date(b.date).getTime();
+  if (Number.isNaN(aMs) || Number.isNaN(bMs)) return 0;
+  return sortOrder === "chronological" ? aMs - bMs : bMs - aMs;
+});
 
     const analysisForItem =
       item.id === story.id ? primaryAnalysis : normalizeAnalysis(item.analysis);
@@ -431,9 +441,10 @@ const { story, index, allStories } =
     ];
 
     // We only render event blocks in this screen
-    const eventBlocks = (rawTimeline || []).filter(
-      (b: any) => b && typeof b === "object" && b.type === "event"
-    ) as UITimelineEvent[];
+    const eventBlocks = rawTimeline.filter(
+  (b): b is UITimelineEvent => b.type === "event"
+);
+
 
     // Add original index to each event
     const indexedTimeline = (eventBlocks as UITimelineEvent[]).map(
@@ -691,8 +702,9 @@ const { story, index, allStories } =
               ? sources.filter((s) => s.link !== primarySource.link)
               : sources;
 
-            const description = (e as any).description || "";
-            const contexts = (e as any).contexts || [];
+            const description = e.description || "";
+const contexts = e.contexts || [];
+
 
             return (
               <View key={e._originalIndex ?? i} style={styles.eventBlock}>
@@ -717,9 +729,10 @@ const { story, index, allStories } =
                 <Pressable
                   onPress={() =>
                    navigation.navigate("EventReader", {
-  storyId: item.id,
+  events: filteredTimeline,
   initialIndex: i,
 })
+
 
                   }
                   android_disableSound={true}

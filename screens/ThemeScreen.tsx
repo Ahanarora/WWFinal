@@ -461,10 +461,18 @@ export default function ThemeScreen({ route, navigation }: Props) {
       });
     };
 
-    const canonicalTimeline = normalizeTimelineBlocks(
-      item.timeline
-    ) as TimelineBlock[];
-    const rawTimeline = sortEvents(canonicalTimeline) as TimelineBlock[];
+const timelineBlocks = normalizeTimelineBlocks(
+  item.timeline
+) as TimelineBlock[];
+
+const rawTimeline = [...timelineBlocks].sort((a: any, b: any) => {
+  if (!a.date || !b.date) return 0;
+  const aMs = new Date(a.date).getTime();
+  const bMs = new Date(b.date).getTime();
+  if (Number.isNaN(aMs) || Number.isNaN(bMs)) return 0;
+  return sortOrder === "chronological" ? aMs - bMs : bMs - aMs;
+});
+
 
     const analysisForItem =
       item.id === theme.id
@@ -479,9 +487,9 @@ export default function ThemeScreen({ route, navigation }: Props) {
     // Add original index (UI widening only)
    
     // Only event blocks are rendered here (Phase 2B)
-const eventBlocks = (rawTimeline || []).filter(
-  (b: any) => b && typeof b === "object" && b.type === "event"
-) as UIThemeTimelineEvent[];
+const eventBlocks = rawTimeline.filter(
+  (b): b is UIThemeTimelineEvent => b.type === "event"
+);
 
 
 const indexedTimeline = eventBlocks.map(
@@ -765,9 +773,10 @@ const indexedTimeline = eventBlocks.map(
                     activeOpacity={0.8}
                     onPress={() => {
                       navigation.navigate("EventReader", {
-                        themeId: item.id,
-                        initialIndex: i,
-                      } as any);
+  events: filteredTimeline,
+  initialIndex: i,
+});
+
                     }}
                   >
                     <View
@@ -849,7 +858,8 @@ const indexedTimeline = eventBlocks.map(
 
                         <RenderWithContext
                           text={e.description}
-                          contexts={e.contexts || []}
+contexts={e.contexts || []}
+
                           navigation={navigation}
                           themeColors={palette}
                           textStyle={{ color: palette.textPrimary }}

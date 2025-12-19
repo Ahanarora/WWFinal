@@ -1,27 +1,21 @@
-// src/navigation/types.ts
+import type { TimelineEventBlock } from "@ww/shared";
 
 export type RootStackParamList = {
   Login: undefined;
-
   RootTabs: undefined;
 
-  Story: { storyId: string };
-  Theme: { themeId: string };
+  Story: { id: string };
+  Theme: { id: string };
 
-  EventReader: {
-    storyId?: string;
-    themeId?: string;
-    initialIndex?: number;
-  };
+  Search: { query: string };
 
   AnalysisModal: {
-    title: string;
-    content: string;
-    factCheck?: unknown;
+    // whatever you already have
   };
 
-  Search: {
-    query?: string;
+  EventReader: {
+    events: TimelineEventBlock[];
+    initialIndex?: number;
   };
 
   WhatIsWaitWhat: undefined;

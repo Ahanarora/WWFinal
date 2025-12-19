@@ -1,6 +1,7 @@
 // ----------------------------------------
 // screens/EventReaderModal.tsx
-// Full-screen vertical event reader (Inshorts-style, fade-in + phases)
+// Full-screen vertical event reader (Inshorts-style)
+// Phase 2B — ZERO any, canonical TimelineEventBlock consumer
 // ----------------------------------------
 
 import React, { useRef, useState, useMemo } from "react";
@@ -15,28 +16,56 @@ import {
   Modal,
   TouchableOpacity,
 } from "react-native";
+
 import { fonts, spacing, getThemeColors } from "../styles/theme";
 import RenderWithContext from "../components/RenderWithContext";
 import SourceLinks from "../components/SourceLinks";
 import { formatDateLongOrdinal } from "../utils/formatTime";
 import { useUserData } from "../contexts/UserDataContext";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "../navigation/types";
+
+
 import type { TimelineEventBlock } from "@ww/shared";
+type ThemeColors = ReturnType<typeof getThemeColors>;
+
+type Navigation = NativeStackNavigationProp<RootStackParamList>;
+
 
 // ----------------------------------------
-// Route + Nav (kept intentionally loose)
+// Types
 // ----------------------------------------
-type EventReaderParams = {
-  events?: TimelineEventBlock[];
-  startIndex?: number;
-  headerTitle?: string;
+
+type FactCheck = {
+  confidenceScore: number;
+  explanation?: string;
+  lastCheckedAt?: string | number;
 };
 
-type RouteLike = { params?: EventReaderParams };
-type NavLike = any;
+type UIEventBlock = TimelineEventBlock & {
+  phaseTitle?: string | null;
+  contexts?: string[];
+  media?: {
+    imageUrl?: string | null;
+  };
+  factCheck?: FactCheck;
+};
+
+
+type Props = {
+  visible: boolean;
+  events: UIEventBlock[];
+  initialIndex?: number;
+  headerTitle?: string;
+  onClose: () => void;
+  navigation: Navigation;
+};
+
 
 // ----------------------------------------
 // Utils
 // ----------------------------------------
+
 function getFactCheckRgb(score: number) {
   if (score >= 85) return { bg: "#BBF7D0", text: "#166534" };
   if (score >= 70) return { bg: "#FEF9C3", text: "#854D0E" };
@@ -45,36 +74,27 @@ function getFactCheckRgb(score: number) {
 }
 
 // ----------------------------------------
-// EVENT CARD (pure canonical consumer)
+// Event Card
 // ----------------------------------------
-type EventCardProps = {
-  event: TimelineEventBlock & {
-    phaseTitle?: string | null;
-    media?: {
-      type?: string | null;
-      imageUrl?: string | null;
-      sourceIndex?: number;
-    };
-    factCheck?: any;
-    contexts?: any[];
-  };
 
-  navigation: any;
+type EventCardProps = {
+  event: UIEventBlock;
   headerTitle?: string;
-  onOpenFactCheck?: (fc: any) => void;
-  palette: any;
-  styles: any;
+  palette: ThemeColors & { isDark: boolean };
+  styles: ReturnType<typeof createStyles>;
+  navigation: Navigation;
+  onOpenFactCheck: (fc: FactCheck) => void;
 };
+
 
 const EventCard = React.memo(function EventCard({
   event,
-  navigation,
   headerTitle,
-  onOpenFactCheck,
   palette,
   styles,
+  navigation,
+  onOpenFactCheck,
 }: EventCardProps) {
-  if (!event) return null;
 
   const {
     date,
@@ -86,6 +106,7 @@ const EventCard = React.memo(function EventCard({
     phaseTitle,
     factCheck,
   } = event;
+
 
   const formattedDate = date ? formatDateLongOrdinal(date) : "";
 
@@ -127,26 +148,27 @@ const EventCard = React.memo(function EventCard({
         {description ? (
           <View style={styles.body}>
             <RenderWithContext
-              text={description}
-              contexts={contexts}
-              navigation={navigation}
-              themeColors={palette}
-              textStyle={{}}
-            />
+  text={description}
+  contexts={contexts}
+  navigation={navigation}
+  themeColors={palette}
+  textStyle={{}}
+/>
+
           </View>
         ) : null}
 
-        {sources?.length > 0 ? (
+        {sources?.length ? (
           <View style={styles.sources}>
             <SourceLinks sources={sources} themeColors={palette} />
           </View>
         ) : null}
 
-        {hasFactCheck && (
+        {hasFactCheck && factCheckColors && (
           <View style={styles.factCheckBlock}>
             <TouchableOpacity
               activeOpacity={0.85}
-              onPress={() => onOpenFactCheck?.(factCheck)}
+              onPress={() => onOpenFactCheck(factCheck)}
             >
               <Text
                 style={[
@@ -168,84 +190,65 @@ const EventCard = React.memo(function EventCard({
 });
 
 // ----------------------------------------
-// MAIN MODAL
+// Main Modal
 // ----------------------------------------
+
 export default function EventReaderModal({
-  route,
+  visible,
+  events,
+  initialIndex = 0,
+  headerTitle,
+  onClose,
   navigation,
-}: {
-  route: RouteLike;
-  navigation: NavLike;
-}) {
-  const {
-    events: inputEvents = [],
-    startIndex = 0,
-    headerTitle = "",
-  } = route.params || {};
+}: Props) {
 
   const { themeColors, darkMode } = useUserData();
-  const palette = themeColors || getThemeColors(darkMode);
 
-  const styles = useMemo(
-    () => createStyles({ ...palette, isDark: !!darkMode }),
-    [palette, darkMode]
+  const palette: ThemeColors & { isDark: boolean } = {
+    ...(themeColors || getThemeColors(darkMode)),
+    isDark: !!darkMode,
+  };
+
+  const styles = useMemo(() => createStyles(palette), [palette]);
+
+  const safeEvents = useMemo(
+    () => events.filter((e): e is TimelineEventBlock => Boolean(e)),
+    [events]
   );
-
-  const events = useMemo(() => {
-    if (!Array.isArray(inputEvents)) return [];
-    return inputEvents.filter(
-      (e) => e && typeof e === "object" && typeof e.title === "string"
-    );
-  }, [inputEvents]);
 
   const [index, setIndex] = useState(
-    Math.min(Math.max(startIndex, 0), Math.max(events.length - 1, 0))
+    Math.min(
+      Math.max(initialIndex, 0),
+      Math.max(safeEvents.length - 1, 0)
+    )
   );
 
-  const [isTransitioning, setIsTransitioning] = useState(false);
   const anim = useRef(new Animated.Value(1)).current;
+  const [transitioning, setTransitioning] = useState(false);
 
   const [factCheckModal, setFactCheckModal] = useState<{
     visible: boolean;
-    factCheck: any;
-  }>({
-    visible: false,
-    factCheck: null,
-  });
+    factCheck: FactCheck | null;
+  }>({ visible: false, factCheck: null });
 
-  if (!events.length) {
-    return (
-      <View
-        style={[
-          styles.container,
-          { justifyContent: "center", alignItems: "center" },
-        ]}
-      >
-        <Text>No events to show.</Text>
-      </View>
-    );
-  }
-
-  const currentEvent = events[index];
-
-  const startTransition = (nextIndex: number) => {
+  const startTransition = (next: number) => {
     if (
-      nextIndex === index ||
-      nextIndex < 0 ||
-      nextIndex > events.length - 1 ||
-      isTransitioning
+      transitioning ||
+      next === index ||
+      next < 0 ||
+      next > safeEvents.length - 1
     )
       return;
 
-    setIsTransitioning(true);
-    setIndex(nextIndex);
+    setTransitioning(true);
+    setIndex(next);
     anim.setValue(0);
 
     Animated.timing(anim, {
       toValue: 1,
       duration: 160,
       useNativeDriver: true,
-    }).start(() => setIsTransitioning(false));
+    }).start(() => setTransitioning(false));
   };
 
   const panResponder = useMemo(
@@ -255,7 +258,7 @@ export default function EventReaderModal({
           Math.abs(g.dy) > 10 && Math.abs(g.dy) > Math.abs(g.dx),
 
         onPanResponderRelease: (_, g) => {
-          if (isTransitioning) return;
+          if (transitioning) return;
 
           const { dy, vy } = g;
           const threshold = 80;
@@ -266,108 +269,109 @@ export default function EventReaderModal({
           const swipeDown =
             dy > threshold || (dy > 0 && Math.abs(vy) > velocityThreshold);
 
-          if (swipeUp && index < events.length - 1) {
+          if (swipeUp && index < safeEvents.length - 1) {
             startTransition(index + 1);
           } else if (swipeDown) {
             if (index > 0) startTransition(index - 1);
-            else navigation.goBack();
+            else onClose();
           }
         },
       }),
-    [index, isTransitioning, events.length, navigation]
+    [index, transitioning, safeEvents.length, onClose]
   );
 
+  if (!safeEvents.length) return null;
+
   return (
-    <View style={styles.container}>
-      <StatusBar
-        barStyle={darkMode ? "light-content" : "dark-content"}
-        backgroundColor={palette.background}
-      />
+    <Modal visible={visible} animationType="fade">
+      <View style={styles.container}>
+        <View style={styles.dragHandle} />
 
-      <View style={styles.dragHandle} />
+        <View style={styles.counterRow}>
+          <Text style={styles.counterText}>
+            {index + 1} / {safeEvents.length}
+          </Text>
+        </View>
 
-      <View style={styles.counterRow}>
-        <Text style={styles.counterText}>
-          {index + 1} / {events.length}
-        </Text>
-      </View>
+        <View style={styles.cardStack} {...panResponder.panHandlers}>
+          <Animated.View style={[styles.cardLayer, { opacity: anim }]}>
+           <EventCard
+  event={safeEvents[index]}
+  headerTitle={headerTitle}
+  palette={palette}
+  styles={styles}
+  navigation={navigation}
+  onOpenFactCheck={(fc) =>
+    setFactCheckModal({ visible: true, factCheck: fc })
+  }
+/>
 
-      <View style={styles.cardStack} {...panResponder.panHandlers}>
-        <Animated.View style={[styles.cardLayer, { opacity: anim }]}>
-          <EventCard
-            event={currentEvent}
-            navigation={navigation}
-            headerTitle={headerTitle}
-            onOpenFactCheck={(fc) =>
-              setFactCheckModal({ visible: true, factCheck: fc })
-            }
-            palette={{ ...palette, isDark: !!darkMode }}
-            styles={styles}
-          />
-        </Animated.View>
-      </View>
+          </Animated.View>
+        </View>
 
-      {/* FACT CHECK MODAL */}
-      <Modal
-        visible={factCheckModal.visible}
-        animationType="fade"
-        transparent
-        onRequestClose={() =>
-          setFactCheckModal({ visible: false, factCheck: null })
-        }
-      >
-        <TouchableOpacity
-          style={styles.modalBackdrop}
-          activeOpacity={1}
-          onPress={() =>
+        {/* FACT CHECK MODAL */}
+        <Modal
+          visible={factCheckModal.visible}
+          animationType="fade"
+          transparent
+          onRequestClose={() =>
             setFactCheckModal({ visible: false, factCheck: null })
           }
         >
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Fact-check details</Text>
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() =>
+              setFactCheckModal({ visible: false, factCheck: null })
+            }
+          >
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Fact-check details</Text>
 
-            {factCheckModal.factCheck && (
-              <>
-                <Text style={styles.modalScore}>
-                  {factCheckModal.factCheck.confidenceScore}% confidence
-                </Text>
-
-                {factCheckModal.factCheck.explanation ? (
-                  <Text style={styles.modalBody}>
-                    {factCheckModal.factCheck.explanation}
+              {factCheckModal.factCheck && (
+                <>
+                  <Text style={styles.modalScore}>
+                    {factCheckModal.factCheck.confidenceScore}% confidence
                   </Text>
-                ) : null}
 
-                {factCheckModal.factCheck.lastCheckedAt ? (
-                  <Text style={styles.modalMeta}>
-                    Last updated:{" "}
-                    {new Date(
-                      factCheckModal.factCheck.lastCheckedAt
-                    ).toLocaleString()}
-                  </Text>
-                ) : null}
-              </>
-            )}
+                  {factCheckModal.factCheck.explanation ? (
+                    <Text style={styles.modalBody}>
+                      {factCheckModal.factCheck.explanation}
+                    </Text>
+                  ) : null}
 
-            <TouchableOpacity
-              style={styles.modalClose}
-              onPress={() =>
-                setFactCheckModal({ visible: false, factCheck: null })
-              }
-            >
-              <Text style={styles.modalCloseText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-    </View>
+                  {factCheckModal.factCheck.lastCheckedAt ? (
+                    <Text style={styles.modalMeta}>
+                      Last updated:{" "}
+                      {new Date(
+                        factCheckModal.factCheck.lastCheckedAt
+                      ).toLocaleString()}
+                    </Text>
+                  ) : null}
+                </>
+              )}
+
+              <TouchableOpacity
+                style={styles.modalClose}
+                onPress={() =>
+                  setFactCheckModal({ visible: false, factCheck: null })
+                }
+              >
+                <Text style={styles.modalCloseText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      </View>
+    </Modal>
   );
 }
 
 // ----------------------------------------
-// STYLES
+// Styles
 // ----------------------------------------
-const createStyles = (palette: any) =>
+
+const createStyles = (palette: ThemeColors & { isDark: boolean }) =>
   StyleSheet.create({
     container: {
       flex: 1,

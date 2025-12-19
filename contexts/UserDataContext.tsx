@@ -1,52 +1,94 @@
+// ----------------------------------------
+// contexts/UserDataContext.tsx
+// Phase 2B — Explicitly typed React context
+// ----------------------------------------
+
 import React, {
   createContext,
   useContext,
   useState,
   useEffect,
   useCallback,
+  ReactNode,
 } from "react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import { getThemeColors } from "../styles/theme";
 
-/**
- * @typedef {"stories" | "themes"} ItemKind
- */
+// ----------------------------------------
+// Types
+// ----------------------------------------
 
-/**
- * @typedef {{
- *   user: any;
- *   loading: boolean;
- *   darkMode: boolean;
- *   favorites: { stories: string[]; themes: string[] };
- *   lastVisited: { stories: Record<string, number>; themes: Record<string, number> };
- *   favoriteItems: { stories: Record<string, any>; themes: Record<string, any> };
- *   savedItems: { stories: any[]; themes: any[] };
- *   savedLoading: boolean;
- *   savedUpdatesCount: number;
- *   themeColors: any;
- *
- *   toggleDarkMode: () => void;
- *   toggleFavorite: (type: ItemKind, id: string, itemData?: any) => void;
- *   recordVisit: (type: ItemKind, id: string) => void;
- *   getUpdatesSinceLastVisit: (type: ItemKind, item: any) => number;
- * }} UserDataContextValue
- */
+type ItemKind = "stories" | "themes";
+
+type TimelineLikeEvent = {
+  date?: string | number;
+};
+
+type FeedItem = {
+  id: string;
+  timeline?: TimelineLikeEvent[];
+};
+
+type UserDataContextType = {
+  user: any;
+  loading: boolean;
+  darkMode: boolean;
+
+  favorites: {
+    stories: string[];
+    themes: string[];
+  };
+
+  lastVisited: {
+    stories: Record<string, number>;
+    themes: Record<string, number>;
+  };
+
+  favoriteItems: {
+    stories: Record<string, FeedItem>;
+    themes: Record<string, FeedItem>;
+  };
+
+  savedItems: {
+    stories: FeedItem[];
+    themes: FeedItem[];
+  };
+
+  savedLoading: boolean;
+  savedUpdatesCount: number;
+
+  themeColors: ReturnType<typeof getThemeColors>;
+
+  toggleDarkMode: () => void;
+  toggleFavorite: (type: ItemKind, id: string, itemData?: FeedItem) => void;
+  recordVisit: (type: ItemKind, id: string) => void;
+  getUpdatesSinceLastVisit: (type: ItemKind, item: FeedItem) => number;
+};
+
+// ----------------------------------------
+// Initial values
+// ----------------------------------------
 
 const initialFavorites = { stories: [], themes: [] };
 const initialVisited = { stories: {}, themes: {} };
 const initialFavoriteItems = { stories: {}, themes: {} };
 const initialSavedItems = { stories: [], themes: [] };
 
-/** @type {React.Context<UserDataContextValue>} */
-const UserDataContext = createContext({
+// ----------------------------------------
+// Context
+// ----------------------------------------
+
+const UserDataContext = createContext<UserDataContextType>({
   user: null,
   loading: true,
   darkMode: false,
+
   favorites: initialFavorites,
   lastVisited: initialVisited,
   favoriteItems: initialFavoriteItems,
   savedItems: initialSavedItems,
+
   savedLoading: false,
   savedUpdatesCount: 0,
   themeColors: getThemeColors(false),
@@ -57,15 +99,59 @@ const UserDataContext = createContext({
   getUpdatesSinceLastVisit: () => 0,
 });
 
-const timestampToMs = (value) => {
+type FirestoreTimestampLike = {
+  seconds: number;
+  toDate: () => Date;
+};
+
+function isFirestoreTimestamp(
+  value: unknown
+): value is FirestoreTimestampLike {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "toDate" in value &&
+    typeof (value as any).toDate === "function"
+  );
+}
+
+
+// ----------------------------------------
+// Helpers
+// ----------------------------------------
+
+
+const timestampToMs = (
+  value?: string | number | Date | FirestoreTimestampLike
+): number => {
   if (!value) return 0;
-  if (typeof value.toDate === "function") return value.toDate().getTime();
-  if (value.seconds) return value.seconds * 1000;
+
+  // Firestore Timestamp
+  if (isFirestoreTimestamp(value)) {
+    return value.toDate().getTime();
+  }
+
+  // JS Date
+  if (value instanceof Date) {
+    return value.getTime();
+  }
+
+  // string | number
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
 };
 
-export function UserDataProvider({ user, children }) {
+// ----------------------------------------
+// Provider
+// ----------------------------------------
+
+export function UserDataProvider({
+  user,
+  children,
+}: {
+  user: any;
+  children: ReactNode;
+}) {
   const [darkMode, setDarkMode] = useState(false);
   const [favorites, setFavorites] = useState(initialFavorites);
   const [lastVisited, setLastVisited] = useState(initialVisited);
@@ -75,10 +161,14 @@ export function UserDataProvider({ user, children }) {
   const [savedUpdatesCount, setSavedUpdatesCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
+  // ----------------------------------------
+  // Load user doc
+  // ----------------------------------------
+
   useEffect(() => {
     let cancelled = false;
 
-    async function loadUserDoc(currentUser) {
+    async function loadUserDoc(currentUser: any) {
       if (!currentUser) {
         if (!cancelled) {
           setDarkMode(false);
@@ -138,7 +228,11 @@ export function UserDataProvider({ user, children }) {
     };
   }, [user]);
 
-  const persist = async (payload) => {
+  // ----------------------------------------
+  // Persistence helper
+  // ----------------------------------------
+
+  const persist = async (payload: Partial<Record<string, unknown>>) => {
     if (!user) return;
     try {
       await setDoc(doc(db, "users", user.uid), payload, { merge: true });
@@ -146,6 +240,10 @@ export function UserDataProvider({ user, children }) {
       console.warn("Failed to persist user data", err);
     }
   };
+
+  // ----------------------------------------
+  // Actions
+  // ----------------------------------------
 
   const toggleDarkMode = useCallback(() => {
     setDarkMode((prev) => {
@@ -156,7 +254,7 @@ export function UserDataProvider({ user, children }) {
   }, [user]);
 
   const toggleFavorite = useCallback(
-    (type, id, itemData) => {
+    (type: ItemKind, id: string, itemData?: FeedItem) => {
       if (!user || !type || !id) return;
 
       setFavorites((prev) => {
@@ -172,7 +270,11 @@ export function UserDataProvider({ user, children }) {
           const items = { ...(prevItems[type] || {}) };
           if (exists) delete items[id];
           else if (itemData) {
-            items[id] = { ...itemData, id, _kind: type === "themes" ? "theme" : "story" };
+            items[id] = {
+              ...itemData,
+              id,
+              _kind: type === "themes" ? "theme" : "story",
+            } as FeedItem;
           }
           const combined = { ...prevItems, [type]: items };
           persist({ favorites: nextFavorites, favoriteItems: combined });
@@ -186,7 +288,7 @@ export function UserDataProvider({ user, children }) {
   );
 
   const recordVisit = useCallback(
-    (type, id) => {
+    (type: ItemKind, id: string) => {
       if (!user || !type || !id) return;
       setLastVisited((prev) => {
         const next = {
@@ -201,7 +303,7 @@ export function UserDataProvider({ user, children }) {
   );
 
   const getUpdatesSinceLastVisit = useCallback(
-    (type, item) => {
+    (type: ItemKind, item: FeedItem) => {
       if (!item?.id) return 0;
       const last = lastVisited[type]?.[item.id];
       if (!last) return 0;
@@ -215,7 +317,11 @@ export function UserDataProvider({ user, children }) {
     [lastVisited]
   );
 
-  const value = {
+  // ----------------------------------------
+  // Context value
+  // ----------------------------------------
+
+  const value: UserDataContextType = {
     user,
     loading,
     darkMode,
@@ -238,6 +344,10 @@ export function UserDataProvider({ user, children }) {
     </UserDataContext.Provider>
   );
 }
+
+// ----------------------------------------
+// Hook
+// ----------------------------------------
 
 export function useUserData() {
   return useContext(UserDataContext);

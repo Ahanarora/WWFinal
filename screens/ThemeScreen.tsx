@@ -213,7 +213,6 @@ export default function ThemeScreen({ route, navigation }: Props) {
   const headerShownRef = useRef(true);
   const lastOffsetY = useRef(0);
 
-  // (CONTINUES IN PART 2)
   // -------------------------------------------------
   // EFFECTS: suggestion pool hydration
   // -------------------------------------------------
@@ -493,7 +492,6 @@ const indexedTimeline = eventBlocks.map(
 );
 
 
-    // (CONTINUES IN PART 3)
     // ------------------------------
     // PHASES (from CMS)
     // ------------------------------
@@ -604,14 +602,10 @@ const indexedTimeline = eventBlocks.map(
         <Text style={styles.updated}>{formatUpdatedAt(item.updatedAt)}</Text>
 
         <TouchableOpacity
-          onPress={() =>
-            item.category &&
-            navigation.navigate("Search", {
-  query: item.category,
-} as any});
-
-
-          }
+          onPress={() => {
+            if (!item.category) return;
+            navigation.navigate("Search", { query: item.category } as any);
+          }}
           disabled={!item.category}
         >
           <Text style={styles.category}>{item.category || "Uncategorized"}</Text>
@@ -637,14 +631,13 @@ const indexedTimeline = eventBlocks.map(
             {primaryAnalysis.stakeholders?.length > 0 && (
               <TouchableOpacity
                 style={styles.analysisButton}
-                onPress={() =>
+                onPress={() => {
                   (navigation as any).push("AnalysisModal", {
-  type: "stakeholders",
-  analysis: primaryAnalysis,
-  contexts: primaryContexts,
-})
-
-                }
+                    type: "stakeholders",
+                    analysis: primaryAnalysis,
+                    contexts: primaryContexts,
+                  });
+                }}
               >
                 <Text style={styles.analysisButtonText}>Stakeholders</Text>
               </TouchableOpacity>
@@ -653,14 +646,13 @@ const indexedTimeline = eventBlocks.map(
             {primaryAnalysis.faqs?.length > 0 && (
               <TouchableOpacity
                 style={styles.analysisButton}
-                onPress={() =>
+                onPress={() => {
                   (navigation as any).push("AnalysisModal", {
-  type: "faqs",
-  analysis: primaryAnalysis,
-  contexts: primaryContexts,
-})
-
-                }
+                    type: "faqs",
+                    analysis: primaryAnalysis,
+                    contexts: primaryContexts,
+                  });
+                }}
               >
                 <Text style={styles.analysisButtonText}>FAQs</Text>
               </TouchableOpacity>
@@ -669,13 +661,13 @@ const indexedTimeline = eventBlocks.map(
             {primaryAnalysis.future?.length > 0 && (
               <TouchableOpacity
                 style={styles.analysisButton}
-                onPress={() =>
-                  navigation.push("AnalysisModal", {
+                onPress={() => {
+                  (navigation as any).push("AnalysisModal", {
                     type: "future",
                     analysis: primaryAnalysis,
                     contexts: primaryContexts,
-                  })
-                }
+                  });
+                }}
               >
                 <Text style={styles.analysisButtonText}>Future?</Text>
               </TouchableOpacity>
@@ -771,14 +763,12 @@ const indexedTimeline = eventBlocks.map(
                   {/* EVENT */}
                   <TouchableOpacity
                     activeOpacity={0.8}
-                    onPress={() =>
+                    onPress={() => {
                       navigation.navigate("EventReader", {
-  themeId: item.id,
-  initialIndex: i,
-} as any);
-
-
-                    }
+                        themeId: item.id,
+                        initialIndex: i,
+                      } as any);
+                    }}
                   >
                     <View
                       style={[
@@ -1404,4 +1394,3 @@ empty: {
       fontWeight: "600",
     },
   });
-

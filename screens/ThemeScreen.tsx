@@ -1309,6 +1309,11 @@ empty: {
       borderRadius: 16,
       padding: spacing.md,
       gap: spacing.sm,
+      shadowColor: "#000",
+      shadowOpacity: 0.12,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 6,
     },
     eventContent: {
       gap: 6,

@@ -132,7 +132,7 @@ const createStyles = (palette) =>
       backgroundColor: palette.surface,
       borderRadius: 18,
       borderWidth: 1,
-      borderColor: "#000",
+      borderColor: palette.border,
       overflow: "hidden",
     },
     topMeta: {

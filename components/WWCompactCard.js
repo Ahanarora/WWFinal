@@ -113,7 +113,7 @@ const createStyles = (palette) =>
       backgroundColor: palette.surface,
       borderRadius: 16,
       borderWidth: 1,
-      borderColor: "#000",
+      borderColor: palette.border,
       gap: 12,
     },
     thumb: {

@@ -147,7 +147,7 @@ const createStyles = (palette) =>
       marginTop: 16,
       paddingBottom: 14,
       borderWidth: 1,
-      borderColor: "#000",
+      borderColor: palette.border,
       overflow: "hidden",
     },
     topMeta: {

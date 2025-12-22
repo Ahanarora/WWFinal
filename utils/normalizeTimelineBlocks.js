@@ -48,7 +48,6 @@ export function normalizeTimelineBlocks(raw) {
         media: null,
         contexts: [],
         faqs: [],
-        factCheck: null,
       };
     }
 
@@ -56,9 +55,20 @@ export function normalizeTimelineBlocks(raw) {
 
     // IMAGE BLOCK passthrough (keep future-proof fields)
     if (type === "image") {
+      const url = block.url || block.imageUrl || "";
+      if (!url) return null;
+
       return {
         ...block,
         type: "image",
+        url,
+        caption: typeof block.caption === "string" ? block.caption : undefined,
+        credit: typeof block.credit === "string" ? block.credit : undefined,
+        aspectRatio:
+          typeof block.aspectRatio === "number" && block.aspectRatio > 0
+            ? block.aspectRatio
+            : undefined,
+        sources: normalizeSources(block.sources),
       };
     }
 
@@ -85,10 +95,7 @@ export function normalizeTimelineBlocks(raw) {
         : null;
 
     return {
-      // keep any extra keys too (safe)
       ...block,
-
-      // canonical keys
       type: "event",
       title,
       description,
@@ -96,11 +103,19 @@ export function normalizeTimelineBlocks(raw) {
       significance,
       sources,
       media,
-
-      // optional canonical extras (preserve/normalize)
       contexts: Array.isArray(block.contexts) ? block.contexts : [],
       faqs: Array.isArray(block.faqs) ? block.faqs : [],
-      factCheck: block.factCheck ?? null,
+      factStatus:
+        block.factStatus === "debated" ||
+        block.factStatus === "partially_debated" ||
+        block.factStatus === "consensus"
+          ? block.factStatus
+          : undefined,
+      factNote: typeof block.factNote === "string" ? block.factNote : undefined,
+      factUpdatedAt:
+        typeof block.factUpdatedAt === "number" || typeof block.factUpdatedAt === "string"
+          ? block.factUpdatedAt
+          : undefined,
     };
-  });
+  }).filter(Boolean);
 }

@@ -1,10 +1,5 @@
 import type { TimelineBlock, SourceItem } from "@ww/shared";
 
-export type FactCheck = {
-  confidenceScore: number;
-  notes?: string;
-};
-
 export type FeedItem = {
   id: string;
   title: string;
@@ -17,7 +12,6 @@ export type FeedItem = {
   timeline?: TimelineBlock[];
   sources?: SourceItem[];
 
-  factCheck?: FactCheck;
   faqs?: { q: string; a: string }[];
   contexts?: string[];
 

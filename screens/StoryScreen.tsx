@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   Pressable,
   Modal,
+  Dimensions,
 } from "react-native";
 import Slider from "@react-native-community/slider";
 import { colors, fonts, spacing, getThemeColors } from "../styles/theme";
@@ -46,11 +47,6 @@ type WithOriginalIndex<T> = T & { _originalIndex?: number };
 
 // UI-extended event (CMS + enrichment allowed)
 type UITimelineEvent = TimelineEventBlock & {
-  factCheck?: {
-    confidenceScore?: number;
-    explanation?: string;
-    lastCheckedAt?: any;
-  };
   faqs?: { question?: string; answer?: string }[];
   contexts?: any[];
   media?: {
@@ -58,6 +54,9 @@ type UITimelineEvent = TimelineEventBlock & {
     imageUrl?: string | null;
     sourceIndex?: number;
   };
+  factStatus?: "consensus" | "debated" | "partially_debated";
+  factNote?: string;
+  factUpdatedAt?: string | number;
 };
 
 // ------------------------------------------------------------------
@@ -128,13 +127,13 @@ const scoreSimilarity = (base: any, candidate: any) => {
   return shared * 3 + (sameCategory ? 4 : 0) + recency * 3;
 };
 
-function getFactCheckRgb(score?: number) {
-  if (score === undefined) return null;
-  if (score >= 85) return { bg: "#E8FBE3", text: "#16A34A" };
-  if (score >= 70) return { bg: "#FEF9C3", text: "#854D0E" };
-  if (score >= 50) return { bg: "#FFEDD5", text: "#9A3412" };
-  return { bg: "#FEE2E2", text: "#991B1B" };
-}
+const SCREEN_WIDTH = Dimensions.get("window").width;
+const getImageHeight = (aspectRatio?: number) => {
+  const ar =
+    typeof aspectRatio === "number" && aspectRatio > 0 ? aspectRatio : 16 / 9;
+  const width = SCREEN_WIDTH - spacing.md * 2;
+  return Math.round(width / ar);
+};
 
 // ------------------------------------------------------------------
 
@@ -209,16 +208,22 @@ const { story, index, allStories } =
     "chronological"
   );
 
-  const [factCheckModal, setFactCheckModal] = useState<{
-    visible: boolean;
-    factCheck: any;
-  }>({ visible: false, factCheck: null });
-
   const [faqModal, setFaqModal] = useState<{
     visible: boolean;
     title: string;
     faqs: any[];
   }>({ visible: false, title: "", faqs: [] });
+  const [factModal, setFactModal] = useState<{
+    visible: boolean;
+    status: "consensus" | "debated" | "partially_debated";
+    note?: string;
+    updatedAt?: string | number;
+  }>({
+    visible: false,
+    status: "consensus",
+    note: "",
+    updatedAt: undefined,
+  });
 
   const [faqExpanded, setFaqExpanded] = useState<Record<number, boolean>>({});
 
@@ -234,6 +239,36 @@ const { story, index, allStories } =
       ...item,
       _kind: "story",
     });
+  };
+
+  const getFactStatusMeta = (
+    status: "consensus" | "debated" | "partially_debated" | undefined
+  ) => {
+    switch (status) {
+      case "debated":
+        return { label: "Debated", bg: "#FEE2E2", text: "#991B1B" };
+      case "partially_debated":
+        return { label: "Partially Debated", bg: "#FEF9C3", text: "#854D0E" };
+      default:
+        return { label: "Consensus", bg: "#E8FBE3", text: "#166534" };
+    }
+  };
+
+  const formatFactUpdated = (val?: any) => {
+    if (!val) return null;
+    try {
+      const d =
+        typeof val === "number"
+          ? new Date(val)
+          : typeof val?.toDate === "function"
+          ? val.toDate()
+          : new Date(val);
+      const str = d.toLocaleString();
+      if (!str || str === "Invalid Date") return null;
+      return str;
+    } catch {
+      return null;
+    }
   };
 
   if (!story) {
@@ -401,35 +436,30 @@ const { story, index, allStories } =
   // Render a single Story block (timeline + phases)
   // ---------------------------------------------------------
   const renderStoryBlock = (item: any) => {
-    const sortEvents = (events: any[]) => {
-      if (!Array.isArray(events)) return [];
-      const copy = [...events];
-      return copy.sort((a, b) => {
-        const aTime = a.timestamp || a.date || a.startedAt;
-        const bTime = b.timestamp || b.date || b.startedAt;
-        if (!aTime || !bTime) return 0;
+    const timelineBlocks = normalizeTimelineBlocks(
+      item.timeline
+    ) as TimelineBlock[];
 
-        const aMs =
-          typeof aTime === "number" ? aTime : new Date(aTime).getTime();
-        const bMs =
-          typeof bTime === "number" ? bTime : new Date(bTime).getTime();
-        if (Number.isNaN(aMs) || Number.isNaN(bMs)) return 0;
+    const rawTimeline =
+      sortOrder === "chronological"
+        ? timelineBlocks
+        : [...timelineBlocks].reverse();
 
-        return sortOrder === "chronological" ? aMs - bMs : bMs - aMs;
-      });
-    };
+    const indexedTimeline = rawTimeline.map(
+      (block, originalIndex) =>
+        ({
+          ...(block as any),
+          _originalIndex: originalIndex,
+        } as WithOriginalIndex<TimelineBlock>)
+    );
 
-const timelineBlocks = normalizeTimelineBlocks(
-  item.timeline
-) as TimelineBlock[];
-
-const rawTimeline = [...timelineBlocks].sort((a: any, b: any) => {
-  if (!a.date || !b.date) return 0;
-  const aMs = new Date(a.date).getTime();
-  const bMs = new Date(b.date).getTime();
-  if (Number.isNaN(aMs) || Number.isNaN(bMs)) return 0;
-  return sortOrder === "chronological" ? aMs - bMs : bMs - aMs;
-});
+    const filteredTimeline = indexedTimeline.filter((block: any) => {
+      if (block.type === "event") {
+        if (depth === 1) return block.significance === 3;
+        if (depth === 2) return (block.significance || 1) >= 2;
+      }
+      return true;
+    });
 
     const analysisForItem =
       item.id === story.id ? primaryAnalysis : normalizeAnalysis(item.analysis);
@@ -438,28 +468,6 @@ const rawTimeline = [...timelineBlocks].sort((a: any, b: any) => {
       ...(item.contexts || []),
       ...(analysisForItem?.contexts || []),
     ];
-
-    // We only render event blocks in this screen
-    const eventBlocks = rawTimeline.filter(
-  (b): b is UITimelineEvent => b.type === "event"
-);
-
-
-    // Add original index to each event
-    const indexedTimeline = (eventBlocks as UITimelineEvent[]).map(
-      (evt, originalIndex) =>
-        ({
-          ...evt,
-          _originalIndex: originalIndex,
-        } as WithOriginalIndex<UITimelineEvent>)
-    );
-
-    // Depth filtering (uses canonical significance)
-    const filteredTimeline = indexedTimeline.filter((e) => {
-      if (depth === 1) return e.significance === 3;
-      if (depth === 2) return (e.significance || 1) >= 2;
-      return true;
-    });
 
     // Phases from CMS
     const rawPhases = Array.isArray(item.phases) ? item.phases : [];
@@ -516,18 +524,24 @@ const rawTimeline = [...timelineBlocks].sort((a: any, b: any) => {
       {}
     );
 
-    const getPhaseForEventStart = (event: WithOriginalIndex<UITimelineEvent>) => {
+    const getPhaseForBlockStart = (event: WithOriginalIndex<TimelineBlock>) => {
       if (!phasesWithAccent.length) return null;
-      return phaseStartLookup[event._originalIndex] || null;
+      const idx =
+        typeof event._originalIndex === "number" ? event._originalIndex : null;
+      if (idx === null) return null;
+      return phaseStartLookup[idx] || null;
     };
 
     // Modal expects event blocks, plus phaseTitle injected for phase headers
-    const timelineForModal = filteredTimeline.map((evt) => {
-      const phase = getPhaseForEventStart(evt);
-      return {
-        ...(evt as any),
-        phaseTitle: phase?.title ?? null,
-      };
+    const timelineForModal = filteredTimeline.map((block) => {
+      const phase = getPhaseForBlockStart(block);
+      if ((block as any)?.type === "event") {
+        return {
+          ...(block as any),
+          phaseTitle: phase?.title ?? null,
+        };
+      }
+      return block as any;
     });
 
     return (
@@ -599,11 +613,9 @@ const rawTimeline = [...timelineBlocks].sort((a: any, b: any) => {
                 style={styles.analysisButton}
                 onPress={() =>
                   navigation.push("AnalysisModal", {
-  title: "Stakeholders",
-  content: "",
-  factCheck: null,
-})
-
+                    title: "Stakeholders",
+                    content: "",
+                  })
                 }
               >
                 <Text style={styles.analysisButtonText}>Stakeholders</Text>
@@ -615,11 +627,9 @@ const rawTimeline = [...timelineBlocks].sort((a: any, b: any) => {
                 style={styles.analysisButton}
                 onPress={() =>
                   navigation.push("AnalysisModal", {
-  title: "Stakeholders",
-  content: "",
-  factCheck: null,
-})
-
+                    title: "Stakeholders",
+                    content: "",
+                  })
                 }
               >
                 <Text style={styles.analysisButtonText}>FAQs</Text>
@@ -631,11 +641,9 @@ const rawTimeline = [...timelineBlocks].sort((a: any, b: any) => {
                 style={styles.analysisButton}
                 onPress={() =>
                  navigation.push("AnalysisModal", {
-  title: "Stakeholders",
-  content: "",
-  factCheck: null,
-})
-
+                   title: "Stakeholders",
+                   content: "",
+                 })
                 }
               >
                 <Text style={styles.analysisButtonText}>Future?</Text>
@@ -674,26 +682,87 @@ const rawTimeline = [...timelineBlocks].sort((a: any, b: any) => {
             )}
           </View>
 
-          {filteredTimeline.map((e, i) => {
-            const startingPhase = getPhaseForEventStart(e);
-            const activePhase = phaseRangeLookup[e._originalIndex];
-            const isPhaseEnd =
-              activePhase && activePhase.endIndex === e._originalIndex;
+          {filteredTimeline.map((block, i) => {
+            const startingPhase = getPhaseForBlockStart(block as any);
+            const idx =
+              typeof block._originalIndex === "number" ? block._originalIndex : i;
+            const activePhase = phaseRangeLookup[idx];
+            const isPhaseEnd = activePhase && activePhase.endIndex === idx;
 
-            const confidence = e?.factCheck?.confidenceScore;
-            const hasFactCheck =
-              typeof confidence === "number" && !Number.isNaN(confidence);
+            if ((block as any)?.type === "image") {
+              const imageUri = (block as any).url || (block as any).imageUrl || "";
+              if (!imageUri) return null;
+              const height = getImageHeight((block as any).aspectRatio);
 
-            const factCheckColors = hasFactCheck
-              ? getFactCheckRgb(confidence)
-              : null;
+              return (
+                <View key={block._originalIndex ?? i} style={styles.eventBlock}>
+                  {startingPhase && (
+                    <View
+                      style={[
+                        styles.phaseHeader,
+                        { borderLeftColor: startingPhase.accentColor },
+                      ]}
+                    >
+                      <Text style={styles.phaseTitle}>{startingPhase.title}</Text>
+                      {startingPhase.description ? (
+                        <Text style={styles.phaseSubtitle}>
+                          {startingPhase.description}
+                        </Text>
+                      ) : null}
+                    </View>
+                  )}
 
-            // Canonical sources (still accept legacy shapes in runtime)
-            const sources = (Array.isArray((e as any).sources) ? (e as any).sources : []) as SourceItem[];
+                  <Pressable
+                    onPress={() =>
+                      navigation.navigate("EventReader", {
+                        events: timelineForModal,
+                        initialIndex: i,
+                      })
+                    }
+                    android_disableSound={true}
+                  >
+                    <View style={styles.imageBlock}>
+                      <Image
+                        source={{ uri: imageUri }}
+                        style={[styles.imageFull, { height }]}
+                        resizeMode="cover"
+                      />
+                      {((block as any).caption || (block as any).credit) && (
+                        <View style={styles.imageMeta}>
+                          {(block as any).caption ? (
+                            <Text style={styles.imageCaption}>
+                              {(block as any).caption}
+                            </Text>
+                          ) : null}
+                          {(block as any).credit ? (
+                            <Text style={styles.imageCredit}>
+                              {(block as any).credit}
+                            </Text>
+                          ) : null}
+                        </View>
+                      )}
+                    </View>
+                  </Pressable>
 
+                  {isPhaseEnd && (
+                    <View style={styles.phaseEndIndicator}>
+                      <View
+                        style={[
+                          styles.phaseEndDot,
+                          { backgroundColor: activePhase.accentColor },
+                        ]}
+                      />
+                    </View>
+                  )}
+                </View>
+              );
+            }
+
+            const e = block as WithOriginalIndex<UITimelineEvent>;
+
+            const sources = (Array.isArray(e.sources) ? e.sources : []) as SourceItem[];
             const description = e.description || "";
-const contexts = e.contexts || [];
-
+            const contexts = e.contexts || [];
 
             return (
               <View key={e._originalIndex ?? i} style={styles.eventBlock}>
@@ -717,12 +786,10 @@ const contexts = e.contexts || [];
                 {/* EVENT CARD */}
                 <Pressable
                   onPress={() =>
-                   navigation.navigate("EventReader", {
-  events: filteredTimeline,
-  initialIndex: i,
-})
-
-
+                    navigation.navigate("EventReader", {
+                      events: timelineForModal,
+                      initialIndex: i,
+                    })
                   }
                   android_disableSound={true}
                 >
@@ -738,32 +805,31 @@ const contexts = e.contexts || [];
                   >
                     <View style={styles.eventContent}>
                       <Text style={styles.eventDate}>
-                        {formatDateLongOrdinal((e as any).date)}
+                        {formatDateLongOrdinal(e.date)}
                       </Text>
 
                       <View style={styles.eventTitleRow}>
-                        <Text style={styles.eventTitle}>{(e as any).title}</Text>
+                        <Text style={styles.eventTitle}>{e.title}</Text>
 
-                        {Array.isArray((e as any).faqs) &&
-                          (e as any).faqs.length > 0 && (
-                            <TouchableOpacity
-                              style={styles.faqIcon}
-                              onPress={() =>
-                                setFaqModal({
-                                  visible: true,
-                                  title: (e as any).title || "FAQs",
-                                  faqs: (e as any).faqs,
-                                })
-                              }
-                              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                            >
-                              <Ionicons
-                                name="help-circle-outline"
-                                size={18}
-                                color={palette.accent}
-                              />
-                            </TouchableOpacity>
-                          )}
+                        {Array.isArray(e.faqs) && e.faqs.length > 0 && (
+                          <TouchableOpacity
+                            style={styles.faqIcon}
+                            onPress={() =>
+                              setFaqModal({
+                                visible: true,
+                                title: e.title || "FAQs",
+                                faqs: e.faqs,
+                              })
+                            }
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          >
+                            <Ionicons
+                              name="help-circle-outline"
+                              size={18}
+                              color={palette.accent}
+                            />
+                          </TouchableOpacity>
+                        )}
                       </View>
 
                       <RenderWithContext
@@ -774,29 +840,42 @@ const contexts = e.contexts || [];
                         textStyle={{}}
                       />
 
-                      {hasFactCheck && factCheckColors && (
-                        <View style={styles.factCheckContainer}>
-                          <TouchableOpacity
-                            activeOpacity={0.85}
-                            onPress={() =>
-                              setFactCheckModal({
-                                visible: true,
-                                factCheck: (e as any).factCheck,
-                              })
-                            }
-                          >
-                            <Text
-                              style={[
-                                styles.factCheckBadge,
-                                { color: factCheckColors.text },
-                              ]}
-                            >
-                              {(e as any).factCheck.confidenceScore}% fact-check
-                              confidence
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-                      )}
+                      <View style={styles.factCheckContainer}>
+                        <TouchableOpacity
+                          activeOpacity={0.85}
+                          onPress={() =>
+                            setFactModal({
+                              visible: true,
+                              status:
+                                ((e as any).factStatus as
+                                  | "consensus"
+                                  | "debated"
+                                  | "partially_debated") || "consensus",
+                              note: (e as any).factNote,
+                              updatedAt: (e as any).factUpdatedAt,
+                            })
+                          }
+                        >
+                          {(() => {
+                            const meta = getFactStatusMeta(
+                              (e as any).factStatus as any
+                            );
+                            return (
+                              <Text
+                                style={[
+                                  styles.factCheckBadge,
+                                  {
+                                    backgroundColor: meta.bg,
+                                    color: meta.text,
+                                  },
+                                ]}
+                              >
+                                {meta.label}
+                              </Text>
+                            );
+                          })()}
+                        </TouchableOpacity>
+                      </View>
 
                       {/* SOURCES */}
                       {sources.length > 0 ? (
@@ -856,52 +935,37 @@ const contexts = e.contexts || [];
         </View>
       ))}
 
-      {/* FACT CHECK MODAL */}
+      {/* FACT STATUS MODAL */}
       <Modal
-        visible={factCheckModal.visible}
+        visible={factModal.visible}
         animationType="fade"
         transparent
         onRequestClose={() =>
-          setFactCheckModal({ visible: false, factCheck: null })
+          setFactModal((prev) => ({ ...prev, visible: false }))
         }
       >
         <TouchableOpacity
           style={styles.modalBackdrop}
           activeOpacity={1}
-          onPress={() =>
-            setFactCheckModal({ visible: false, factCheck: null })
-          }
+          onPress={() => setFactModal((prev) => ({ ...prev, visible: false }))}
         >
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Fact-check details</Text>
-
-            {factCheckModal.factCheck && (
-              <>
-                <Text style={styles.modalScore}>
-                  {factCheckModal.factCheck.confidenceScore}% confidence
-                </Text>
-
-                {factCheckModal.factCheck.explanation ? (
-                  <Text style={styles.modalBody}>
-                    {factCheckModal.factCheck.explanation}
-                  </Text>
-                ) : null}
-
-                {factCheckModal.factCheck.lastCheckedAt ? (
-                  <Text style={styles.modalMeta}>
-                    Last updated:{" "}
-                    {new Date(
-                      factCheckModal.factCheck.lastCheckedAt
-                    ).toLocaleString()}
-                  </Text>
-                ) : null}
-              </>
+            <Text style={styles.modalTitle}>{getFactStatusMeta(factModal.status).label}</Text>
+            {factModal.note ? (
+              <Text style={styles.modalBody}>{factModal.note}</Text>
+            ) : (
+              <Text style={styles.modalBody}>No additional details provided.</Text>
             )}
+            {formatFactUpdated(factModal.updatedAt) ? (
+              <Text style={styles.modalMeta}>
+                Last updated: {formatFactUpdated(factModal.updatedAt)}
+              </Text>
+            ) : null}
 
             <TouchableOpacity
               style={styles.modalClose}
               onPress={() =>
-                setFactCheckModal({ visible: false, factCheck: null })
+                setFactModal((prev) => ({ ...prev, visible: false }))
               }
             >
               <Text style={styles.modalCloseText}>Close</Text>
@@ -1151,6 +1215,33 @@ empty: {
       marginBottom: spacing.lg,
     },
 
+    imageBlock: {
+      backgroundColor: palette.surface,
+      borderRadius: 16,
+      overflow: "hidden",
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: palette.border,
+    },
+    imageFull: {
+      width: "100%",
+      backgroundColor: palette.border,
+    },
+    imageMeta: {
+      padding: spacing.md,
+      gap: 4,
+    },
+    imageCaption: {
+      fontFamily: fonts.body,
+      fontSize: 14,
+      lineHeight: 20,
+      color: palette.textPrimary,
+    },
+    imageCredit: {
+      fontFamily: fonts.body,
+      fontSize: 12,
+      color: palette.textSecondary,
+    },
+
     eventCard: {
       backgroundColor: palette.surface,
       borderRadius: 16,
@@ -1201,26 +1292,14 @@ empty: {
 
     factCheckContainer: {
       marginTop: 6,
-      paddingTop: 6,
-      borderTopWidth: 0.5,
-      borderTopColor: palette.border,
-      gap: 4,
     },
     factCheckBadge: {
-      fontSize: 11,
-      fontWeight: "600",
+      fontSize: 12,
+      fontWeight: "700",
       paddingHorizontal: 10,
       paddingVertical: 6,
       borderRadius: 999,
-      overflow: "hidden",
       alignSelf: "flex-start",
-      backgroundColor: palette.surface,
-      shadowColor: "#0F172A",
-      shadowOpacity: 0.12,
-      shadowRadius: 8,
-      shadowOffset: { width: 0, height: 3 },
-      elevation: 3,
-      borderWidth: 0,
     },
 
     phaseEndIndicator: {

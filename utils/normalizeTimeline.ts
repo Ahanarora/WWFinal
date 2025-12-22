@@ -17,26 +17,37 @@ export function normalizeTimeline(
         : "event";
 
     if (type === "image") {
+      const url = item.url ?? item.imageUrl ?? "";
       const block: TimelineImageBlock = {
         id: item.id ?? `img-${index}`,
         type: "image",
-        imageUrl: item.imageUrl ?? item.url ?? null,
+        url,
         caption: item.caption ?? "",
       };
       return block;
     }
+
+    const factStatus =
+      item.factStatus === "debated" ||
+      item.factStatus === "partially_debated" ||
+      item.factStatus === "consensus"
+        ? item.factStatus
+        : undefined;
 
     const block: TimelineEventBlock = {
       id: item.id ?? `evt-${index}`,
       type: "event",
       title: item.title ?? item.event ?? "",
       description: item.description ?? "",
-      date: item.date ?? null,
+      date: item.date ?? undefined,
       sources: item.sources ?? [],
       significance:
         typeof item.significance === "number"
           ? item.significance
           : undefined,
+      factStatus,
+      factNote: item.factNote ?? undefined,
+      factUpdatedAt: item.factUpdatedAt ?? undefined,
     };
 
     return block;

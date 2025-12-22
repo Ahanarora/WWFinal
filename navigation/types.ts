@@ -1,4 +1,4 @@
-import type { TimelineEventBlock } from "@ww/shared";
+import type { TimelineBlock } from "@ww/shared";
 
 export type RootStackParamList = {
   Login: undefined;
@@ -14,7 +14,7 @@ export type RootStackParamList = {
   };
 
   EventReader: {
-    events: TimelineEventBlock[];
+    events: TimelineBlock[];
     initialIndex?: number;
   };
 

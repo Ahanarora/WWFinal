@@ -12,6 +12,7 @@ import {
   Image,
   TouchableOpacity,
   Modal,
+  Dimensions,
 } from "react-native";
 import Slider from "@react-native-community/slider";
 import { colors, fonts, spacing, getThemeColors } from "../styles/theme";
@@ -51,7 +52,6 @@ type Props = NativeStackScreenProps<RootStackParamList, "Theme">;
 type WithOriginalIndex<T> = T & { _originalIndex: number };
 
 type UIThemeTimelineEvent = TimelineEventBlock & {
-  factCheck?: any;
   faqs?: any[];
   contexts?: any[];
   media?: {
@@ -59,6 +59,9 @@ type UIThemeTimelineEvent = TimelineEventBlock & {
     imageUrl?: string | null;
     sourceIndex?: number;
   };
+  factStatus?: "consensus" | "debated" | "partially_debated";
+  factNote?: string;
+  factUpdatedAt?: string | number;
 };
 
 // -------------------------------------------------
@@ -143,12 +146,43 @@ const scoreSimilarity = (base: any, candidate: any) => {
   return shared * 3 + (sameCategory ? 4 : 0) + recency * 3;
 };
 
-function getFactCheckRgb(score: number) {
-  if (score >= 85) return { bg: "#E9F9D0", text: "#3F6212" };
-  if (score >= 70) return { bg: "#FEF9C3", text: "#854D0E" };
-  if (score >= 50) return { bg: "#FFEDD5", text: "#9A3412" };
-  return { bg: "#FEE2E2", text: "#991B1B" };
-}
+const SCREEN_WIDTH = Dimensions.get("window").width;
+const getImageHeight = (aspectRatio?: number) => {
+  const ar =
+    typeof aspectRatio === "number" && aspectRatio > 0 ? aspectRatio : 16 / 9;
+  const width = SCREEN_WIDTH - spacing.md * 2;
+  return Math.round(width / ar);
+};
+
+const getFactStatusMeta = (
+  status: "consensus" | "debated" | "partially_debated" | undefined
+) => {
+  switch (status) {
+    case "debated":
+      return { label: "Debated", bg: "#FEE2E2", text: "#991B1B" };
+    case "partially_debated":
+      return { label: "Partially Debated", bg: "#FEF9C3", text: "#854D0E" };
+    default:
+      return { label: "Consensus", bg: "#E8FBE3", text: "#166534" };
+  }
+};
+
+const formatFactUpdated = (val?: any) => {
+  if (!val) return null;
+  try {
+    const d =
+      typeof val === "number"
+        ? new Date(val)
+        : typeof val?.toDate === "function"
+        ? val.toDate()
+        : new Date(val);
+    const str = d.toLocaleString();
+    if (!str || str === "Invalid Date") return null;
+    return str;
+  } catch {
+    return null;
+  }
+};
 
 // -------------------------------------------------
 // MAIN COMPONENT
@@ -189,14 +223,6 @@ export default function ThemeScreen({ route, navigation }: Props) {
   const palette = themeColors || getThemeColors(darkMode);
   const styles = useMemo(() => createStyles(palette), [palette]);
 
-  const [factCheckModal, setFactCheckModal] = useState<{
-    visible: boolean;
-    factCheck: any;
-  }>({
-    visible: false,
-    factCheck: null,
-  });
-
   const [faqModal, setFaqModal] = useState<{
     visible: boolean;
     title: string;
@@ -205,6 +231,17 @@ export default function ThemeScreen({ route, navigation }: Props) {
     visible: false,
     title: "",
     faqs: [],
+  });
+  const [factModal, setFactModal] = useState<{
+    visible: boolean;
+    status: "consensus" | "debated" | "partially_debated";
+    note?: string;
+    updatedAt?: string | number;
+  }>({
+    visible: false,
+    status: "consensus",
+    note: "",
+    updatedAt: undefined,
   });
 
   const [faqExpanded, setFaqExpanded] = useState<Record<number, boolean>>({});
@@ -444,34 +481,20 @@ export default function ThemeScreen({ route, navigation }: Props) {
   // RENDER ONE THEME BLOCK
   // -------------------------------------------------
   const renderThemeBlock = (item: any, isFirst: boolean) => {
-    const sortEvents = (events: TimelineBlock[]) => {
-      if (!Array.isArray(events)) return [];
-      const copy = [...events];
-      return copy.sort((a: any, b: any) => {
-        const aTime = a.timestamp || a.date || a.startedAt;
-        const bTime = b.timestamp || b.date || b.startedAt;
-        if (!aTime || !bTime) return 0;
-        const aMs =
-          typeof aTime === "number" ? aTime : new Date(aTime).getTime();
-        const bMs =
-          typeof bTime === "number" ? bTime : new Date(bTime).getTime();
-        if (Number.isNaN(aMs) || Number.isNaN(bMs)) return 0;
-        return sortOrder === "chronological" ? aMs - bMs : bMs - aMs;
-      });
-    };
+    const timelineBlocks = normalizeTimelineBlocks(item.timeline) as TimelineBlock[];
 
-const timelineBlocks = normalizeTimelineBlocks(
-  item.timeline
-) as TimelineBlock[];
+    const rawTimeline =
+      sortOrder === "chronological"
+        ? timelineBlocks
+        : [...timelineBlocks].reverse();
 
-const rawTimeline = [...timelineBlocks].sort((a: any, b: any) => {
-  if (!a.date || !b.date) return 0;
-  const aMs = new Date(a.date).getTime();
-  const bMs = new Date(b.date).getTime();
-  if (Number.isNaN(aMs) || Number.isNaN(bMs)) return 0;
-  return sortOrder === "chronological" ? aMs - bMs : bMs - aMs;
-});
-
+    const indexedTimeline = rawTimeline.map(
+      (block, originalIndex) =>
+        ({
+          ...(block as any),
+          _originalIndex: originalIndex,
+        } as WithOriginalIndex<TimelineBlock>)
+    );
 
     const analysisForItem =
       item.id === theme.id
@@ -482,22 +505,6 @@ const rawTimeline = [...timelineBlocks].sort((a: any, b: any) => {
       ...(item.contexts || []),
       ...(analysisForItem?.contexts || []),
     ];
-
-    // Add original index (UI widening only)
-   
-    // Only event blocks are rendered here (Phase 2B)
-const eventBlocks = rawTimeline.filter(
-  (b): b is UIThemeTimelineEvent => b.type === "event"
-);
-
-
-const indexedTimeline = eventBlocks.map(
-  (evt, originalIndex) => ({
-    ...evt,
-    _originalIndex: originalIndex,
-     } as WithOriginalIndex<UIThemeTimelineEvent>)
-);
-
 
     // ------------------------------
     // PHASES (from CMS)
@@ -556,18 +563,34 @@ const indexedTimeline = eventBlocks.map(
       {}
     );
 
-    const getPhaseForEventStart = (event: WithOriginalIndex<any>) => {
+    const getPhaseForEventStart = (event: WithOriginalIndex<TimelineBlock>) => {
       if (!phasesWithAccent.length) return null;
-      return phaseStartLookup[event._originalIndex] || null;
+      const idx =
+        typeof event._originalIndex === "number" ? event._originalIndex : null;
+      if (idx === null) return null;
+      return phaseStartLookup[idx] || null;
     };
 
     // ------------------------------
     // DEPTH FILTERING
     // ------------------------------
     const filteredTimeline = indexedTimeline.filter((e) => {
-      if (depth === 1) return e.significance === 3;
-      if (depth === 2) return (e.significance || 1) >= 2;
+      if (e.type === "event") {
+        if (depth === 1) return e.significance === 3;
+        if (depth === 2) return (e.significance || 1) >= 2;
+      }
       return true;
+    });
+
+    const timelineForModal = filteredTimeline.map((block) => {
+      const phase = getPhaseForEventStart(block);
+      if ((block as any)?.type === "event") {
+        return {
+          ...(block as any),
+          phaseTitle: phase?.title ?? null,
+        };
+      }
+      return block as any;
     });
 
     // EventReader modal payload
@@ -716,21 +739,85 @@ const indexedTimeline = eventBlocks.map(
             <Text style={styles.empty}>No events for this depth.</Text>
           ) : (
             filteredTimeline.map((e, i) => {
+              const idx =
+                typeof e._originalIndex === "number" ? e._originalIndex : i;
               const startingPhase = getPhaseForEventStart(e);
-              const activePhase = phaseRangeLookup[e._originalIndex];
-              const isPhaseEnd =
-                activePhase && activePhase.endIndex === e._originalIndex;
+              const activePhase = phaseRangeLookup[idx];
+              const isPhaseEnd = activePhase && activePhase.endIndex === idx;
 
-              const hasFactCheck =
-                !!e.factCheck &&
-                typeof e.factCheck.confidenceScore === "number" &&
-                !Number.isNaN(e.factCheck.confidenceScore);
+              if ((e as any)?.type === "image") {
+                const imageUri = (e as any).url || (e as any).imageUrl || "";
+                if (!imageUri) return null;
+                const height = getImageHeight((e as any).aspectRatio);
 
-              const factCheckColors = hasFactCheck
-                ? getFactCheckRgb(e.factCheck.confidenceScore)
-                : null;
+                return (
+                  <View key={e._originalIndex ?? i} style={styles.eventBlock}>
+                    {startingPhase && (
+                      <View
+                        style={[
+                          styles.phaseHeader,
+                          { borderLeftColor: startingPhase.accentColor },
+                        ]}
+                      >
+                        <Text style={styles.phaseTitle}>
+                          {startingPhase.title}
+                        </Text>
+                        {startingPhase.description ? (
+                          <Text style={styles.phaseSubtitle}>
+                            {startingPhase.description}
+                          </Text>
+                        ) : null}
+                      </View>
+                    )}
 
-              const sources = normalizeSources((e as any).sources) as SourceItem[];
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      onPress={() =>
+                        navigation.navigate("EventReader", {
+                          events: timelineForModal,
+                          initialIndex: i,
+                        })
+                      }
+                    >
+                      <View style={styles.imageBlock}>
+                        <Image
+                          source={{ uri: imageUri }}
+                          style={[styles.imageFull, { height }]}
+                          resizeMode="cover"
+                        />
+                        {((e as any).caption || (e as any).credit) && (
+                          <View style={styles.imageMeta}>
+                            {(e as any).caption ? (
+                              <Text style={styles.imageCaption}>
+                                {(e as any).caption}
+                              </Text>
+                            ) : null}
+                            {(e as any).credit ? (
+                              <Text style={styles.imageCredit}>
+                                {(e as any).credit}
+                              </Text>
+                            ) : null}
+                          </View>
+                        )}
+                      </View>
+                    </TouchableOpacity>
+
+                    {isPhaseEnd && (
+                      <View style={styles.phaseEndIndicator}>
+                        <View
+                          style={[
+                            styles.phaseEndDot,
+                            { backgroundColor: activePhase.accentColor },
+                          ]}
+                        />
+                      </View>
+                    )}
+                  </View>
+                );
+              }
+
+              const event = e as WithOriginalIndex<UIThemeTimelineEvent>;
+              const sources = normalizeSources(event.sources) as SourceItem[];
 
               return (
                 <View key={e._originalIndex ?? i} style={styles.eventBlock}>
@@ -758,10 +845,9 @@ const indexedTimeline = eventBlocks.map(
                     activeOpacity={0.8}
                     onPress={() => {
                       navigation.navigate("EventReader", {
-  events: filteredTimeline,
-  initialIndex: i,
-});
-
+                        events: timelineForModal,
+                        initialIndex: i,
+                      });
                     }}
                   >
                     <View
@@ -776,20 +862,20 @@ const indexedTimeline = eventBlocks.map(
                     >
                       <View style={styles.eventContent}>
                         <Text style={styles.eventDate}>
-                          {formatDateLongOrdinal(e.date)}
+                          {formatDateLongOrdinal(event.date)}
                         </Text>
 
                         <View style={styles.eventTitleRow}>
-                          <Text style={styles.eventTitle}>{e.title}</Text>
+                          <Text style={styles.eventTitle}>{event.title}</Text>
 
-                          {Array.isArray(e.faqs) && e.faqs.length > 0 && (
+                          {Array.isArray(event.faqs) && event.faqs.length > 0 && (
                             <TouchableOpacity
                               style={styles.faqIcon}
                               onPress={() =>
                                 setFaqModal({
                                   visible: true,
-                                  title: e.title || "FAQs",
-                                  faqs: e.faqs,
+                                  title: event.title || "FAQs",
+                                  faqs: event.faqs,
                                 })
                               }
                               hitSlop={{
@@ -809,37 +895,49 @@ const indexedTimeline = eventBlocks.map(
                         </View>
 
                         <RenderWithContext
-                          text={e.description}
-contexts={e.contexts || []}
-
+                          text={event.description}
+                          contexts={event.contexts || []}
                           navigation={navigation}
                           themeColors={palette}
                           textStyle={{ color: palette.textPrimary }}
                         />
 
-                        {hasFactCheck && (
-                          <View style={styles.factCheckContainer}>
-                            <TouchableOpacity
-                              activeOpacity={0.85}
-                              onPress={() =>
-                                setFactCheckModal({
-                                  visible: true,
-                                  factCheck: e.factCheck,
-                                })
-                              }
-                            >
-                              <Text
-                                style={[
-                                  styles.factCheckBadge,
-                                  { color: factCheckColors.text },
-                                ]}
-                              >
-                                {e.factCheck.confidenceScore}% fact-check
-                                confidence
-                              </Text>
-                            </TouchableOpacity>
-                          </View>
-                        )}
+                        <View style={styles.factCheckContainer}>
+                          <TouchableOpacity
+                            activeOpacity={0.85}
+                            onPress={() =>
+                              setFactModal({
+                                visible: true,
+                                status:
+                                  (event.factStatus as
+                                    | "consensus"
+                                    | "debated"
+                                    | "partially_debated") || "consensus",
+                                note: event.factNote,
+                                updatedAt: event.factUpdatedAt,
+                              })
+                            }
+                          >
+                            {(() => {
+                              const meta = getFactStatusMeta(
+                                event.factStatus as any
+                              );
+                              return (
+                                <Text
+                                  style={[
+                                    styles.factCheckBadge,
+                                    {
+                                      backgroundColor: meta.bg,
+                                      color: meta.text,
+                                    },
+                                  ]}
+                                >
+                                  {meta.label}
+                                </Text>
+                              );
+                            })()}
+                          </TouchableOpacity>
+                        </View>
 
                         {sources.length > 0 ? (
                           <View style={styles.eventSources}>
@@ -898,46 +996,39 @@ contexts={e.contexts || []}
         </View>
       ))}
 
-      {/* FACT CHECK MODAL */}
+      {/* FACT STATUS MODAL */}
       <Modal
-        visible={factCheckModal.visible}
+        visible={factModal.visible}
         animationType="fade"
         transparent
         onRequestClose={() =>
-          setFactCheckModal({ visible: false, factCheck: null })
+          setFactModal((prev) => ({ ...prev, visible: false }))
         }
       >
         <TouchableOpacity
           style={styles.modalBackdrop}
           activeOpacity={1}
-          onPress={() => setFactCheckModal({ visible: false, factCheck: null })}
+          onPress={() => setFactModal((prev) => ({ ...prev, visible: false }))}
         >
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Fact-check details</Text>
-            {factCheckModal.factCheck ? (
-              <>
-                <Text style={styles.modalScore}>
-                  {factCheckModal.factCheck.confidenceScore}% confidence
-                </Text>
-                {factCheckModal.factCheck.explanation ? (
-                  <Text style={styles.modalBody}>
-                    {factCheckModal.factCheck.explanation}
-                  </Text>
-                ) : null}
-                {factCheckModal.factCheck.lastCheckedAt ? (
-                  <Text style={styles.modalMeta}>
-                    Last updated:{" "}
-                    {new Date(
-                      factCheckModal.factCheck.lastCheckedAt
-                    ).toLocaleString()}
-                  </Text>
-                ) : null}
-              </>
+            <Text style={styles.modalTitle}>
+              {getFactStatusMeta(factModal.status).label}
+            </Text>
+            {factModal.note ? (
+              <Text style={styles.modalBody}>{factModal.note}</Text>
+            ) : (
+              <Text style={styles.modalBody}>No additional details provided.</Text>
+            )}
+            {formatFactUpdated(factModal.updatedAt) ? (
+              <Text style={styles.modalMeta}>
+                Last updated: {formatFactUpdated(factModal.updatedAt)}
+              </Text>
             ) : null}
+
             <TouchableOpacity
               style={styles.modalClose}
               onPress={() =>
-                setFactCheckModal({ visible: false, factCheck: null })
+                setFactModal((prev) => ({ ...prev, visible: false }))
               }
             >
               <Text style={styles.modalCloseText}>Close</Text>
@@ -1186,6 +1277,33 @@ empty: {
       marginBottom: spacing.lg,
     },
 
+    imageBlock: {
+      backgroundColor: palette.surface,
+      borderRadius: 16,
+      overflow: "hidden",
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: palette.border,
+    },
+    imageFull: {
+      width: "100%",
+      backgroundColor: palette.border,
+    },
+    imageMeta: {
+      padding: spacing.md,
+      gap: 4,
+    },
+    imageCaption: {
+      fontFamily: fonts.body,
+      fontSize: 14,
+      lineHeight: 20,
+      color: palette.textPrimary,
+    },
+    imageCredit: {
+      fontFamily: fonts.body,
+      fontSize: 12,
+      color: palette.textSecondary,
+    },
+
     eventCard: {
       backgroundColor: palette.surface,
       borderRadius: 16,
@@ -1242,19 +1360,14 @@ empty: {
 
     factCheckContainer: {
       marginTop: spacing.sm,
-      paddingTop: spacing.xs,
-      borderTopWidth: 0.5,
-      borderTopColor: palette.border,
-      gap: 4,
     },
     factCheckBadge: {
-      fontSize: 11,
-      fontWeight: "600",
+      fontSize: 12,
+      fontWeight: "700",
       paddingHorizontal: 10,
       paddingVertical: 6,
       borderRadius: 999,
       alignSelf: "flex-start",
-      backgroundColor: palette.surface,
     },
 
     eventSources: {

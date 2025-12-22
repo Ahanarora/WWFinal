@@ -59,16 +59,14 @@ export function normalizeTimelineBlocks(raw) {
       if (!url) return null;
 
       return {
-        ...block,
+        id: block.id,
         type: "image",
         url,
         caption: typeof block.caption === "string" ? block.caption : undefined,
-        credit: typeof block.credit === "string" ? block.credit : undefined,
         aspectRatio:
           typeof block.aspectRatio === "number" && block.aspectRatio > 0
             ? block.aspectRatio
             : undefined,
-        sources: normalizeSources(block.sources),
       };
     }
 

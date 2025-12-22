@@ -186,14 +186,31 @@ function AppNavigator({ user }: { user: any }) {
 
   const [menuVisible, setMenuVisible] = useState(false);
 
-  const screenOptions = (): NativeStackNavigationOptions => ({
+  const screenOptions = ({
+    navigation,
+  }: {
+    navigation: any;
+  }): NativeStackNavigationOptions => ({
     headerTitleAlign: "center",
-   headerStyle: {
-  backgroundColor: palette.surface,
-},
-headerShadowVisible: true,
+    headerStyle: {
+      backgroundColor: palette.surface,
+    },
+    headerShadowVisible: true,
 
     headerTintColor: palette.textPrimary,
+    headerTitle: () => (
+      <TouchableOpacity
+        onPress={() => navigation.navigate("RootTabs", { screen: "HomeTab" })}
+        style={styles.headerTitleButton}
+        accessibilityRole="button"
+        accessibilityLabel="Go to home"
+        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+      >
+        <Text style={[styles.headerTitleText, { color: palette.textPrimary }]}>
+          Wait...What?
+        </Text>
+      </TouchableOpacity>
+    ),
     headerRight: () => (
       <TouchableOpacity
         onPress={() =>
@@ -299,6 +316,15 @@ export default function App() {
 // ----------------------------------------
 
 const styles = StyleSheet.create({
+  headerTitleButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  headerTitleText: {
+    fontFamily: "FreckleFace",
+    fontSize: 20,
+    letterSpacing: 0.5,
+  },
   logoContainer: {
     alignItems: "center",
     justifyContent: "center",
@@ -333,4 +359,3 @@ const styles = StyleSheet.create({
     zIndex: -1,
   },
 });
-

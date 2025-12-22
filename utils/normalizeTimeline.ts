@@ -34,7 +34,11 @@ export function normalizeTimeline(
         ? item.factStatus
         : undefined;
 
-    const block: TimelineEventBlock = {
+    const block: TimelineEventBlock & {
+      factStatus?: "consensus" | "debated" | "partially_debated";
+      factNote?: string;
+      factUpdatedAt?: any;
+    } = {
       id: item.id ?? `evt-${index}`,
       type: "event",
       title: item.title ?? item.event ?? "",

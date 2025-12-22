@@ -1187,7 +1187,7 @@ empty: {
     eventTitle: {
       fontFamily: fonts.heading,
       fontSize: 18,
-      fontWeight: "500",
+      fontWeight: "700",
       lineHeight: 24,
       color: palette.textPrimary,
     },

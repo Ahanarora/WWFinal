@@ -50,7 +50,13 @@ export default function RenderWithContext({
               newChunks.push(
                 <Text
                   key={`${term}-${Math.random()}`}
-                  style={styles.highlight}
+                  style={[
+                    styles.highlight,
+                    {
+                      color: palette.textPrimary,
+                      textDecorationColor: palette.textPrimary,
+                    },
+                  ]}
                   onPress={() => setPopup(info)}
                 >
                   {seg}
@@ -69,7 +75,10 @@ export default function RenderWithContext({
       return (
         <Text
           key={i}
-          style={[styles.link, { color: "#3B82F6" }]}
+          style={[
+            styles.link,
+            { color: palette.textPrimary, textDecorationColor: palette.textPrimary },
+          ]}
           onPress={async () => {
             try {
               const collectionName =
@@ -112,7 +121,10 @@ export default function RenderWithContext({
       return (
         <Text
           key={i}
-          style={[styles.link, { color: "#3B82F6" }]}
+          style={[
+            styles.link,
+            { color: palette.textPrimary, textDecorationColor: palette.textPrimary },
+          ]}
           onPress={() => Linking.openURL(n.href)}
         >
           {n.label}
@@ -172,18 +184,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
     color: "#222",
-    textDecorationLine: "underline",
-    textDecorationStyle: "dotted",
   },
   link: {
-    color: "#2563EB",
     textDecorationLine: "underline",
   },
   highlight: {
     textDecorationLine: "underline",
     textDecorationStyle: "dotted",
-    textDecorationColor: "#2563EB",
-    color: "#2563EB",
   },
   overlay: {
     flex: 1,

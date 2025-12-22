@@ -12,6 +12,7 @@ import {
   Pressable,
   Image,
   Linking,
+  ScrollView,
 } from "react-native";
 import { fonts, spacing, getThemeColors } from "../styles/theme";
 import { getInitials } from "../utils/getFaviconUrl";
@@ -79,7 +80,12 @@ export default function SourceLinks({ sources, themeColors }) {
 
   return (
     <>
-      <View style={styles.container}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.container}
+        style={styles.scroll}
+      >
         {safeSources.map((s, idx) => {
           const publisher = getPublisherFromSource(s) || "Source";
           const initials = getInitials(publisher);
@@ -98,7 +104,7 @@ export default function SourceLinks({ sources, themeColors }) {
             />
           );
         })}
-      </View>
+      </ScrollView>
 
       {/* PREVIEW MODAL */}
       <Modal transparent visible={!!preview} animationType="fade" onRequestClose={() => setPreview(null)}>
@@ -180,10 +186,15 @@ function FaviconCard({ s, palette, styles, initials, publisher, onPress }) {
 // ------------------------------
 const createStyles = (palette) =>
   StyleSheet.create({
+    scroll: {
+      width: "100%",
+    },
+
     container: {
       flexDirection: "row",
       gap: 8,
       paddingVertical: spacing.xs || 4,
+      paddingRight: spacing.xs || 4,
     },
 
     card: {

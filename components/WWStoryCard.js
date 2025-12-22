@@ -128,10 +128,11 @@ const createStyles = (palette) =>
     card: {
       marginHorizontal: 16,
       marginTop: 16,
+      paddingBottom: 14,
       backgroundColor: palette.surface,
       borderRadius: 18,
       borderWidth: 1,
-      borderColor: palette.border,
+      borderColor: "#000",
       overflow: "hidden",
     },
     topMeta: {
@@ -164,6 +165,7 @@ const createStyles = (palette) =>
       fontFamily: fonts.body,
       fontSize: 12,
       color: palette.muted,
+      fontStyle: "italic",
     },
     saveButton: {
       padding: 8,
@@ -175,7 +177,7 @@ const createStyles = (palette) =>
       color: palette.textSecondary,
       paddingHorizontal: 16,
       paddingTop: 6,
-      paddingBottom: 14,
+      paddingBottom: 18,
       lineHeight: 21,
     },
     imageWrap: {
@@ -227,6 +229,7 @@ const createStyles = (palette) =>
       fontFamily: fonts.body,
       fontSize: 11,
       color: palette.muted,
+      fontStyle: "italic",
     },
     bulletRow: {
       flexDirection: "row",
@@ -245,6 +248,7 @@ const createStyles = (palette) =>
       color: palette.textPrimary,
       flex: 1,
       lineHeight: 20,
+      fontStyle: "italic",
     },
     bookmark: {
       alignSelf: "flex-end",

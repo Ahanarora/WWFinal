@@ -127,10 +127,11 @@ const createStyles = (palette) =>
     card: {
       marginHorizontal: 16,
       marginTop: 16,
+      paddingBottom: 14,
       backgroundColor: palette.surface,
       borderRadius: 18,
       borderWidth: 1,
-      borderColor: palette.border,
+      borderColor: "#000",
       overflow: "hidden",
     },
     topMeta: {
@@ -157,7 +158,7 @@ const createStyles = (palette) =>
       fontWeight: "600",
       color: palette.textPrimary,
     },
-    updated: { fontSize: 12, color: palette.muted },
+    updated: { fontSize: 12, color: palette.muted, fontStyle: "italic" },
     saveButton: {
       padding: 8,
       borderRadius: 12,
@@ -167,7 +168,7 @@ const createStyles = (palette) =>
       color: palette.textSecondary,
       paddingHorizontal: 16,
       paddingTop: 6,
-      paddingBottom: 14,
+      paddingBottom: 18,
     },
 
     imageWrap: { position: "relative", marginTop: 10 },
@@ -209,12 +210,13 @@ const createStyles = (palette) =>
     latestWrap: {
       gap: 6,
     },
-    latestLabel: { fontSize: 11, color: palette.muted },
+    latestLabel: { fontSize: 11, color: palette.muted, fontStyle: "italic" },
     bulletRow: { flexDirection: "row", gap: 8 },
     bulletTitle: {
       fontSize: 18,
       color: palette.textPrimary,
       flex: 1,
       fontFamily: "System",
+      fontStyle: "italic",
     },
   });

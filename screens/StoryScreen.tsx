@@ -8,8 +8,8 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   Image,
+  ScrollView,
   TouchableOpacity,
   Pressable,
   Modal,
@@ -30,7 +30,6 @@ import ShareButton from "../components/ShareButton";
 import { shareItem } from "../utils/share";
 import EventSortToggle from "../components/EventSortToggle";
 import WWHomeCard from "../components/WWHomeCard";
-import PublisherPreviewCard from "../components/PublisherPreviewCard";
 
 // Shared timeline contract
 import type { TimelineBlock, TimelineEventBlock, SourceItem } from "@ww/shared";
@@ -689,18 +688,8 @@ const rawTimeline = [...timelineBlocks].sort((a: any, b: any) => {
               ? getFactCheckRgb(confidence)
               : null;
 
-            const mode = e?.media?.type || null;
-
             // Canonical sources (still accept legacy shapes in runtime)
             const sources = (Array.isArray((e as any).sources) ? (e as any).sources : []) as SourceItem[];
-
-            const primaryIdx =
-              typeof e?.media?.sourceIndex === "number" ? e.media.sourceIndex : 0;
-
-            const primarySource = sources[primaryIdx] || sources[0] || null;
-            const otherSources = primarySource
-              ? sources.filter((s) => s.link !== primarySource.link)
-              : sources;
 
             const description = e.description || "";
 const contexts = e.contexts || [];
@@ -809,45 +798,12 @@ const contexts = e.contexts || [];
                         </View>
                       )}
 
-                      {/* SOURCES (non link-preview) */}
-                      {mode !== "link-preview" && sources.length > 0 ? (
+                      {/* SOURCES */}
+                      {sources.length > 0 ? (
                         <View style={styles.eventSources}>
                           <SourceLinks sources={sources} themeColors={palette} />
                         </View>
                       ) : null}
-
-                      {/* LINK PREVIEW or IMAGE */}
-                      {mode === "link-preview" && primarySource?.link ? (
-                        <View>
-                          <PublisherPreviewCard
-                            source={primarySource}
-                            palette={palette}
-                          />
-                          {otherSources.length > 0 ? (
-                            <View style={styles.eventSources}>
-                              <SourceLinks
-                                sources={otherSources}
-                                themeColors={palette}
-                              />
-                            </View>
-                          ) : null}
-                        </View>
-                      ) : (() => {
-                          const img = e?.media?.imageUrl;
-                          if (img) {
-                            return (
-                              <Image
-                                source={{ uri: img }}
-                                style={styles.eventImage}
-                              />
-                            );
-                          }
-                          return (
-                            <View style={styles.eventImagePlaceholder}>
-                              <Text style={styles.eventImageEmoji}>🗞️</Text>
-                            </View>
-                          );
-                        })()}
                     </View>
                   </View>
                 </Pressable>
@@ -1207,26 +1163,6 @@ empty: {
       gap: spacing.sm,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: palette.border,
-    },
-
-    eventImage: {
-      width: "100%",
-      height: 190,
-      borderRadius: 12,
-      backgroundColor: palette.border,
-    },
-
-    eventImagePlaceholder: {
-      width: "100%",
-      height: 190,
-      borderRadius: 12,
-      backgroundColor: palette.border,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-
-    eventImageEmoji: {
-      fontSize: 26,
     },
 
     eventContent: {

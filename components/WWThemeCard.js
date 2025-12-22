@@ -25,6 +25,7 @@ export default function WWThemeCard({ item, navigation, onPress }) {
   const isFav = favorites?.themes?.includes(item.docId);
   const updates = getUpdatesSinceLastVisit("themes", item);
   const headlines = getLatestHeadlines(item.timeline || []);
+  const latestHeadline = headlines[0];
   const previewText =
     item.cardDescription ||
     item.card_description ||
@@ -33,6 +34,8 @@ export default function WWThemeCard({ item, navigation, onPress }) {
     item.preview ||
     item.overview ||
     "";
+
+  const hasTopMeta = headlines.length > 0 || updates > 0;
 
   const defaultPress = () => {
     navigation.navigate("Theme", {
@@ -46,34 +49,24 @@ export default function WWThemeCard({ item, navigation, onPress }) {
 
   return (
     <TouchableOpacity style={styles.card} onPress={pressHandler}>
-      <View style={styles.headerRow}>
-        <View style={styles.headerTextWrap}>
-          <Text style={styles.title} numberOfLines={2}>
-            {item.title}
-          </Text>
-          <Text style={styles.updated}>
-            Updated on {formatUpdatedAt(item.updatedAt)}
-          </Text>
-        </View>
-        <TouchableOpacity
-          style={styles.saveButton}
-          onPress={(e) => {
-            e?.stopPropagation?.();
-            toggleFavorite("themes", item.docId, item);
-          }}
-        >
-          <Ionicons
-            name={isFav ? "bookmark" : "bookmark-outline"}
-            size={26}
-            color={isFav ? palette.accent : palette.muted}
-          />
-        </TouchableOpacity>
-      </View>
+      {hasTopMeta && (
+        <View style={styles.topMeta}>
+          {latestHeadline && (
+            <View style={styles.latestWrap}>
+              <Text style={styles.latestLabel}>Latest Update</Text>
 
-      {!!previewText && (
-        <Text style={styles.overview} numberOfLines={2}>
-          {previewText}
-        </Text>
+              <View style={styles.bulletRow}>
+                <Text style={styles.bulletTitle}>{latestHeadline.title}</Text>
+              </View>
+            </View>
+          )}
+
+          {updates > 0 && (
+            <Text style={styles.updatesText}>
+              {updates} update{updates > 1 ? "s" : ""} since last visit
+            </Text>
+          )}
+        </View>
       )}
 
       <View style={styles.imageWrap}>
@@ -96,25 +89,34 @@ export default function WWThemeCard({ item, navigation, onPress }) {
         </TouchableOpacity>
       </View>
 
-      {/* Updates */}
-      {updates > 0 && (
-        <Text style={styles.updatesText}>
-          {updates} update{updates > 1 ? "s" : ""} since last visit
-        </Text>
-      )}
-
-      {/* Latest Bullets */}
-      {headlines.length > 0 && (
-        <View style={styles.latestWrap}>
-          <Text style={styles.latestLabel}>Latest updates</Text>
-
-          {headlines.slice(0, 2).map((h) => (
-            <View style={styles.bulletRow} key={h.id}>
-              <View style={styles.bulletDot} />
-              <Text style={styles.bulletText}>{h.title}</Text>
-            </View>
-          ))}
+      <View style={styles.headerRow}>
+        <View style={styles.headerTextWrap}>
+          <Text style={styles.title} numberOfLines={2}>
+            {item.title}
+          </Text>
+          <Text style={styles.updated}>
+            Updated {formatUpdatedAt(item.updatedAt)}
+          </Text>
         </View>
+        <TouchableOpacity
+          style={styles.saveButton}
+          onPress={(e) => {
+            e?.stopPropagation?.();
+            toggleFavorite("themes", item.docId, item);
+          }}
+        >
+          <Ionicons
+            name={isFav ? "bookmark" : "bookmark-outline"}
+            size={26}
+            color={isFav ? palette.accent : palette.muted}
+          />
+        </TouchableOpacity>
+      </View>
+
+      {!!previewText && (
+        <Text style={styles.overview} numberOfLines={2}>
+          {previewText}
+        </Text>
       )}
     </TouchableOpacity>
   );
@@ -130,6 +132,13 @@ const createStyles = (palette) =>
       borderWidth: 1,
       borderColor: palette.border,
       overflow: "hidden",
+    },
+    topMeta: {
+      paddingHorizontal: 16,
+      paddingTop: 14,
+      paddingBottom: 8,
+      gap: 8,
+      alignItems: "flex-start",
     },
     headerRow: {
       flexDirection: "row",
@@ -157,7 +166,8 @@ const createStyles = (palette) =>
       fontSize: 14,
       color: palette.textSecondary,
       paddingHorizontal: 16,
-      paddingTop: 4,
+      paddingTop: 6,
+      paddingBottom: 14,
     },
 
     imageWrap: { position: "relative", marginTop: 10 },
@@ -190,30 +200,21 @@ const createStyles = (palette) =>
     },
 
     updatesText: {
-      marginTop: 8,
-      paddingHorizontal: 16,
+      marginTop: 2,
       fontSize: 12,
       color: palette.accent,
       fontWeight: "600",
+      lineHeight: 16,
     },
     latestWrap: {
-      marginTop: 10,
       gap: 6,
-      paddingHorizontal: 16,
-      paddingBottom: 14,
     },
     latestLabel: { fontSize: 11, color: palette.muted },
     bulletRow: { flexDirection: "row", gap: 8 },
-    bulletDot: {
-      width: 4,
-      height: 4,
-      borderRadius: 2,
-      marginTop: 6,
-      backgroundColor: palette.accent,
-    },
-    bulletText: {
-      fontSize: 13,
-      color: palette.textSecondary,
+    bulletTitle: {
+      fontSize: 18,
+      color: palette.textPrimary,
       flex: 1,
+      fontFamily: "System",
     },
   });

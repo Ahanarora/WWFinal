@@ -688,6 +688,10 @@ const { story, index, allStories } =
               typeof block._originalIndex === "number" ? block._originalIndex : i;
             const activePhase = phaseRangeLookup[idx];
             const isPhaseEnd = activePhase && activePhase.endIndex === idx;
+            const totalCount = filteredTimeline.length;
+            const counterText = `${String(i + 1).padStart(2, "0")}/${String(
+              totalCount
+            ).padStart(2, "0")}`;
 
             if ((block as any)?.type === "image") {
               const imageUri = (block as any).url || (block as any).imageUrl || "";
@@ -804,9 +808,12 @@ const { story, index, allStories } =
                     ]}
                   >
                     <View style={styles.eventContent}>
-                      <Text style={styles.eventDate}>
-                        {formatDateLongOrdinal(e.date)}
-                      </Text>
+                      <View style={styles.eventMetaRow}>
+                        <Text style={styles.eventDate}>
+                          {formatDateLongOrdinal(e.date)}
+                        </Text>
+                        <Text style={styles.eventCounter}>{counterText}</Text>
+                      </View>
 
                       <View style={styles.eventTitleRow}>
                         <Text style={styles.eventTitle}>{e.title}</Text>
@@ -1266,7 +1273,18 @@ empty: {
       color: palette.textPrimary,
       fontWeight: "500",
       fontStyle: "italic",
+    },
+    eventMetaRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       marginBottom: 4,
+    },
+    eventCounter: {
+      fontFamily: fonts.heading,
+      fontSize: 12,
+      color: palette.textSecondary,
+      fontWeight: "700",
     },
 
     eventTitleRow: {

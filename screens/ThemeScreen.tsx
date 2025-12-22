@@ -744,6 +744,10 @@ export default function ThemeScreen({ route, navigation }: Props) {
               const startingPhase = getPhaseForEventStart(e);
               const activePhase = phaseRangeLookup[idx];
               const isPhaseEnd = activePhase && activePhase.endIndex === idx;
+              const totalCount = filteredTimeline.length;
+              const counterText = `${String(i + 1).padStart(2, "0")}/${String(
+                totalCount
+              ).padStart(2, "0")}`;
 
               if ((e as any)?.type === "image") {
                 const imageUri = (e as any).url || (e as any).imageUrl || "";
@@ -850,20 +854,23 @@ export default function ThemeScreen({ route, navigation }: Props) {
                       });
                     }}
                   >
-                    <View
-                      style={[
-                        styles.eventCard,
-                        activePhase && {
-                          borderLeftWidth: 3,
+                      <View
+                        style={[
+                          styles.eventCard,
+                          activePhase && {
+                            borderLeftWidth: 3,
                           borderLeftColor: activePhase.accentColor,
                           paddingLeft: spacing.md - 3,
                         },
                       ]}
                     >
                       <View style={styles.eventContent}>
-                        <Text style={styles.eventDate}>
-                          {formatDateLongOrdinal(event.date)}
-                        </Text>
+                        <View style={styles.eventMetaRow}>
+                          <Text style={styles.eventDate}>
+                            {formatDateLongOrdinal(event.date)}
+                          </Text>
+                          <Text style={styles.eventCounter}>{counterText}</Text>
+                        </View>
 
                         <View style={styles.eventTitleRow}>
                           <Text style={styles.eventTitle}>{event.title}</Text>
@@ -1331,7 +1338,18 @@ empty: {
       color: palette.textPrimary,
       fontWeight: "500",
       fontStyle: "italic",
+    },
+    eventMetaRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       marginBottom: 4,
+    },
+    eventCounter: {
+      fontFamily: fonts.heading,
+      fontSize: 12,
+      color: palette.textSecondary,
+      fontWeight: "700",
     },
 
     eventTitle: {

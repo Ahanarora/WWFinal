@@ -23,10 +23,11 @@ export default function WWHomeCard({ item, navigation, onPress }) {
   const styles = createStyles(palette);
 
   const cardType = (item.type || item._type || "").toLowerCase() || "story";
+  const cardId = item.docId || item.id;
   const isStory = cardType === "story";
   const isFav = isStory
-    ? favorites?.stories?.includes(item.docId)
-    : favorites?.themes?.includes(item.docId);
+    ? favorites?.stories?.includes(cardId)
+    : favorites?.themes?.includes(cardId);
 
   const updates = getUpdatesSinceLastVisit((isStory ? "story" : "theme") + "s", item);
   const headlines = getLatestHeadlines(item.timeline || []);
@@ -118,7 +119,7 @@ export default function WWHomeCard({ item, navigation, onPress }) {
           style={styles.saveButton}
           onPress={(e) => {
             e?.stopPropagation?.();
-            toggleFavorite((isStory ? "story" : "theme") + "s", item.docId, item);
+            toggleFavorite((isStory ? "story" : "theme") + "s", cardId, item);
           }}
         >
           <Ionicons

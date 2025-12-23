@@ -21,10 +21,11 @@ export default function WWCompactCard({ item, navigation, onPress }) {
   const styles = createStyles(palette);
 
   // Correct favorite state using docId
+  const cardId = item.docId || item.id;
   const isFav =
     item.type === "story"
-      ? favorites?.stories?.includes(item.docId)
-      : favorites?.themes?.includes(item.docId);
+      ? favorites?.stories?.includes(cardId)
+      : favorites?.themes?.includes(cardId);
 
   const updates = getUpdatesSinceLastVisit(item.type + "s", item);
 
@@ -89,7 +90,7 @@ export default function WWCompactCard({ item, navigation, onPress }) {
       {/* Bookmark */}
       <TouchableOpacity
         style={styles.bookmark}
-        onPress={() => toggleFavorite(item.type + "s", item.docId, item)}
+        onPress={() => toggleFavorite(item.type + "s", cardId, item)}
       >
         <Ionicons
           name={isFav ? "bookmark" : "bookmark-outline"}

@@ -1,7 +1,7 @@
 // components/AppHeader.js
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { colors, spacing } from "../styles/theme";
+import { colors, spacing, fonts } from "../styles/theme";
 
 
 
@@ -15,7 +15,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   title: {
-    fontFamily: "Courier New", // 💡 replace with any “funky” font you like
+    fontFamily: fonts.heading,
     fontSize: 28,
     color: colors.textPrimary,
     letterSpacing: 1.2,

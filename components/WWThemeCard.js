@@ -22,7 +22,8 @@ export default function WWThemeCard({ item, navigation, onPress }) {
   const palette = themeColors || getThemeColors(false);
   const styles = createStyles(palette);
 
-  const isFav = favorites?.themes?.includes(item.docId);
+  const cardId = item.docId || item.id;
+  const isFav = favorites?.themes?.includes(cardId);
   const updates = getUpdatesSinceLastVisit("themes", item);
   const headlines = getLatestHeadlines(item.timeline || []);
   const latestHeadline = headlines[0];
@@ -102,7 +103,7 @@ export default function WWThemeCard({ item, navigation, onPress }) {
           style={styles.saveButton}
           onPress={(e) => {
             e?.stopPropagation?.();
-            toggleFavorite("themes", item.docId, item);
+            toggleFavorite("themes", cardId, item);
           }}
         >
           <Ionicons

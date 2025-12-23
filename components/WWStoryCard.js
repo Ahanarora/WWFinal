@@ -23,7 +23,8 @@ export default function WWStoryCard({ item, navigation, onPress }) {
   const styles = createStyles(palette);
 
   // Correct: stories are favorited by their Firestore docId
-  const isFav = favorites?.stories?.includes(item.docId);
+  const cardId = item.docId || item.id;
+  const isFav = favorites?.stories?.includes(cardId);
   const updates = getUpdatesSinceLastVisit("stories", item);
   const headlines = getLatestHeadlines(item.timeline || []);
   const latestHeadline = headlines[0];
@@ -103,7 +104,7 @@ export default function WWStoryCard({ item, navigation, onPress }) {
           style={styles.saveButton}
           onPress={(e) => {
             e?.stopPropagation?.();
-            toggleFavorite("stories", item.docId, item);
+            toggleFavorite("stories", cardId, item);
           }}
         >
           <Ionicons

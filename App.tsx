@@ -293,6 +293,7 @@ export default function App() {
   const [fontsLoaded] = useFonts({
     Barrio: require("./assets/fonts/Barrio-Regular.ttf"),
     FreckleFace: require("./assets/fonts/FreckleFace-Regular.ttf"),
+    YujiBoku: require("./assets/fonts/YujiBoku-Regular.ttf"),
   });
 
   if (!fontsLoaded || authChecking) {
@@ -321,8 +322,9 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   headerTitleText: {
-    fontFamily: "FreckleFace",
-    fontSize: 20,
+    fontFamily: "YujiBoku",
+    fontSize: 40,
+    fontWeight: "700",
     letterSpacing: 0.5,
   },
   logoContainer: {
@@ -337,7 +339,7 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   logoWord: {
-    fontFamily: "FreckleFace",
+    fontFamily: "YujiBoku",
     fontSize: 36,
     transform: [{ translateY: 14 }],
   },

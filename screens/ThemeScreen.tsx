@@ -200,7 +200,7 @@ export default function ThemeScreen({ route, navigation }: Props) {
   // Timeline controls
   const [depth, setDepth] = useState(2);
   const [sortOrder, setSortOrder] = useState<"chronological" | "reverse">(
-    "chronological"
+    "reverse"
   );
 
   // Suggestions pool

@@ -212,15 +212,24 @@ function AppNavigator({ user }: { user: any }) {
       </TouchableOpacity>
     ),
     headerRight: () => (
-      <TouchableOpacity
-        onPress={() =>
-          (navigationRef.current as any)?.navigate("Search", { query: "" })
-
-        }
-        style={{ paddingLeft: 12 }}
-      >
-        <Ionicons name="search" size={22} color={palette.textPrimary} />
-      </TouchableOpacity>
+      <View style={styles.headerActions}>
+        <TouchableOpacity
+          onPress={() => setMenuVisible(true)}
+          style={styles.iconButton}
+          accessibilityLabel="Open menu"
+        >
+          <Ionicons name="menu" size={24} color={palette.textPrimary} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() =>
+            (navigationRef.current as any)?.navigate("Search", { query: "" })
+          }
+          style={styles.iconButton}
+          accessibilityLabel="Search"
+        >
+          <Ionicons name="search" size={22} color={palette.textPrimary} />
+        </TouchableOpacity>
+      </View>
     ),
   });
 
@@ -270,6 +279,73 @@ function AppNavigator({ user }: { user: any }) {
           </Stack.Navigator>
         )}
       </NavigationContainer>
+
+      {/* Simple Menu Modal */}
+      <Modal
+        visible={menuVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.menuBackdrop}
+          activeOpacity={1}
+          onPress={() => setMenuVisible(false)}
+        >
+          <View style={[styles.menuCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+            <Text style={[styles.menuTitle, { color: palette.textPrimary }]}>Menu</Text>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                navigationRef.current?.navigate("RootTabs", { screen: "HomeTab" } as any);
+              }}
+            >
+              <Text style={[styles.menuItemText, { color: palette.textPrimary }]}>Home</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                navigationRef.current?.navigate("RootTabs", { screen: "StoriesTab" } as any);
+              }}
+            >
+              <Text style={[styles.menuItemText, { color: palette.textPrimary }]}>Stories</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                navigationRef.current?.navigate("RootTabs", { screen: "ThemesTab" } as any);
+              }}
+            >
+              <Text style={[styles.menuItemText, { color: palette.textPrimary }]}>Themes</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                navigationRef.current?.navigate("WhatIsWaitWhat" as any);
+              }}
+            >
+              <Text style={[styles.menuItemText, { color: palette.textPrimary }]}>
+                What is Wait...What?
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                toggleDarkMode?.();
+              }}
+            >
+              <Text style={[styles.menuItemText, { color: palette.textPrimary }]}>
+                Toggle Dark Mode
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </>
   );
 }
@@ -327,6 +403,14 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 0.5,
   },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  iconButton: {
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+  },
   logoContainer: {
     alignItems: "center",
     justifyContent: "center",
@@ -359,5 +443,30 @@ const styles = StyleSheet.create({
     minWidth: 150,
     transform: [{ rotate: "-2deg" }],
     zIndex: -1,
+  },
+  menuBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-start",
+    paddingTop: 60,
+    paddingHorizontal: 16,
+  },
+  menuCard: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
+    gap: 12,
+  },
+  menuTitle: {
+    fontFamily: fonts.heading,
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  menuItem: {
+    paddingVertical: 8,
+  },
+  menuItemText: {
+    fontFamily: fonts.body,
+    fontSize: 16,
   },
 });

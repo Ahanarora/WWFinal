@@ -205,7 +205,7 @@ const { story, index, allStories } =
   useEffect(() => () => toggleHeader(true), [toggleHeader]);
 
   const [sortOrder, setSortOrder] = useState<"chronological" | "reverse">(
-    "chronological"
+    "reverse"
   );
 
   const [faqModal, setFaqModal] = useState<{

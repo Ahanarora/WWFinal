@@ -313,16 +313,15 @@ export default function HomeScreen({ navigation }) {
   const listData = useMemo(() => {
     const sections = [{ _type: "controls" }];
     if (featuredItems.length) sections.push({ _type: "featured" });
+    // Sort row no longer sticky/pinned; include as regular row after featured
     sections.push({ _type: "sort" });
     return [...sections, ...regularCombined];
   }, [featuredItems, regularCombined]);
 
   const stickyHeaderIndices = useMemo(() => {
-    const indices = [0]; // controls
-    const sortIndex = featuredItems.length ? 2 : 1;
-    indices.push(sortIndex);
-    return indices;
-  }, [featuredItems.length]);
+    // Only pin the controls row
+    return [0];
+  }, []);
 
   // -------------------------------
   // LOADING

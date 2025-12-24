@@ -1,10 +1,12 @@
 import { formatDateDDMMYYYY } from "./formatTime";
 import { normalizeTimelineBlocks } from "./normalizeTimelineBlocks";
 
-export function getLatestHeadlines(timeline = [], limit = 2) {
+export function getLatestHeadlines(timeline = [], limit = 1) {
   if (!Array.isArray(timeline) || timeline.length === 0) return [];
 
-  const canonical = normalizeTimelineBlocks(timeline);
+  const canonical = normalizeTimelineBlocks(timeline).filter(
+    (b) => (b?.type || "event") === "event"
+  );
 
   const enriched = canonical
     .map((block, index) => {
@@ -21,6 +23,7 @@ export function getLatestHeadlines(timeline = [], limit = 2) {
   return enriched.map((block, idx) => ({
     id: `${block.id || block.title || "headline"}-${idx}-${block._index}`,
     title: block.title || "Untitled update",
+    description: block.description || "",
     dateLabel: formatDateDDMMYYYY(block.date),
   }));
 }

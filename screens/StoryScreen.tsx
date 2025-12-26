@@ -341,22 +341,35 @@ const { story, index, allStories } =
     setIsLoadingMore(true);
 
     const nextIndex = currentIndex + 1;
-    const nextStory = allStories[nextIndex];
+   const rawNextStory = allStories[nextIndex];
 
-    if (!nextStory) {
-      setIsLoadingMore(false);
-      return;
-    }
+if (!rawNextStory) {
+  setIsLoadingMore(false);
+  return;
+}
 
-    if (feed.some((s) => s.id === nextStory.id)) {
-      setIsLoadingMore(false);
-      return;
-    }
+// 🔑 NORMALIZE ID ONCE
+const nextStory = {
+  ...rawNextStory,
+  id: rawNextStory.id || rawNextStory.docId,
+};
 
-    setFeed((prev) => [...prev, nextStory]);
-    setCurrentIndex(nextIndex);
-    setIsLoadingMore(false);
-  };
+if (!nextStory.id) {
+  setIsLoadingMore(false);
+  return;
+}
+
+// 🔒 DEDUPE SAFELY
+setFeed((prev) => {
+  if (prev.some((s) => s.id === nextStory.id)) {
+    return prev;
+  }
+  return [...prev, nextStory];
+});
+
+setCurrentIndex(nextIndex);
+setIsLoadingMore(false);
+};
 
   const hasAnyAnalysis =
     primaryAnalysis &&
@@ -937,13 +950,19 @@ const { story, index, allStories } =
       }}
       scrollEventThrottle={32}
     >
-      {feed.map((s) => (
-        <View key={s.id}>
-          {renderStoryBlock(s)}
-          {renderSuggestions(s)}
-          <CommentsSection type="story" itemId={s.id} />
-        </View>
-      ))}
+      {feed.map((s) => {
+  const storyId = s.id || s.docId;
+  if (!storyId) return null;
+
+  return (
+    <View key={`story-${storyId}`}>
+      {renderStoryBlock({ ...s, id: storyId })}
+      {renderSuggestions({ ...s, id: storyId })}
+      <CommentsSection type="story" itemId={storyId} />
+    </View>
+  );
+})}
+
 
       {/* FACT STATUS MODAL */}
       <Modal

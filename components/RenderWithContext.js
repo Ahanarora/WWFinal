@@ -10,7 +10,7 @@ import {
   Linking,
 } from "react-native";
 import { parseLinkedText } from "../utils/renderLinkedText";
-import { db } from "../firebaseConfig";
+import { db } from "../utils/firebase";;
 import { doc, getDoc } from "firebase/firestore";
 import { getThemeColors, fonts } from "../styles/theme";
 

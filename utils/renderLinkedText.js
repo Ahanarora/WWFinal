@@ -2,7 +2,7 @@
 import React from "react";
 import { Text, Linking } from "react-native";
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "../firebaseConfig";
+import { db } from "../utils/firebase";
 
 /**
  * Parse [Label](@story/ID) or [Label](@theme/ID) or [Label](https://...) into nodes.

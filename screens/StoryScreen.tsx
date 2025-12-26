@@ -26,7 +26,7 @@ import { useUserData } from "../contexts/UserDataContext";
 import { Ionicons } from "@expo/vector-icons";
 import { getStorySearchCache } from "../utils/storyCache";
 import { collection, getDocs } from "firebase/firestore";
-import { db } from "../firebaseConfig";
+import { db } from "../utils/firebase";
 import ShareButton from "../components/ShareButton";
 import { shareItem } from "../utils/share";
 import EventSortToggle from "../components/EventSortToggle";

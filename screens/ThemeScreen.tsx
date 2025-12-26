@@ -27,7 +27,7 @@ import ShareButton from "../components/ShareButton";
 import { shareItem } from "../utils/share";
 import EventSortToggle from "../components/EventSortToggle";
 import { collection, getDocs } from "firebase/firestore";
-import { db } from "../firebaseConfig";
+import { db } from "../utils/firebase";
 import WWHomeCard from "../components/WWHomeCard";
 import { normalizeSources } from "../utils/normalizeSources";
 

@@ -17,7 +17,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 
 import { collection, getDocs } from "firebase/firestore";
-import { db } from "../firebaseConfig";
+import { db } from "../utils/firebase";
 
 import { scoreContent } from "../utils/ranking";
 import { getThemeColors, fonts } from "../styles/theme";

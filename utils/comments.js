@@ -14,7 +14,7 @@ import {
   startAfter,
   updateDoc,
 } from "firebase/firestore";
-import { db } from "../firebaseConfig";
+import { db } from "../utils/firebase";
 
 export const CommentSort = {
   NEWEST: "newest",

@@ -12,7 +12,8 @@ import React, {
   ReactNode,
 } from "react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { db } from "../firebaseConfig";
+import { db } from "../utils/firebase";
+
 import { getThemeColors } from "../styles/theme";
 
 // ----------------------------------------

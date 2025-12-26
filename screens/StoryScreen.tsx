@@ -14,8 +14,9 @@ import {
   Pressable,
   Modal,
   Dimensions,
-} from "react-native";
-import Slider from "@react-native-community/slider";
+} from "react-native";import Slider from "@react-native-community/slider";
+import type { SliderProps } from "@react-native-community/slider";
+
 import { colors, fonts, spacing, getThemeColors } from "../styles/theme";
 import SourceLinks from "../components/SourceLinks";
 import RenderWithContext from "../components/RenderWithContext";
@@ -161,6 +162,8 @@ const { story, index, allStories } =
     const cached = getStorySearchCache();
     return Array.isArray(cached) ? cached : [];
   });
+
+  const SliderComponent = Slider as unknown as React.FC<SliderProps>;
 
   // Depth slider
   const [depth, setDepth] = useState(2);
@@ -652,22 +655,22 @@ const { story, index, allStories } =
           </View>
         )}
 
+        
+
         {/* DEPTH SLIDER */}
+        
         {feed[0]?.id === item.id && filteredTimeline.length > 0 && (
           <View style={styles.sliderBox}>
             <Text style={styles.sliderLabel}>Essential</Text>
             <View style={styles.sliderTrackWrap}>
-              <Slider
-                style={styles.slider}
-                minimumValue={1}
-                maximumValue={3}
-                step={1}
-                value={depth}
-                onValueChange={(v) => setDepth(v)}
-                minimumTrackTintColor={palette.accent}
-                maximumTrackTintColor="#6B7280"
-                thumbTintColor={palette.accent}
-              />
+             <SliderComponent
+  minimumValue={1}
+  maximumValue={3}
+  step={1}
+  value={depth}
+  onValueChange={(v) => setDepth(v)}
+/>
+
             </View>
             <Text style={styles.sliderLabel}>Complete</Text>
           </View>

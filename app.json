@@ -10,6 +10,8 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
 
+    "platforms": ["ios", "android"],
+
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -30,10 +32,6 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true
-    },
-
-    "web": {
-      "favicon": "./assets/favicon.png"
     },
 
     "plugins": [

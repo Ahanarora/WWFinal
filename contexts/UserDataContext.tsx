@@ -12,7 +12,7 @@ import React, {
   ReactNode,
 } from "react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { db } from "../utils/firebase";
+import { db} from "../utils/firebase";
 
 import { getThemeColors } from "../styles/theme";
 

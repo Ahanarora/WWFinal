@@ -32,7 +32,7 @@ import { colors, getThemeColors, fonts } from "./styles/theme";
 
 // 🔐 AUTH
 import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "./firebaseConfig";
+import { auth } from "./utils/firebase";
 
 // Screens
 import HomeScreen from "./screens/HomeScreen";
@@ -57,9 +57,28 @@ import { UserDataProvider, useUserData } from "./contexts/UserDataContext";
 // Navigation setup
 // ----------------------------------------
 
-const Tab = createBottomTabNavigator();
-const Stack = createNativeStackNavigator();
+type RootTabParamList = {
+  HomeTab: undefined;
+  StoriesTab: undefined;
+  ThemesTab: undefined;
+  SavedTab: undefined;
+};
 
+type RootStackParamList = {
+  Login: undefined;
+  RootTabs: undefined;
+  Story: { id: string };
+  Theme: { id: string };
+  Search: { query?: string };
+  AnalysisModal: undefined;
+  EventReader: undefined;
+  WhatIsWaitWhat: undefined;
+  ContactUs: undefined;
+};
+
+
+const Tab = createBottomTabNavigator<RootTabParamList>();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 
 const prefix = Linking.createURL("/");
@@ -180,7 +199,8 @@ const DarkNavTheme = {
 // ----------------------------------------
 
 function AppNavigator({ user }: { user: any }) {
-  const navigationRef = useNavigationContainerRef();
+  const navigationRef = useNavigationContainerRef<RootStackParamList>();
+
   const { darkMode, toggleDarkMode, themeColors } = useUserData();
   const palette = themeColors || getThemeColors(darkMode);
 

@@ -20,6 +20,7 @@ import { db } from "../utils/firebase";
 import { scoreContent } from "../utils/ranking";
 import { getThemeColors, fonts } from "../styles/theme";
 import { useUserData } from "../contexts/UserDataContext";
+import { checkOnline } from "../utils/network";
 
 import WWStoryCard from "../components/WWStoryCard";
 import WWCompactCard from "../components/WWCompactCard";
@@ -92,6 +93,7 @@ const getCreatedAtMs = (item) => {
 export default function StoriesScreen({ navigation }) {
   const [stories, setStories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Filter pane states
   const [activeCategory, setActiveCategory] = useState("All");
@@ -152,36 +154,53 @@ export default function StoriesScreen({ navigation }) {
   // -----------------------------
   // FETCH STORIES
   // -----------------------------
-  useEffect(() => {
-    const fetchStories = async () => {
-      try {
-        const snap = await getDocs(collection(db, "stories"));
-        const data = snap.docs.map((d) => {
-          const raw = d.data() || {};
-          return {
-            docId: d.id, // Firestore document ID
-            type: "story",
-            ...raw,
-            cardPreview:
-              raw.cardDescription ||
-              raw.card_description ||
-              raw.cardPreview ||
-              raw.card_preview ||
-              raw.preview ||
-              raw.summary ||
-              raw.overview ||
-              null,
-          };
-        });
-        setStories(data);
-      } catch (err) {
-        console.error("Error loading stories:", err);
-      } finally {
-        setLoading(false);
+  const fetchStories = useCallback(async () => {
+    const timeout = setTimeout(() => {
+      setLoading(false);
+      setError("This is taking longer than expected.");
+    }, 15000);
+
+    try {
+      setError(null);
+      setLoading(true);
+
+      const online = await checkOnline();
+      if (!online) {
+        setError("You’re offline. Please check your connection.");
+        return;
       }
-    };
-    fetchStories();
+
+      const snap = await getDocs(collection(db, "stories"));
+      const data = snap.docs.map((d) => {
+        const raw = d.data() || {};
+        return {
+          docId: d.id, // Firestore document ID
+          type: "story",
+          ...raw,
+          cardPreview:
+            raw.cardDescription ||
+            raw.card_description ||
+            raw.cardPreview ||
+            raw.card_preview ||
+            raw.preview ||
+            raw.summary ||
+            raw.overview ||
+            null,
+        };
+      });
+      setStories(data);
+    } catch (err) {
+      console.error("Error loading stories:", err);
+      setError("Something went wrong. Please try again.");
+    } finally {
+      clearTimeout(timeout);
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchStories();
+  }, [fetchStories]);
 
   // -----------------------------
   // FILTER + SORT
@@ -282,10 +301,24 @@ export default function StoriesScreen({ navigation }) {
     );
   }
 
-  if (sortedStories.length === 0) {
+  if (error) {
     return (
       <View style={styles.center}>
-        <Text style={styles.emptyText}>No stories found.</Text>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity onPress={fetchStories}>
+          <Text style={styles.retry}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (sortedStories.length === 0) {
+    return (
+      <View style={styles.emptyState}>
+        <Text style={styles.emptyTitle}>Nothing here yet</Text>
+        <Text style={styles.emptySubtitle}>
+          Check back later — we update this regularly.
+        </Text>
       </View>
     );
   }
@@ -411,6 +444,18 @@ const createStyles = (palette) =>
       alignItems: "center",
       justifyContent: "center",
     },
+    errorText: {
+      fontFamily: fonts.body,
+      fontSize: 15,
+      color: palette.textPrimary,
+      textAlign: "center",
+    },
+    retry: {
+      marginTop: 12,
+      color: "#2563EB",
+      fontWeight: "600",
+      fontFamily: fonts.body,
+    },
     loadingText: {
       marginTop: 8,
       color: palette.textSecondary,
@@ -418,11 +463,24 @@ const createStyles = (palette) =>
       fontSize: 14,
       lineHeight: 21,
     },
-    emptyText: {
-      fontSize: 16,
+    emptyState: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      padding: 24,
+    },
+    emptyTitle: {
+      fontSize: 18,
+      fontWeight: "600",
+      marginBottom: 6,
+      fontFamily: fonts.heading,
+      color: palette.textPrimary,
+    },
+    emptySubtitle: {
+      fontSize: 14,
       color: palette.textSecondary,
+      textAlign: "center",
       fontFamily: fonts.body,
-      lineHeight: 22,
     },
     sortModalBackdrop: {
       flex: 1,

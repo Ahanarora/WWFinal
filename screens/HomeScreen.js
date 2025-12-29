@@ -23,6 +23,7 @@ import { scoreContent } from "../utils/ranking";
 import { getThemeColors, fonts } from "../styles/theme";
 import { useUserData } from "../contexts/UserDataContext";
 import { setStorySearchCache } from "../utils/storyCache";
+import { checkOnline } from "../utils/network";
 
 import WWHomeCard from "../components/WWHomeCard";
 import WWCompactCard from "../components/WWCompactCard";
@@ -97,6 +98,7 @@ export default function HomeScreen({ navigation }) {
   const [themes, setThemes] = useState([]);
   const [stories, setStories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Filter defaults (kept for future category-aware features)
   const [activeCategory, setActiveCategory] = useState("All");
@@ -152,60 +154,76 @@ export default function HomeScreen({ navigation }) {
   // -------------------------------
   // FETCH STORIES + THEMES
   // -------------------------------
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const themeSnap = await getDocs(collection(db, "themes"));
-        const storySnap = await getDocs(collection(db, "stories"));
+  const loadData = useCallback(async () => {
+    const timeout = setTimeout(() => {
+      setLoading(false);
+      setError("This is taking longer than expected.");
+    }, 15000);
 
-        const themeData = themeSnap.docs.map((d) => {
-          const raw = d.data() || {};
-          return {
-            docId: d.id,
-            type: "theme",
-            ...raw,
-            cardPreview:
-              raw.cardDescription ||
-              raw.card_description ||
-              raw.cardPreview ||
-              raw.card_preview ||
-              raw.preview ||
-              raw.summary ||
-              raw.overview ||
-              null,
-          };
-        });
+    try {
+      setError(null);
+      setLoading(true);
 
-        const storyData = storySnap.docs.map((d) => {
-          const raw = d.data() || {};
-          return {
-            docId: d.id,
-            type: "story",
-            ...raw,
-            cardPreview:
-              raw.cardDescription ||
-              raw.card_description ||
-              raw.cardPreview ||
-              raw.card_preview ||
-              raw.preview ||
-              raw.summary ||
-              raw.overview ||
-              null,
-          };
-        });
-
-        setThemes(themeData);
-        setStories(storyData);
-        setStorySearchCache(storyData);
-      } catch (err) {
-        console.error("Error loading home data:", err);
-      } finally {
-        setLoading(false);
+      const online = await checkOnline();
+      if (!online) {
+        setError("You’re offline. Please check your connection.");
+        return;
       }
-    };
 
-    loadData();
+      const themeSnap = await getDocs(collection(db, "themes"));
+      const storySnap = await getDocs(collection(db, "stories"));
+
+      const themeData = themeSnap.docs.map((d) => {
+        const raw = d.data() || {};
+        return {
+          docId: d.id,
+          type: "theme",
+          ...raw,
+          cardPreview:
+            raw.cardDescription ||
+            raw.card_description ||
+            raw.cardPreview ||
+            raw.card_preview ||
+            raw.preview ||
+            raw.summary ||
+            raw.overview ||
+            null,
+        };
+      });
+
+      const storyData = storySnap.docs.map((d) => {
+        const raw = d.data() || {};
+        return {
+          docId: d.id,
+          type: "story",
+          ...raw,
+          cardPreview:
+            raw.cardDescription ||
+            raw.card_description ||
+            raw.cardPreview ||
+            raw.card_preview ||
+            raw.preview ||
+            raw.summary ||
+            raw.overview ||
+            null,
+        };
+      });
+
+      setThemes(themeData);
+      setStories(storyData);
+      setStorySearchCache(storyData);
+    } catch (err) {
+      console.error("Error loading home data:", err);
+      setError("Something went wrong. Please try again.");
+    } finally {
+      clearTimeout(timeout);
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   // -------------------------------
   // FILTER HELPERS
@@ -331,6 +349,30 @@ export default function HomeScreen({ navigation }) {
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#DC2626" />
         <Text style={styles.loadingText}>Loading content...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity onPress={loadData}>
+          <Text style={styles.retry}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const hasContent = filteredStories.length > 0 || filteredThemes.length > 0;
+
+  if (!hasContent) {
+    return (
+      <View style={styles.emptyState}>
+        <Text style={styles.emptyTitle}>Nothing here yet</Text>
+        <Text style={styles.emptySubtitle}>
+          Check back later — we update this regularly.
+        </Text>
       </View>
     );
   }
@@ -511,12 +553,43 @@ const createStyles = (palette) =>
       justifyContent: "center",
       alignItems: "center",
     },
+    errorText: {
+      fontFamily: fonts.body,
+      fontSize: 15,
+      color: palette.textPrimary,
+      textAlign: "center",
+    },
+    retry: {
+      marginTop: 12,
+      color: "#2563EB",
+      fontWeight: "600",
+      fontFamily: fonts.body,
+    },
     loadingText: {
       marginTop: 8,
       color: palette.textSecondary,
       fontFamily: fonts.body,
       fontSize: 14,
       lineHeight: 21,
+    },
+    emptyState: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      padding: 24,
+    },
+    emptyTitle: {
+      fontSize: 18,
+      fontWeight: "600",
+      marginBottom: 6,
+      fontFamily: fonts.heading,
+      color: palette.textPrimary,
+    },
+    emptySubtitle: {
+      fontSize: 14,
+      color: palette.textSecondary,
+      textAlign: "center",
+      fontFamily: fonts.body,
     },
 
     featuredSection: {

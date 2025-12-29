@@ -14,9 +14,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../utils/firebase";
 import { useNavigation } from "@react-navigation/native";
-import { track } from "../utils/analytics";
-
-
 
 export default function LoginScreen() {
   const navigation = useNavigation();
@@ -34,9 +31,6 @@ export default function LoginScreen() {
     try {
       setLoading(true);
       await signInWithEmailAndPassword(auth, email, password);
-      track("sign_in_success", {
-        provider: "google",
-      });
     } catch (err) {
       alert(err.message || "Login failed");
     } finally {

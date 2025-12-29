@@ -46,8 +46,11 @@ export default function SavedScreen({ navigation }) {
 
   if (!user) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.emptyText}>Sign in to save stories and themes.</Text>
+      <View style={styles.emptyState}>
+        <Text style={styles.emptyTitle}>Sign in to save stories and themes.</Text>
+        <Text style={styles.emptySubtitle}>
+          Tap the bookmark icon to keep items here.
+        </Text>
       </View>
     );
   }
@@ -63,8 +66,11 @@ export default function SavedScreen({ navigation }) {
 
   if (!hasContent) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.emptyText}>No saved stories or themes yet.</Text>
+      <View style={styles.emptyState}>
+        <Text style={styles.emptyTitle}>You haven’t saved anything yet.</Text>
+        <Text style={styles.emptySubtitle}>
+          Tap the bookmark icon to save stories.
+        </Text>
       </View>
     );
   }
@@ -124,6 +130,10 @@ const createStyles = (palette) =>
       color: palette.textSecondary,
       lineHeight: 20,
     },
+    loadingText: {
+      marginTop: 12,
+      color: palette.textSecondary,
+    },
     center: {
       flex: 1,
       justifyContent: "center",
@@ -131,13 +141,23 @@ const createStyles = (palette) =>
       padding: 32,
       backgroundColor: palette.background,
     },
-    emptyText: {
-      fontSize: 15,
+    emptyState: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      padding: 32,
+      backgroundColor: palette.background,
+    },
+    emptyTitle: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: palette.textPrimary,
+      textAlign: "center",
+      marginBottom: 6,
+    },
+    emptySubtitle: {
+      fontSize: 14,
       color: palette.textSecondary,
       textAlign: "center",
-    },
-    loadingText: {
-      marginTop: 12,
-      color: palette.textSecondary,
     },
   });

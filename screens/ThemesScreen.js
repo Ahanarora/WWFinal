@@ -19,6 +19,7 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "../utils/firebase";
 import { scoreContent } from "../utils/ranking";
 import { getThemeColors } from "../styles/theme";
+import { checkOnline } from "../utils/network";
 
 import WWThemeCard from "../components/WWThemeCard";
 import WWCompactCard from "../components/WWCompactCard";
@@ -61,6 +62,7 @@ const getCreatedAtMs = (item) => {
 export default function ThemesScreen({ navigation }) {
   const [themes, setThemes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [activeCategory, setActiveCategory] = useState("All");
   const [sortMode, setSortMode] = useState("relevance");
@@ -118,36 +120,53 @@ export default function ThemesScreen({ navigation }) {
   // -------------------------------
   // FETCH THEMES
   // -------------------------------
-  useEffect(() => {
-    const fetchThemes = async () => {
-      try {
-        const snapshot = await getDocs(collection(db, "themes"));
-        const data = snapshot.docs.map((doc) => {
-          const raw = doc.data() || {};
-          return {
-            docId: doc.id,
-            type: "theme",
-            ...raw,
-            cardPreview:
-              raw.cardDescription ||
-              raw.card_description ||
-              raw.cardPreview ||
-              raw.card_preview ||
-              raw.preview ||
-              raw.summary ||
-              raw.overview ||
-              null,
-          };
-        });
-        setThemes(data);
-      } catch (err) {
-        console.error("Error loading themes:", err);
-      } finally {
-        setLoading(false);
+  const fetchThemes = useCallback(async () => {
+    const timeout = setTimeout(() => {
+      setLoading(false);
+      setError("This is taking longer than expected.");
+    }, 15000);
+
+    try {
+      setError(null);
+      setLoading(true);
+
+      const online = await checkOnline();
+      if (!online) {
+        setError("You’re offline. Please check your connection.");
+        return;
       }
-    };
-    fetchThemes();
+
+      const snapshot = await getDocs(collection(db, "themes"));
+      const data = snapshot.docs.map((doc) => {
+        const raw = doc.data() || {};
+        return {
+          docId: doc.id,
+          type: "theme",
+          ...raw,
+          cardPreview:
+            raw.cardDescription ||
+            raw.card_description ||
+            raw.cardPreview ||
+            raw.card_preview ||
+            raw.preview ||
+            raw.summary ||
+            raw.overview ||
+            null,
+        };
+      });
+      setThemes(data);
+    } catch (err) {
+      console.error("Error loading themes:", err);
+      setError("Something went wrong. Please try again.");
+    } finally {
+      clearTimeout(timeout);
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchThemes();
+  }, [fetchThemes]);
 
   // -------------------------------
   // FILTER + SORT
@@ -207,10 +226,24 @@ export default function ThemesScreen({ navigation }) {
     );
   }
 
-  if (sortedThemes.length === 0) {
+  if (error) {
     return (
       <View style={styles.center}>
-        <Text style={styles.emptyText}>No themes found.</Text>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity onPress={fetchThemes}>
+          <Text style={styles.retry}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (sortedThemes.length === 0) {
+    return (
+      <View style={styles.emptyState}>
+        <Text style={styles.emptyTitle}>Nothing here yet</Text>
+        <Text style={styles.emptySubtitle}>
+          Check back later — we update this regularly.
+        </Text>
       </View>
     );
   }
@@ -327,8 +360,34 @@ const createStyles = (palette) =>
       alignItems: "center",
       justifyContent: "center",
     },
+    errorText: {
+      fontSize: 15,
+      color: palette.textPrimary,
+      textAlign: "center",
+    },
+    retry: {
+      marginTop: 12,
+      color: "#2563EB",
+      fontWeight: "600",
+    },
     loadingText: { marginTop: 8, color: palette.textSecondary },
-    emptyText: { fontSize: 16, color: palette.textSecondary },
+    emptyState: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      padding: 24,
+    },
+    emptyTitle: {
+      fontSize: 18,
+      fontWeight: "600",
+      marginBottom: 6,
+      color: palette.textPrimary,
+    },
+    emptySubtitle: {
+      fontSize: 14,
+      color: palette.textSecondary,
+      textAlign: "center",
+    },
     sortModalBackdrop: {
       flex: 1,
       backgroundColor: "rgba(0,0,0,0.3)",

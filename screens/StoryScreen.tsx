@@ -37,6 +37,7 @@ import WWHomeCard from "../components/WWHomeCard";
 // Shared timeline contract
 import type { TimelineBlock, TimelineEventBlock, SourceItem } from "@ww/shared";
 import { normalizeTimelineBlocks } from "../utils/normalizeTimelineBlocks";
+import ScreenLayout from "../components/ScreenLayout";
 
 
 
@@ -285,9 +286,11 @@ const { story, index, allStories } =
 
   if (!story) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.error}>⚠️ No story found.</Text>
-      </View>
+      <ScreenLayout>
+        <View style={styles.center}>
+          <Text style={styles.error}>⚠️ No story found.</Text>
+        </View>
+      </ScreenLayout>
     );
   }
 
@@ -945,20 +948,21 @@ setIsLoadingMore(false);
 // ----------------------------------------
 
   return (
-    <ScrollView
-      style={styles.container}
-      onScroll={({ nativeEvent }) => {
-        handleHeaderScroll({ nativeEvent });
-        const pad = 300;
-        if (
-          nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y >=
-          nativeEvent.contentSize.height - pad
-        ) {
-          loadNextStory();
-        }
-      }}
-      scrollEventThrottle={32}
-    >
+    <ScreenLayout>
+      <ScrollView
+        style={styles.container}
+        onScroll={({ nativeEvent }) => {
+          handleHeaderScroll({ nativeEvent });
+          const pad = 300;
+          if (
+            nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y >=
+            nativeEvent.contentSize.height - pad
+          ) {
+            loadNextStory();
+          }
+        }}
+        scrollEventThrottle={32}
+      >
       {feed.map((s) => {
   const storyId = s.id || s.docId;
   if (!storyId) return null;
@@ -1078,7 +1082,8 @@ setIsLoadingMore(false);
           </View>
         </TouchableOpacity>
       </Modal>
-    </ScrollView>
+      </ScrollView>
+    </ScreenLayout>
   );
 }
 

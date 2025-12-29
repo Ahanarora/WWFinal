@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { useUserData } from "../contexts/UserDataContext";
 import { getThemeColors } from "../styles/theme";
+import ScreenLayout from "../components/ScreenLayout";
 
 export default function SavedScreen({ navigation }) {
   const { user, savedItems, savedLoading, themeColors } = useUserData();
@@ -44,8 +45,10 @@ export default function SavedScreen({ navigation }) {
     }
   };
 
+  let content = null;
+
   if (!user) {
-    return (
+    content = (
       <View style={styles.emptyState}>
         <Text style={styles.emptyTitle}>Sign in to save stories and themes.</Text>
         <Text style={styles.emptySubtitle}>
@@ -53,19 +56,15 @@ export default function SavedScreen({ navigation }) {
         </Text>
       </View>
     );
-  }
-
-  if (savedLoading) {
-    return (
+  } else if (savedLoading) {
+    content = (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={palette.accent} />
         <Text style={styles.loadingText}>Loading your saved items...</Text>
       </View>
     );
-  }
-
-  if (!hasContent) {
-    return (
+  } else if (!hasContent) {
+    content = (
       <View style={styles.emptyState}>
         <Text style={styles.emptyTitle}>You haven’t saved anything yet.</Text>
         <Text style={styles.emptySubtitle}>
@@ -73,29 +72,31 @@ export default function SavedScreen({ navigation }) {
         </Text>
       </View>
     );
+  } else {
+    content = (
+      <FlatList
+        data={combinedList}
+        keyExtractor={(item) => item._key}
+        contentContainerStyle={styles.list}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.card}
+            onPress={() => handleOpenItem(item)}
+          >
+            <Text style={styles.typeLabel}>
+              {item._kind === "story" ? "Story" : "Theme"}
+            </Text>
+            <Text style={styles.title}>{item.title}</Text>
+            <Text style={styles.overview} numberOfLines={2}>
+              {item.overview || "No summary available."}
+            </Text>
+          </TouchableOpacity>
+        )}
+      />
+    );
   }
 
-  return (
-    <FlatList
-      data={combinedList}
-      keyExtractor={(item) => item._key}
-      contentContainerStyle={styles.list}
-      renderItem={({ item }) => (
-        <TouchableOpacity
-          style={styles.card}
-          onPress={() => handleOpenItem(item)}
-        >
-          <Text style={styles.typeLabel}>
-            {item._kind === "story" ? "Story" : "Theme"}
-          </Text>
-          <Text style={styles.title}>{item.title}</Text>
-          <Text style={styles.overview} numberOfLines={2}>
-            {item.overview || "No summary available."}
-          </Text>
-        </TouchableOpacity>
-      )}
-    />
-  );
+  return <ScreenLayout>{content}</ScreenLayout>;
 }
 
 const createStyles = (palette) =>

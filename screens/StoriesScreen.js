@@ -25,6 +25,7 @@ import { checkOnline } from "../utils/network";
 import WWStoryCard from "../components/WWStoryCard";
 import WWCompactCard from "../components/WWCompactCard";
 import WWFilterPaneStories from "../components/WWFilterPaneStories";
+import ScreenLayout from "../components/ScreenLayout";
 
 // -----------------------------
 // TAXONOMY (passed as props)
@@ -289,20 +290,17 @@ export default function StoriesScreen({ navigation }) {
     );
   };
 
-  // -----------------------------
-  // LOADING STATES
-  // -----------------------------
+  let content = null;
+
   if (loading) {
-    return (
+    content = (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#DC2626" />
         <Text style={styles.loadingText}>Loading stories...</Text>
       </View>
     );
-  }
-
-  if (error) {
-    return (
+  } else if (error) {
+    content = (
       <View style={styles.center}>
         <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity onPress={fetchStories}>
@@ -310,10 +308,8 @@ export default function StoriesScreen({ navigation }) {
         </TouchableOpacity>
       </View>
     );
-  }
-
-  if (sortedStories.length === 0) {
-    return (
+  } else if (sortedStories.length === 0) {
+    content = (
       <View style={styles.emptyState}>
         <Text style={styles.emptyTitle}>Nothing here yet</Text>
         <Text style={styles.emptySubtitle}>
@@ -321,94 +317,91 @@ export default function StoriesScreen({ navigation }) {
         </Text>
       </View>
     );
+  } else {
+    content = (
+      <View style={styles.container}>
+        {filterVisible && (
+          <WWFilterPaneStories
+            categories={CATEGORIES}
+            subcategories={SUBCATEGORY_MAP}
+            activeCategory={activeCategory}
+            activeSubcategory={activeSubcategory}
+            themeColors={palette}
+            onCategoryChange={(cat) => {
+              setActiveCategory(cat);
+              setActiveSubcategory("All");
+            }}
+            onSubcategoryChange={setActiveSubcategory}
+          />
+        )}
+        {filterVisible && (
+          <View style={styles.sortBar}>
+            <TouchableOpacity
+              style={styles.sortButton}
+              onPress={() => setShowSortMenu(true)}
+            >
+              <Ionicons
+                name="swap-vertical-outline"
+                size={16}
+                color={palette.textSecondary}
+                style={{ marginRight: 4 }}
+              />
+              <Text style={styles.sortButtonText}>Sort</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <FlatList
+          data={sortedStories}
+          keyExtractor={(item) => item.docId || item.id}
+          renderItem={renderStoryCard}
+          onScroll={handleHeaderScroll}
+          scrollEventThrottle={32}
+          contentContainerStyle={{ paddingBottom: 24 }}
+        />
+
+        <Modal
+          visible={showSortMenu}
+          animationType="fade"
+          transparent
+          onRequestClose={() => setShowSortMenu(false)}
+        >
+          <TouchableOpacity
+            style={styles.sortModalBackdrop}
+            onPress={() => setShowSortMenu(false)}
+          >
+            <View style={styles.sortModalContent}>
+              {[
+                { key: "relevance", label: "Relevance" },
+                { key: "updated", label: "Recently Updated" },
+                { key: "published", label: "Recently Published" },
+              ].map((opt) => (
+                <TouchableOpacity
+                  key={opt.key}
+                  style={styles.sortModalOption}
+                  onPress={() => {
+                    setSortMode(opt.key);
+                    setShowSortMenu(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.sortModalOptionText,
+                      sortMode === opt.key && styles.sortSelectedOptionText,
+                    ]}
+                  >
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      </View>
+    );
   }
 
-  // -----------------------------
-  // MAIN UI
-  // -----------------------------
-  return (
-    <View style={styles.container}>
-      {/* PINNED FILTER PANE */}
-      {filterVisible && (
-        <WWFilterPaneStories
-          categories={CATEGORIES}
-          subcategories={SUBCATEGORY_MAP}
-          activeCategory={activeCategory}
-          activeSubcategory={activeSubcategory}
-          themeColors={palette}
-          onCategoryChange={(cat) => {
-            setActiveCategory(cat);
-            setActiveSubcategory("All");
-          }}
-          onSubcategoryChange={setActiveSubcategory}
-        />
-      )}
-      {filterVisible && (
-        <View style={styles.sortBar}>
-          <TouchableOpacity
-            style={styles.sortButton}
-            onPress={() => setShowSortMenu(true)}
-          >
-            <Ionicons
-              name="swap-vertical-outline"
-              size={16}
-              color={palette.textSecondary}
-              style={{ marginRight: 4 }}
-            />
-            <Text style={styles.sortButtonText}>Sort</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* STORY LIST */}
-      <FlatList
-        data={sortedStories}
-        keyExtractor={(item) => item.docId || item.id}
-        renderItem={renderStoryCard}
-        onScroll={handleHeaderScroll}
-        scrollEventThrottle={32}
-        contentContainerStyle={{ paddingBottom: 24 }}
-      />
-
-      <Modal
-        visible={showSortMenu}
-        animationType="fade"
-        transparent
-        onRequestClose={() => setShowSortMenu(false)}
-      >
-        <TouchableOpacity
-          style={styles.sortModalBackdrop}
-          onPress={() => setShowSortMenu(false)}
-        >
-          <View style={styles.sortModalContent}>
-            {[
-              { key: "relevance", label: "Relevance" },
-              { key: "updated", label: "Recently Updated" },
-              { key: "published", label: "Recently Published" },
-            ].map((opt) => (
-              <TouchableOpacity
-                key={opt.key}
-                style={styles.sortModalOption}
-                onPress={() => {
-                  setSortMode(opt.key);
-                  setShowSortMenu(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.sortModalOptionText,
-                    sortMode === opt.key && styles.sortSelectedOptionText,
-                  ]}
-                >
-                  {opt.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </TouchableOpacity>
-      </Modal>
-    </View>
-  );
+  return <ScreenLayout>{content}</ScreenLayout>;
 }
 
 // ----------------------------------------

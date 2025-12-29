@@ -3,15 +3,7 @@
 // ----------------------------------------
 
 import React, { useState, useEffect } from "react";
-import {
-  Text,
-  View,
-  TouchableOpacity,
-  Modal,
-  Pressable,
-  StyleSheet,
-  Switch,
-} from "react-native";
+import { Text, View } from "react-native";
 
 import {
   NavigationContainer,
@@ -22,7 +14,6 @@ import {
 
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import type { NativeStackNavigationOptions } from "@react-navigation/native-stack";
 
 import { Ionicons } from "@expo/vector-icons";
 import * as Linking from "expo-linking";
@@ -51,10 +42,6 @@ import LoginScreen from "./screens/LoginScreen";
 import { getStorySearchCache } from "./utils/storyCache";
 import { UserDataProvider, useUserData } from "./contexts/UserDataContext";
 import { track } from "./utils/analytics";
-
-
-
-
 
 // ----------------------------------------
 // Navigation setup
@@ -119,7 +106,6 @@ if (!userData) return null;
 
 const { themeColors, savedUpdatesCount } = userData;
 const palette = themeColors || getThemeColors(false);
-
 
   return (
     <Tab.Navigator id={undefined}
@@ -204,57 +190,7 @@ const DarkNavTheme = {
 function AppNavigator({ user }: { user: any }) {
   const navigationRef = useNavigationContainerRef<RootStackParamList>();
 
-  const { darkMode, toggleDarkMode, themeColors } = useUserData();
-  const palette = themeColors || getThemeColors(darkMode);
-
-  const [menuVisible, setMenuVisible] = useState(false);
-
-  const screenOptions = ({
-    navigation,
-  }: {
-    navigation: any;
-  }): NativeStackNavigationOptions => ({
-    headerTitleAlign: "center",
-    headerStyle: {
-      backgroundColor: palette.surface,
-    },
-    headerShadowVisible: true,
-
-    headerTintColor: palette.textPrimary,
-    headerTitle: () => (
-      <TouchableOpacity
-        onPress={() => navigation.navigate("RootTabs", { screen: "HomeTab" })}
-        style={styles.headerTitleButton}
-        accessibilityRole="button"
-        accessibilityLabel="Go to home"
-        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-      >
-        <Text style={[styles.headerTitleText, { color: palette.textPrimary }]}>
-          Wait...What?
-        </Text>
-      </TouchableOpacity>
-    ),
-    headerRight: () => (
-      <View style={styles.headerActions}>
-        <TouchableOpacity
-          onPress={() => setMenuVisible(true)}
-          style={styles.iconButton}
-          accessibilityLabel="Open menu"
-        >
-          <Ionicons name="menu" size={24} color={palette.textPrimary} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() =>
-            (navigationRef.current as any)?.navigate("Search", { query: "" })
-          }
-          style={styles.iconButton}
-          accessibilityLabel="Search"
-        >
-          <Ionicons name="search" size={22} color={palette.textPrimary} />
-        </TouchableOpacity>
-      </View>
-    ),
-  });
+  const { darkMode } = useUserData();
 
   return (
     <>
@@ -271,11 +207,12 @@ function AppNavigator({ user }: { user: any }) {
             <Stack.Screen name="Login" component={LoginScreen} />
           </Stack.Navigator>
         ) : (
-          <Stack.Navigator id={undefined} screenOptions={screenOptions}>
-
-
-
-            <Stack.Screen name="RootTabs" component={Tabs} />
+          <Stack.Navigator id={undefined} screenOptions={{ headerShown: false }}>
+            <Stack.Screen
+              name="RootTabs"
+              component={Tabs}
+              options={{ headerShown: false }}
+            />
             <Stack.Screen name="Story" component={StoryScreen} />
             <Stack.Screen name="Theme" component={ThemeScreen} />
             <Stack.Screen name="Search" component={SearchScreen} />
@@ -302,73 +239,6 @@ function AppNavigator({ user }: { user: any }) {
           </Stack.Navigator>
         )}
       </NavigationContainer>
-
-      {/* Simple Menu Modal */}
-      <Modal
-        visible={menuVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setMenuVisible(false)}
-      >
-        <TouchableOpacity
-          style={styles.menuBackdrop}
-          activeOpacity={1}
-          onPress={() => setMenuVisible(false)}
-        >
-          <View style={[styles.menuCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-            <Text style={[styles.menuTitle, { color: palette.textPrimary }]}>Menu</Text>
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                setMenuVisible(false);
-                navigationRef.current?.navigate("RootTabs", { screen: "HomeTab" } as any);
-              }}
-            >
-              <Text style={[styles.menuItemText, { color: palette.textPrimary }]}>Home</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                setMenuVisible(false);
-                navigationRef.current?.navigate("RootTabs", { screen: "StoriesTab" } as any);
-              }}
-            >
-              <Text style={[styles.menuItemText, { color: palette.textPrimary }]}>Stories</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                setMenuVisible(false);
-                navigationRef.current?.navigate("RootTabs", { screen: "ThemesTab" } as any);
-              }}
-            >
-              <Text style={[styles.menuItemText, { color: palette.textPrimary }]}>Themes</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                setMenuVisible(false);
-                navigationRef.current?.navigate("WhatIsWaitWhat" as any);
-              }}
-            >
-              <Text style={[styles.menuItemText, { color: palette.textPrimary }]}>
-                What is Wait...What?
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                setMenuVisible(false);
-                toggleDarkMode?.();
-              }}
-            >
-              <Text style={[styles.menuItemText, { color: palette.textPrimary }]}>
-                Toggle Dark Mode
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
     </>
   );
 }
@@ -398,6 +268,8 @@ export default function App() {
     Barrio: require("./assets/fonts/Barrio-Regular.ttf"),
     FreckleFace: require("./assets/fonts/FreckleFace-Regular.ttf"),
     YujiBoku: require("./assets/fonts/YujiBoku-Regular.ttf"),
+    RubikDirt: require("./assets/fonts/RubikDirt-Regular.ttf"),
+    IMFellGreatPrimerSC: require("./assets/fonts/IMFellGreatPrimerSC-Regular.ttf"),
   });
 
   if (!fontsLoaded || authChecking) {
@@ -419,82 +291,3 @@ export default function App() {
 // ----------------------------------------
 // Styles
 // ----------------------------------------
-
-const styles = StyleSheet.create({
-  headerTitleButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  headerTitleText: {
-    fontFamily: "YujiBoku",
-    fontSize: 40,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-  },
-  headerActions: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  iconButton: {
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-  },
-  logoContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-    transform: [{ translateY: -4 }],
-  },
-  logoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-  },
-  logoWord: {
-    fontFamily: "YujiBoku",
-    fontSize: 36,
-    transform: [{ translateY: 14 }],
-  },
-  logoDots: {
-    fontFamily: "FreckleFace",
-    fontSize: 36,
-    marginHorizontal: 2,
-    transform: [{ translateY: 14 }],
-  },
-  logoUnderline: {
-    marginTop: -16,
-    height: 24,
-    borderRadius: 6,
-    alignSelf: "center",
-    width: "100%",
-    maxWidth: 280,
-    minWidth: 150,
-    transform: [{ rotate: "-2deg" }],
-    zIndex: -1,
-  },
-  menuBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "flex-start",
-    paddingTop: 60,
-    paddingHorizontal: 16,
-  },
-  menuCard: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 16,
-    gap: 12,
-  },
-  menuTitle: {
-    fontFamily: fonts.heading,
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  menuItem: {
-    paddingVertical: 8,
-  },
-  menuItemText: {
-    fontFamily: fonts.body,
-    fontSize: 16,
-  },
-});

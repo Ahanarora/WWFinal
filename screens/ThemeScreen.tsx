@@ -31,6 +31,7 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "../utils/firebase";
 import WWHomeCard from "../components/WWHomeCard";
 import { normalizeSources } from "../utils/normalizeSources";
+import ScreenLayout from "../components/ScreenLayout";
 
 // Shared timeline contract
 import type {
@@ -334,9 +335,11 @@ const SliderComponent = Slider as unknown as React.FC<SliderProps>;
   // -------------------------------------------------
   if (!theme) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.error}>⚠️ No theme found.</Text>
-      </View>
+      <ScreenLayout>
+        <View style={styles.center}>
+          <Text style={styles.error}>⚠️ No theme found.</Text>
+        </View>
+      </ScreenLayout>
     );
   }
 
@@ -994,20 +997,21 @@ const SliderComponent = Slider as unknown as React.FC<SliderProps>;
   // MAIN RENDER
   // ------------------------------
   return (
-    <ScrollView
-      style={styles.container}
-      scrollEventThrottle={32}
-      onScroll={({ nativeEvent }) => {
-        handleHeaderScroll({ nativeEvent });
-        const pad = 300;
-        if (
-          nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y >=
-          nativeEvent.contentSize.height - pad
-        ) {
-          loadNextTheme();
-        }
-      }}
-    >
+    <ScreenLayout>
+      <ScrollView
+        style={styles.container}
+        scrollEventThrottle={32}
+        onScroll={({ nativeEvent }) => {
+          handleHeaderScroll({ nativeEvent });
+          const pad = 300;
+          if (
+            nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y >=
+            nativeEvent.contentSize.height - pad
+          ) {
+            loadNextTheme();
+          }
+        }}
+      >
       {feed.map((t, i) => (
         <View key={t.id}>
           {renderThemeBlock(t, i === 0)}
@@ -1123,7 +1127,8 @@ const SliderComponent = Slider as unknown as React.FC<SliderProps>;
           </View>
         </TouchableOpacity>
       </Modal>
-    </ScrollView>
+      </ScrollView>
+    </ScreenLayout>
   );
 }
 

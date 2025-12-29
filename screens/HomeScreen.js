@@ -28,6 +28,7 @@ import { checkOnline } from "../utils/network";
 import WWHomeCard from "../components/WWHomeCard";
 import WWCompactCard from "../components/WWCompactCard";
 import WWFilterPaneStories from "../components/WWFilterPaneStories";
+import ScreenLayout from "../components/ScreenLayout";
 
 // -------------------------------
 // SAFE TIMESTAMP HELPERS
@@ -342,42 +343,6 @@ export default function HomeScreen({ navigation }) {
   }, []);
 
   // -------------------------------
-  // LOADING
-  // -------------------------------
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#DC2626" />
-        <Text style={styles.loadingText}>Loading content...</Text>
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity onPress={loadData}>
-          <Text style={styles.retry}>Retry</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  const hasContent = filteredStories.length > 0 || filteredThemes.length > 0;
-
-  if (!hasContent) {
-    return (
-      <View style={styles.emptyState}>
-        <Text style={styles.emptyTitle}>Nothing here yet</Text>
-        <Text style={styles.emptySubtitle}>
-          Check back later — we update this regularly.
-        </Text>
-      </View>
-    );
-  }
-
-  // -------------------------------
   // RENDER HELPERS
   // -------------------------------
   const renderFeaturedCard = (item) => (
@@ -466,66 +431,100 @@ export default function HomeScreen({ navigation }) {
   // -------------------------------
   // UI
   // -------------------------------
-  return (
-    <View style={styles.container}>
-      {/* MAIN FEED */}
-      <FlatList
-        data={listData}
-        keyExtractor={(item, index) => {
-          if (item._type === "controls") return "controls";
-          if (item._type === "featured") return "featured";
-          if (item._type === "sort") return "sort";
-          return `${item.type}-${item.docId || item.id}-${index}`;
-        }}
-        renderItem={renderRegularItem}
-        onScroll={handleHeaderScroll}
-        scrollEventThrottle={32}
-        ItemSeparatorComponent={({ leadingItem }) =>
-          leadingItem?._type ? null : <View style={styles.separator} />
-        }
-        contentContainerStyle={{ paddingBottom: 24 }}
-        stickyHeaderIndices={stickyHeaderIndices}
-        showsVerticalScrollIndicator={false}
-      />
-      <Modal
-        visible={showSortMenu}
-        animationType="fade"
-        transparent
-        onRequestClose={() => setShowSortMenu(false)}
-      >
-        <TouchableOpacity
-          style={styles.sortModalBackdrop}
-          onPress={() => setShowSortMenu(false)}
-        >
-          <View style={styles.sortModalContent}>
-            {[
-              { key: "relevance", label: "Relevance" },
-              { key: "updated", label: "Recently Updated" },
-              { key: "published", label: "Recently Published" },
-            ].map((opt) => (
-              <TouchableOpacity
-                key={opt.key}
-                style={styles.sortModalOption}
-                onPress={() => {
-                  setSortMode(opt.key);
-                  setShowSortMenu(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.sortModalOptionText,
-                    sortMode === opt.key && styles.sortSelectedOptionText,
-                  ]}
-                >
-                  {opt.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+  let content = null;
+
+  if (loading) {
+    content = (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#DC2626" />
+        <Text style={styles.loadingText}>Loading content...</Text>
+      </View>
+    );
+  } else if (error) {
+    content = (
+      <View style={styles.center}>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity onPress={loadData}>
+          <Text style={styles.retry}>Retry</Text>
         </TouchableOpacity>
-      </Modal>
-    </View>
-  );
+      </View>
+    );
+  } else {
+    const hasContent = filteredStories.length > 0 || filteredThemes.length > 0;
+
+    if (!hasContent) {
+      content = (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyTitle}>Nothing here yet</Text>
+          <Text style={styles.emptySubtitle}>
+            Check back later — we update this regularly.
+          </Text>
+        </View>
+      );
+    } else {
+      content = (
+        <View style={styles.container}>
+          <FlatList
+            data={listData}
+            keyExtractor={(item, index) => {
+              if (item._type === "controls") return "controls";
+              if (item._type === "featured") return "featured";
+              if (item._type === "sort") return "sort";
+              return `${item.type}-${item.docId || item.id}-${index}`;
+            }}
+            renderItem={renderRegularItem}
+            onScroll={handleHeaderScroll}
+            scrollEventThrottle={32}
+            ItemSeparatorComponent={({ leadingItem }) =>
+              leadingItem?._type ? null : <View style={styles.separator} />
+            }
+            contentContainerStyle={{ paddingBottom: 24 }}
+            stickyHeaderIndices={stickyHeaderIndices}
+            showsVerticalScrollIndicator={false}
+          />
+          <Modal
+            visible={showSortMenu}
+            animationType="fade"
+            transparent
+            onRequestClose={() => setShowSortMenu(false)}
+          >
+            <TouchableOpacity
+              style={styles.sortModalBackdrop}
+              onPress={() => setShowSortMenu(false)}
+            >
+              <View style={styles.sortModalContent}>
+                {[
+                  { key: "relevance", label: "Relevance" },
+                  { key: "updated", label: "Recently Updated" },
+                  { key: "published", label: "Recently Published" },
+                ].map((opt) => (
+                  <TouchableOpacity
+                    key={opt.key}
+                    style={styles.sortModalOption}
+                    onPress={() => {
+                      setSortMode(opt.key);
+                      setShowSortMenu(false);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.sortModalOptionText,
+                        sortMode === opt.key && styles.sortSelectedOptionText,
+                      ]}
+                    >
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </TouchableOpacity>
+          </Modal>
+        </View>
+      );
+    }
+  }
+
+  return <ScreenLayout>{content}</ScreenLayout>;
 }
 
 // ----------------------------------------

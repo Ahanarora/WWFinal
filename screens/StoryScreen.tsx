@@ -30,6 +30,7 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "../utils/firebase";
 import ShareButton from "../components/ShareButton";
 import { shareItem } from "../utils/share";
+import { track } from "../utils/analytics";
 import EventSortToggle from "../components/EventSortToggle";
 import WWHomeCard from "../components/WWHomeCard";
 
@@ -150,6 +151,10 @@ export default function StoryScreen({ route, navigation }: Props) {
 const { story, index, allStories } =
   (route.params as any) || {};
 
+  useEffect(() => {
+    track("view_story", { story_id: storyId });
+  }, [storyId]);
+
 
   // Endless scroll state
   const [feed, setFeed] = useState<any[]>(story ? [story] : []);
@@ -238,10 +243,14 @@ const { story, index, allStories } =
       alert("Sign in to save stories.");
       return;
     }
+    const alreadySaved = isFavoriteStory(item.id);
     toggleFavorite("stories", item.id, {
       ...item,
       _kind: "story",
     });
+    if (!alreadySaved) {
+      track("save", { type: "story", id: item.id });
+    }
   };
 
   const getFactStatusMeta = (

@@ -50,6 +50,9 @@ import LoginScreen from "./screens/LoginScreen";
 
 import { getStorySearchCache } from "./utils/storyCache";
 import { UserDataProvider, useUserData } from "./contexts/UserDataContext";
+import { track } from "./utils/analytics";
+
+
 
 
 
@@ -385,6 +388,11 @@ export default function App() {
     });
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+  track("app_open");
+}, []);
+
 
   const [fontsLoaded] = useFonts({
     Barrio: require("./assets/fonts/Barrio-Regular.ttf"),

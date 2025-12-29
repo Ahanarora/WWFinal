@@ -1,6 +1,7 @@
 //utils/share.js
 
 import { Share } from "react-native";
+import { track } from "./analytics";
 
 export async function shareItem({ type, id, title }) {
   try {
@@ -9,14 +10,16 @@ export async function shareItem({ type, id, title }) {
 
     const message = `${title}\n\nRead on Wait...What?\n${url}`;
 
-    await Share.share({
+    const result = await Share.share({
       title,
       message,
       url
     });
+    if (result?.action === Share.sharedAction) {
+      track("share", { type, id });
+    }
   } catch (error) {
     console.error("Share failed:", error);
   }
 }
-
 

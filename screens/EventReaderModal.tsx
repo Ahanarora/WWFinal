@@ -4,7 +4,7 @@
 // Phase 2B — Navigation-driven modal screen
 // ----------------------------------------
 
-import React, { useRef, useState, useMemo } from "react";
+import React, { useRef, useState, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import RenderWithContext from "../components/RenderWithContext";
 import SourceLinks from "../components/SourceLinks";
 import { formatDateLongOrdinal } from "../utils/formatTime";
 import { useUserData } from "../contexts/UserDataContext";
+import { track } from "../utils/analytics";
 
 import type {
   TimelineBlock,
@@ -68,6 +69,10 @@ const getImageHeight = (aspectRatio?: number) => {
 
 export default function EventReaderModal({ route, navigation }: Props) {
   const { events = [], initialIndex = 0 } = route.params ?? {};
+
+  useEffect(() => {
+    track("open_event_reader", { source: "story" });
+  }, []);
 
   const { themeColors, darkMode } = useUserData();
 

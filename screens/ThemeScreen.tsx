@@ -41,6 +41,7 @@ import type {
 import { normalizeTimelineBlocks } from "../utils/normalizeTimelineBlocks";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/types";
+import { track } from "../utils/analytics";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Theme">;
 
@@ -191,6 +192,13 @@ const formatFactUpdated = (val?: any) => {
 export default function ThemeScreen({ route, navigation }: Props) {
 
  const { theme, index, allThemes } = (route.params || {}) as any;
+ const themeId = theme?.id;
+
+  useEffect(() => {
+    if (themeId) {
+      track("view_theme", { theme_id: themeId });
+    }
+  }, [themeId]);
 
 
   // Endless scroll
@@ -348,10 +356,14 @@ const SliderComponent = Slider as unknown as React.FC<SliderProps>;
       alert("Sign in to save themes.");
       return;
     }
+    const alreadySaved = isFavorite(item.id);
     toggleFavorite("themes", item.id, {
       ...item,
       _kind: "theme",
     });
+    if (!alreadySaved) {
+      track("save", { type: "theme", id: item.id });
+    }
   };
 
   const updatesCount = (item: any) =>

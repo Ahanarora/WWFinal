@@ -141,7 +141,7 @@ const createStyles = (palette) =>
       fontWeight: "625",
     },
     categoryTextActive: {
-      color: "#DC2626",
+      color: palette.accent,
     },
     marker: {
       position: "absolute",
@@ -149,7 +149,7 @@ const createStyles = (palette) =>
       bottom: 2,
       left: -4,
       right: -4,
-      backgroundColor: "rgba(220,38,38,0.15)",
+      backgroundColor: palette.accent + "26",
       opacity: 1,
       transform: [{ skewX: "-15deg" }],
       borderRadius: 4,
@@ -169,7 +169,7 @@ const createStyles = (palette) =>
       fontWeight: "400",
     },
     subcategoryTextActive: {
-      color: "#DC2626",
+      color: palette.accent,
       fontWeight: "600",
     },
     separator: {

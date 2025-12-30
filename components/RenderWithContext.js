@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
     color: "#444",
   },
   close: {
-    color: "#DC2626",
+    color: "#14532d",
     fontWeight: "600",
     marginTop: 10,
     textAlign: "right",

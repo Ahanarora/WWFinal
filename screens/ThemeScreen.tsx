@@ -3,7 +3,7 @@
 // PHASE SUPPORT + EventReader integration
 // ----------------------------------------
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -23,7 +23,6 @@ import { formatUpdatedAt, formatDateLongOrdinal } from "../utils/formatTime";
 import { normalizeAnalysis } from "../utils/normalizeAnalysis";
 import { useUserData } from "../contexts/UserDataContext";
 import { Ionicons } from "@expo/vector-icons";
-import CommentsSection from "../components/CommentsSection";
 import ShareButton from "../components/ShareButton";
 import { shareItem } from "../utils/share";
 import EventSortToggle from "../components/EventSortToggle";
@@ -31,7 +30,7 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "../utils/firebase";
 import WWHomeCard from "../components/WWHomeCard";
 import { normalizeSources } from "../utils/normalizeSources";
-import ScreenLayout from "../components/ScreenLayout";
+import WWHeader from "../components/WWHeader";
 
 // Shared timeline contract
 import type {
@@ -259,8 +258,6 @@ const SliderComponent = Slider as unknown as React.FC<SliderProps>;
 
   const [faqExpanded, setFaqExpanded] = useState<Record<number, boolean>>({});
 
-  const headerShownRef = useRef(true);
-  const lastOffsetY = useRef(0);
 
   // -------------------------------------------------
   // EFFECTS: suggestion pool hydration
@@ -303,43 +300,18 @@ const SliderComponent = Slider as unknown as React.FC<SliderProps>;
     };
   }, [suggestionPool.length]);
 
-  // -------------------------------------------------
-  // HEADER SHOW / HIDE
-  // -------------------------------------------------
-  const toggleHeader = useCallback(
-    (show: boolean) => {
-      if (!navigation?.getParent) return;
-      if (headerShownRef.current === show) return;
-      navigation.getParent()?.setOptions({ headerShown: show });
-      headerShownRef.current = show;
-    },
-    [navigation]
-  );
-
-  const handleHeaderScroll = useCallback(
-    ({ nativeEvent }: any) => {
-      const y = nativeEvent?.contentOffset?.y || 0;
-      const delta = y - lastOffsetY.current;
-      const threshold = 20;
-      if (delta > threshold) toggleHeader(false);
-      else if (delta < -threshold) toggleHeader(true);
-      lastOffsetY.current = y;
-    },
-    [toggleHeader]
-  );
-
-  useEffect(() => () => toggleHeader(true), [toggleHeader]);
 
   // -------------------------------------------------
   // GUARDS
   // -------------------------------------------------
   if (!theme) {
     return (
-      <ScreenLayout>
+      <View style={{ flex: 1 }}>
+        <WWHeader />
         <View style={styles.center}>
           <Text style={styles.error}>⚠️ No theme found.</Text>
         </View>
-      </ScreenLayout>
+      </View>
     );
   }
 
@@ -735,6 +707,9 @@ const SliderComponent = Slider as unknown as React.FC<SliderProps>;
   step={1}
   value={depth}
   onValueChange={(v) => setDepth(v)}
+  minimumTrackTintColor={palette.accent}
+  maximumTrackTintColor={palette.border}
+  thumbTintColor={palette.accent}
 />
 
             </View>
@@ -997,12 +972,12 @@ const SliderComponent = Slider as unknown as React.FC<SliderProps>;
   // MAIN RENDER
   // ------------------------------
   return (
-    <ScreenLayout>
+    <View style={{ flex: 1 }}>
+      <WWHeader />
       <ScrollView
         style={styles.container}
         scrollEventThrottle={32}
         onScroll={({ nativeEvent }) => {
-          handleHeaderScroll({ nativeEvent });
           const pad = 300;
           if (
             nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y >=
@@ -1016,7 +991,6 @@ const SliderComponent = Slider as unknown as React.FC<SliderProps>;
         <View key={t.id}>
           {renderThemeBlock(t, i === 0)}
           {renderSuggestions(t)}
-          <CommentsSection type="theme" itemId={t.id} />
         </View>
       ))}
 
@@ -1128,7 +1102,7 @@ const SliderComponent = Slider as unknown as React.FC<SliderProps>;
         </TouchableOpacity>
       </Modal>
       </ScrollView>
-    </ScreenLayout>
+    </View>
   );
 }
 

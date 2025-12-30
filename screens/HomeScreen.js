@@ -3,7 +3,7 @@
 // Home feed with featured carousel and inline sort control
 // ----------------------------------------
 
-import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -28,7 +28,7 @@ import { checkOnline } from "../utils/network";
 import WWHomeCard from "../components/WWHomeCard";
 import WWCompactCard from "../components/WWCompactCard";
 import WWFilterPaneStories from "../components/WWFilterPaneStories";
-import ScreenLayout from "../components/ScreenLayout";
+import WWHeader from "../components/WWHeader";
 
 // -------------------------------
 // SAFE TIMESTAMP HELPERS
@@ -111,46 +111,6 @@ export default function HomeScreen({ navigation }) {
   const { themeColors } = useUserData() || {};
   const palette = themeColors || getThemeColors(false);
   const styles = useMemo(() => createStyles(palette), [palette]);
-
-  const headerShownRef = useRef(true);
-  const lastOffsetY = useRef(0);
-  const MIN_OFFSET_TO_HIDE = 500; // keep controls visible near top longer
-
-  const toggleHeader = useCallback(
-    (show) => {
-      if (!navigation?.getParent) return;
-      if (headerShownRef.current === show) return;
-      navigation.getParent()?.setOptions({ headerShown: show });
-      headerShownRef.current = show;
-    },
-    [navigation]
-  );
-
-  const handleHeaderScroll = useCallback(
-    ({ nativeEvent }) => {
-      const y = nativeEvent?.contentOffset?.y || 0;
-      const delta = y - lastOffsetY.current;
-      const hideThreshold = 12;
-      const showThreshold = -6;
-
-      if (delta > hideThreshold && y > MIN_OFFSET_TO_HIDE) {
-        toggleHeader(false);
-        if (controlsVisible) setControlsVisible(false);
-      } else if (delta < showThreshold || y <= 0) {
-        toggleHeader(true);
-        if (!controlsVisible) setControlsVisible(true);
-      }
-      lastOffsetY.current = y;
-    },
-    [toggleHeader, controlsVisible]
-  );
-
-  useEffect(
-    () => () => {
-      toggleHeader(true);
-    },
-    [toggleHeader]
-  );
 
   // -------------------------------
   // FETCH STORIES + THEMES
@@ -436,7 +396,7 @@ export default function HomeScreen({ navigation }) {
   if (loading) {
     content = (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#DC2626" />
+        <ActivityIndicator size="large" color={palette.accent} />
         <Text style={styles.loadingText}>Loading content...</Text>
       </View>
     );
@@ -465,19 +425,18 @@ export default function HomeScreen({ navigation }) {
       content = (
         <View style={styles.container}>
           <FlatList
-            data={listData}
-            keyExtractor={(item, index) => {
-              if (item._type === "controls") return "controls";
-              if (item._type === "featured") return "featured";
-              if (item._type === "sort") return "sort";
-              return `${item.type}-${item.docId || item.id}-${index}`;
-            }}
-            renderItem={renderRegularItem}
-            onScroll={handleHeaderScroll}
-            scrollEventThrottle={32}
-            ItemSeparatorComponent={({ leadingItem }) =>
-              leadingItem?._type ? null : <View style={styles.separator} />
-            }
+        data={listData}
+        keyExtractor={(item, index) => {
+          if (item._type === "controls") return "controls";
+          if (item._type === "featured") return "featured";
+          if (item._type === "sort") return "sort";
+          return `${item.type}-${item.docId || item.id}-${index}`;
+        }}
+        renderItem={renderRegularItem}
+        scrollEventThrottle={32}
+        ItemSeparatorComponent={({ leadingItem }) =>
+          leadingItem?._type ? null : <View style={styles.separator} />
+        }
             contentContainerStyle={{ paddingBottom: 24 }}
             stickyHeaderIndices={stickyHeaderIndices}
             showsVerticalScrollIndicator={false}
@@ -524,7 +483,12 @@ export default function HomeScreen({ navigation }) {
     }
   }
 
-  return <ScreenLayout>{content}</ScreenLayout>;
+  return (
+    <View style={{ flex: 1 }}>
+      <WWHeader />
+      {content}
+    </View>
+  );
 }
 
 // ----------------------------------------

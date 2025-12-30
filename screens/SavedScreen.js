@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useUserData } from "../contexts/UserDataContext";
 import { getThemeColors } from "../styles/theme";
-import ScreenLayout from "../components/ScreenLayout";
+import WWHeader from "../components/WWHeader";
 
 export default function SavedScreen({ navigation }) {
   const { user, savedItems, savedLoading, themeColors } = useUserData();
@@ -96,7 +96,12 @@ export default function SavedScreen({ navigation }) {
     );
   }
 
-  return <ScreenLayout>{content}</ScreenLayout>;
+  return (
+    <View style={{ flex: 1 }}>
+      <WWHeader />
+      {content}
+    </View>
+  );
 }
 
 const createStyles = (palette) =>

@@ -104,7 +104,7 @@ const createStyles = (palette) =>
       fontWeight: "625",
     },
     categoryTextActive: {
-      color: palette.textPrimary,
+      color: palette.accent,
     },
     marker: {
       position: "absolute",
@@ -112,8 +112,8 @@ const createStyles = (palette) =>
       bottom: 2,
       left: -4,
       right: -4,
-      backgroundColor: "#FACC15",
-      opacity: 0.65,
+      backgroundColor: palette.accent + "26",
+      opacity: 1,
       transform: [{ skewX: "-15deg" }],
       borderRadius: 4,
       zIndex: -1,

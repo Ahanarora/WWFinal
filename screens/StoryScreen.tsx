@@ -3,7 +3,7 @@
 // (RESTORED ORIGINAL + Analysis buttons + PHASES + Event Reader phases)
 // ----------------------------------------
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -22,7 +22,6 @@ import SourceLinks from "../components/SourceLinks";
 import RenderWithContext from "../components/RenderWithContext";
 import { formatUpdatedAt, formatDateLongOrdinal } from "../utils/formatTime";
 import { normalizeAnalysis } from "../utils/normalizeAnalysis";
-import CommentsSection from "../components/CommentsSection";
 import { useUserData } from "../contexts/UserDataContext";
 import { Ionicons } from "@expo/vector-icons";
 import { getStorySearchCache } from "../utils/storyCache";
@@ -37,7 +36,7 @@ import WWHomeCard from "../components/WWHomeCard";
 // Shared timeline contract
 import type { TimelineBlock, TimelineEventBlock, SourceItem } from "@ww/shared";
 import { normalizeTimelineBlocks } from "../utils/normalizeTimelineBlocks";
-import ScreenLayout from "../components/ScreenLayout";
+import WWHeader from "../components/WWHeader";
 
 
 
@@ -183,35 +182,8 @@ const { story, index, allStories } =
     darkMode,
   } = useUserData();
 
-  const headerShownRef = useRef(true);
-  const lastOffsetY = useRef(0);
-
   const palette = themeColors || getThemeColors(darkMode);
   const styles = useMemo(() => createStyles(palette), [palette]);
-
-  const toggleHeader = useCallback(
-    (show: boolean) => {
-      if (!navigation?.getParent) return;
-      if (headerShownRef.current === show) return;
-      navigation.getParent()?.setOptions({ headerShown: show });
-      headerShownRef.current = show;
-    },
-    [navigation]
-  );
-
-  const handleHeaderScroll = useCallback(
-    ({ nativeEvent }: any) => {
-      const y = nativeEvent?.contentOffset?.y || 0;
-      const delta = y - lastOffsetY.current;
-      const threshold = 20;
-      if (delta > threshold) toggleHeader(false);
-      else if (delta < -threshold) toggleHeader(true);
-      lastOffsetY.current = y;
-    },
-    [toggleHeader]
-  );
-
-  useEffect(() => () => toggleHeader(true), [toggleHeader]);
 
   const [sortOrder, setSortOrder] = useState<"chronological" | "reverse">(
     "reverse"
@@ -286,11 +258,12 @@ const { story, index, allStories } =
 
   if (!story) {
     return (
-      <ScreenLayout>
+      <View style={{ flex: 1 }}>
+        <WWHeader />
         <View style={styles.center}>
           <Text style={styles.error}>⚠️ No story found.</Text>
         </View>
-      </ScreenLayout>
+      </View>
     );
   }
 
@@ -694,6 +667,9 @@ setIsLoadingMore(false);
   step={1}
   value={depth}
   onValueChange={(v) => setDepth(v)}
+  minimumTrackTintColor={palette.accent}
+  maximumTrackTintColor={palette.border}
+  thumbTintColor={palette.accent}
 />
 
             </View>
@@ -948,11 +924,11 @@ setIsLoadingMore(false);
 // ----------------------------------------
 
   return (
-    <ScreenLayout>
+    <View style={{ flex: 1 }}>
+      <WWHeader />
       <ScrollView
         style={styles.container}
         onScroll={({ nativeEvent }) => {
-          handleHeaderScroll({ nativeEvent });
           const pad = 300;
           if (
             nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y >=
@@ -963,7 +939,7 @@ setIsLoadingMore(false);
         }}
         scrollEventThrottle={32}
       >
-      {feed.map((s) => {
+        {feed.map((s) => {
   const storyId = s.id || s.docId;
   if (!storyId) return null;
 
@@ -971,7 +947,6 @@ setIsLoadingMore(false);
     <View key={`story-${storyId}`}>
       {renderStoryBlock({ ...s, id: storyId })}
       {renderSuggestions({ ...s, id: storyId })}
-      <CommentsSection type="story" itemId={storyId} />
     </View>
   );
 })}
@@ -1081,9 +1056,9 @@ setIsLoadingMore(false);
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
-      </Modal>
+        </Modal>
       </ScrollView>
-    </ScreenLayout>
+    </View>
   );
 }
 

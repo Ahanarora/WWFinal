@@ -201,21 +201,37 @@ function AppNavigator({ user }: { user: any }) {
       >
         {!user ? (
          <Stack.Navigator id={undefined} screenOptions={{ headerShown: false }}>
-
-
-
-            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen
+              name="Login"
+              component={LoginScreen}
+              options={{ headerShown: false }}
+            />
           </Stack.Navigator>
         ) : (
-          <Stack.Navigator id={undefined} screenOptions={{ headerShown: false }}>
+          <Stack.Navigator
+            id={undefined}
+            screenOptions={{ headerShown: false }}
+          >
             <Stack.Screen
               name="RootTabs"
               component={Tabs}
               options={{ headerShown: false }}
             />
-            <Stack.Screen name="Story" component={StoryScreen} />
-            <Stack.Screen name="Theme" component={ThemeScreen} />
-            <Stack.Screen name="Search" component={SearchScreen} />
+            <Stack.Screen
+              name="Story"
+              component={StoryScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="Theme"
+              component={ThemeScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="Search"
+              component={SearchScreen}
+              options={{ headerShown: false }}
+            />
             <Stack.Screen
               name="AnalysisModal"
               component={AnalysisModalScreen}
@@ -229,12 +245,12 @@ function AppNavigator({ user }: { user: any }) {
             <Stack.Screen
               name="WhatIsWaitWhat"
               component={WhatIsWaitWhatScreen}
-              options={{ title: "What is Wait...What?" }}
+              options={{ title: "What is Wait...What?", headerShown: false }}
             />
             <Stack.Screen
               name="ContactUs"
               component={ContactUsScreen}
-              options={{ title: "Contact Us" }}
+              options={{ title: "Contact Us", headerShown: false }}
             />
           </Stack.Navigator>
         )}
@@ -270,6 +286,9 @@ export default function App() {
     YujiBoku: require("./assets/fonts/YujiBoku-Regular.ttf"),
     RubikDirt: require("./assets/fonts/RubikDirt-Regular.ttf"),
     IMFellGreatPrimerSC: require("./assets/fonts/IMFellGreatPrimerSC-Regular.ttf"),
+    "Pwchalk-LyxG": require("./assets/fonts/Pwchalk-LyxG.ttf"),
+    Bangers: require("./assets/fonts/Bangers-Regular.ttf"),
+    FrederickatheGreat: require("./assets/fonts/FrederickatheGreat-Regular.ttf"),
   });
 
   if (!fontsLoaded || authChecking) {
@@ -289,5 +308,5 @@ export default function App() {
 }
 
 // ----------------------------------------
-// Styles
+// Styles (none)
 // ----------------------------------------

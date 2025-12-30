@@ -3,7 +3,7 @@
 // Clean version using WWFilterPaneStories
 // ----------------------------------------
 
-import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -25,7 +25,7 @@ import { checkOnline } from "../utils/network";
 import WWStoryCard from "../components/WWStoryCard";
 import WWCompactCard from "../components/WWCompactCard";
 import WWFilterPaneStories from "../components/WWFilterPaneStories";
-import ScreenLayout from "../components/ScreenLayout";
+import WWHeader from "../components/WWHeader";
 
 // -----------------------------
 // TAXONOMY (passed as props)
@@ -106,51 +106,6 @@ export default function StoriesScreen({ navigation }) {
   const { themeColors, darkMode } = useUserData();
   const palette = themeColors || getThemeColors(darkMode);
   const styles = useMemo(() => createStyles(palette), [palette]);
-  const headerShownRef = useRef(true);
-  const lastOffsetY = useRef(0);
-  const filterVisibleRef = useRef(true);
-
-  const toggleHeader = useCallback(
-    (show) => {
-      if (!navigation?.getParent) return;
-      if (headerShownRef.current === show) return;
-      navigation.getParent()?.setOptions({ headerShown: show });
-      headerShownRef.current = show;
-    },
-    [navigation]
-  );
-
-  const handleHeaderScroll = useCallback(
-    ({ nativeEvent }) => {
-      const y = nativeEvent?.contentOffset?.y || 0;
-      const delta = y - lastOffsetY.current;
-      const threshold = 20;
-      if (delta > threshold) {
-        toggleHeader(false);
-        if (filterVisibleRef.current) {
-          filterVisibleRef.current = false;
-          setFilterVisible(false);
-        }
-      } else if (delta < -threshold) {
-        toggleHeader(true);
-        if (!filterVisibleRef.current) {
-          filterVisibleRef.current = true;
-          setFilterVisible(true);
-        }
-      }
-      lastOffsetY.current = y;
-    },
-    [toggleHeader]
-  );
-
-  useEffect(
-    () => () => {
-      toggleHeader(true);
-      filterVisibleRef.current = true;
-      setFilterVisible(true);
-    },
-    [toggleHeader]
-  );
 
   // -----------------------------
   // FETCH STORIES
@@ -295,7 +250,7 @@ export default function StoriesScreen({ navigation }) {
   if (loading) {
     content = (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#DC2626" />
+        <ActivityIndicator size="large" color={palette.accent} />
         <Text style={styles.loadingText}>Loading stories...</Text>
       </View>
     );
@@ -355,7 +310,6 @@ export default function StoriesScreen({ navigation }) {
           data={sortedStories}
           keyExtractor={(item) => item.docId || item.id}
           renderItem={renderStoryCard}
-          onScroll={handleHeaderScroll}
           scrollEventThrottle={32}
           contentContainerStyle={{ paddingBottom: 24 }}
         />
@@ -401,7 +355,12 @@ export default function StoriesScreen({ navigation }) {
     );
   }
 
-  return <ScreenLayout>{content}</ScreenLayout>;
+  return (
+    <View style={{ flex: 1 }}>
+      <WWHeader />
+      {content}
+    </View>
+  );
 }
 
 // ----------------------------------------

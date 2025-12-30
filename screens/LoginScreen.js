@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   loginButton: {
-    backgroundColor: "#DC2626",
+    backgroundColor: "#14532d",
     paddingVertical: 14,
     borderRadius: 10,
     marginTop: 8,
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
   },
   skipButtonText: {
     textAlign: "center",
-    color: "#DC2626",
+    color: "#14532d",
     fontSize: 15,
     fontWeight: "600",
   },

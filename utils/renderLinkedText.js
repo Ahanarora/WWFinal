@@ -57,8 +57,9 @@ export function parseLinkedText(text) {
 /**
  * Render parsed text to RN elements.
  */
-export function renderLinkedText(text, navigation) {
+export function renderLinkedText(text, navigation, themeColors) {
   const nodes = parseLinkedText(text);
+  const linkColor = themeColors?.accent || "#14532d";
 
   return (
     <>
@@ -74,7 +75,7 @@ export function renderLinkedText(text, navigation) {
             <Text
               key={i}
               style={{
-                color: "#DC2626",
+                color: linkColor,
                 textDecorationLine: "underline",
               }}
               onPress={async () => {
@@ -135,7 +136,7 @@ export function renderLinkedText(text, navigation) {
             <Text
               key={i}
               style={{
-            color: "#DC2626",
+                color: linkColor,
                 textDecorationLine: "underline",
               }}
               onPress={() => Linking.openURL(n.href)}

@@ -3,7 +3,7 @@
 // Clean version using WWFilterPaneThemes
 // ----------------------------------------
 
-import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -24,7 +24,7 @@ import { checkOnline } from "../utils/network";
 import WWThemeCard from "../components/WWThemeCard";
 import WWCompactCard from "../components/WWCompactCard";
 import WWFilterPaneThemes from "../components/WWFilterPaneThemes";
-import ScreenLayout from "../components/ScreenLayout";
+import WWHeader from "../components/WWHeader";
 
 // -------------------------------
 // CATEGORY DEFINITIONS
@@ -72,42 +72,6 @@ export default function ThemesScreen({ navigation }) {
 
   const palette = getThemeColors(false);
   const styles = useMemo(() => createStyles(palette), [palette]);
-  const headerShownRef = useRef(true);
-  const lastOffsetY = useRef(0);
-  const filterVisibleRef = useRef(true);
-
-  const toggleHeader = useCallback(
-    (show) => {
-      if (!navigation?.getParent) return;
-      if (headerShownRef.current === show) return;
-      navigation.getParent()?.setOptions({ headerShown: show });
-      headerShownRef.current = show;
-    },
-    [navigation]
-  );
-
-  const handleHeaderScroll = useCallback(
-    ({ nativeEvent }) => {
-      const y = nativeEvent?.contentOffset?.y || 0;
-      const delta = y - lastOffsetY.current;
-      const threshold = 20;
-      if (delta > threshold) {
-        toggleHeader(false);
-        if (filterVisibleRef.current) {
-          filterVisibleRef.current = false;
-          setFilterVisible(false);
-        }
-      } else if (delta < -threshold) {
-        toggleHeader(true);
-        if (!filterVisibleRef.current) {
-          filterVisibleRef.current = true;
-          setFilterVisible(true);
-        }
-      }
-      lastOffsetY.current = y;
-    },
-    [toggleHeader]
-  );
 
   useEffect(
     () => () => {
@@ -222,7 +186,7 @@ export default function ThemesScreen({ navigation }) {
   if (loading) {
     content = (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#DC2626" />
+        <ActivityIndicator size="large" color={palette.accent} />
         <Text style={styles.loadingText}>Loading themes...</Text>
       </View>
     );
@@ -271,14 +235,13 @@ export default function ThemesScreen({ navigation }) {
             </View>
           </>
         )}
-        <FlatList
-          data={sortedThemes}
-          keyExtractor={(item) => item.docId || item.id}
-          renderItem={renderThemeCard}
-          onScroll={handleHeaderScroll}
-          scrollEventThrottle={32}
-          contentContainerStyle={{ paddingBottom: 24 }}
-        />
+      <FlatList
+        data={sortedThemes}
+        keyExtractor={(item) => item.docId || item.id}
+        renderItem={renderThemeCard}
+        scrollEventThrottle={32}
+        contentContainerStyle={{ paddingBottom: 24 }}
+      />
 
         <Modal
           visible={showSortMenu}
@@ -321,7 +284,12 @@ export default function ThemesScreen({ navigation }) {
     );
   }
 
-  return <ScreenLayout>{content}</ScreenLayout>;
+  return (
+    <View style={{ flex: 1 }}>
+      <WWHeader />
+      {content}
+    </View>
+  );
 }
 
 // ----------------------------------------

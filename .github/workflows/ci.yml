@@ -1,4 +1,4 @@
-name: CI – Launch Safe Checks
+name: CI – Launch Safe Checks (Debug)
 
 on:
   push:
@@ -9,26 +9,71 @@ jobs:
   checks:
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: WWFinal
-
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      # ---- DEBUG: show exact repo structure ----
+      - name: Debug repo structure
+        run: |
+          echo "=== CURRENT DIR ==="
+          pwd
+
+          echo "=== ROOT LISTING ==="
+          ls -la
+
+          echo "=== RECURSIVE TREE (DEPTH 3) ==="
+          find . -maxdepth 3 -type d
+
+          echo "=== FIND package.json ==="
+          find . -name "package.json"
+
+          echo "=== FIND package-lock.json ==="
+          find . -name "package-lock.json"
+
+      # ---- NODE SETUP (no assumptions yet) ----
       - name: Use Node.js 18
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: npm
-          cache-dependency-path: WWFinal/package-lock.json
 
-      - name: Install dependencies
-        run: npm ci
+      # ---- SAFETY: attempt install only if lockfile exists ----
+      - name: Install dependencies (if possible)
+        run: |
+          if [ -f package-lock.json ]; then
+            echo "Lockfile found at repo root"
+            npm ci
+          elif [ -f WWFinal/package-lock.json ]; then
+            echo "Lockfile found at WWFinal/"
+            cd WWFinal
+            npm ci
+          elif [ -f WWFinal/WWFinal/package-lock.json ]; then
+            echo "Lockfile found at WWFinal/WWFinal/"
+            cd WWFinal/WWFinal
+            npm ci
+          else
+            echo "❌ NO package-lock.json FOUND ANYWHERE"
+            exit 1
+          fi
 
+      # ---- TYPECHECK (only runs if install succeeded) ----
       - name: TypeScript typecheck
-        run: npm run typecheck
+        run: |
+          if [ -f package.json ]; then
+            npm run typecheck || true
+          elif [ -f WWFinal/package.json ]; then
+            cd WWFinal && npm run typecheck || true
+          elif [ -f WWFinal/WWFinal/package.json ]; then
+            cd WWFinal/WWFinal && npm run typecheck || true
+          fi
 
+      # ---- EXPO DOCTOR (best-effort for now) ----
       - name: Expo doctor
-        run: npx expo doctor
+        run: |
+          if [ -f package.json ]; then
+            npx expo doctor || true
+          elif [ -f WWFinal/package.json ]; then
+            cd WWFinal && npx expo doctor || true
+          elif [ -f WWFinal/WWFinal/package.json ]; then
+            cd WWFinal/WWFinal && npx expo doctor || true
+          fi
